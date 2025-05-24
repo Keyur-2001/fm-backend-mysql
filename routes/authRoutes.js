@@ -15,13 +15,16 @@ router.post('/create-person', authMiddleware, AuthController.createPerson);
 // Login
 router.post('/login', AuthController.login);
 
+// Logout (requires authentication)
+router.post('/logout', authMiddleware, AuthController.logout);
+
 // Forgot password (no authentication required)
 router.post('/forgot-password', AuthController.forgotPassword);
 
 // Reset password (no authentication required)
 router.post('/reset-password', AuthController.resetPassword);
 
-// Verify token
-router.get('/verify-token', AuthController.verifyToken);
+// Verify token (requires authentication)
+router.get('/verify-token', authMiddleware, AuthController.verifyToken);
 
 module.exports = router;

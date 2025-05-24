@@ -3,7 +3,6 @@ const poolPromise = require('../config/db.config');
 const bcrypt = require('bcrypt');
 
 class User {
-  // Create a new user in dbo_tblperson with all required fields
   static async createUser(userData, CreatedByID) {
     const pool = await poolPromise;
     const query = `
@@ -16,7 +15,6 @@ class User {
       SELECT LAST_INSERT_ID() AS PersonID;
     `;
 
-    // Input validation and sanitization
     const values = [
       userData.FirstName?.trim(),
       userData.MiddleName?.trim() || null,
@@ -30,12 +28,10 @@ class User {
     ];
 
     const [results] = await pool.query(query, values);
-    // MySQL returns the inserted ID in the second result set
     const insertedId = results[1][0].PersonID;
     return insertedId;
   }
 
-  // Check if a role exists
   static async getRoleById(RoleID) {
     const pool = await poolPromise;
     const query = `
@@ -47,7 +43,6 @@ class User {
     return rows[0];
   }
 
-  // Check if a company exists
   static async getCompanyById(CompanyID) {
     const pool = await poolPromise;
     const query = `
@@ -59,7 +54,6 @@ class User {
     return rows[0];
   }
 
-  // Check for duplicate LoginID or EmailID
   static async checkExistingUser(LoginID, EmailID) {
     const pool = await poolPromise;
     const query = `
@@ -71,7 +65,6 @@ class User {
     return rows.length > 0;
   }
 
-  // Get list of admins
   static async getAdmins() {
     const pool = await poolPromise;
     const query = `
@@ -84,7 +77,6 @@ class User {
     return rows;
   }
 
-  // Get user by LoginID for authentication
   static async getUserByLoginID(LoginID) {
     const pool = await poolPromise;
     const query = `
@@ -95,6 +87,51 @@ class User {
     `;
     const [rows] = await pool.query(query, [LoginID?.trim()]);
     return rows[0];
+  }
+
+  static async getUserByPersonID(PersonID) {
+    const pool = await poolPromise;
+    const query = `
+      SELECT p.PersonID, p.LoginID, p.Password, p.RoleID, r.RoleName
+      FROM dbo_tblperson p 
+      JOIN dbo_tblroles r ON p.RoleID = r.RoleID
+      WHERE p.PersonID = ? AND p.IsDeleted = 0;
+    `;
+    const [rows] = await pool.query(query, [parseInt(PersonID)]);
+    return rows[0];
+  }
+
+  static async blacklistToken(token, expiry) {
+    const pool = await poolPromise;
+    const query = `
+      INSERT INTO dbo_tbltokenblacklist (Token, ExpiryDateTime)
+      VALUES (?, ?)
+      ON DUPLICATE KEY UPDATE ExpiryDateTime = ?;
+    `;
+    // Ensure expiry is in UTC for consistency
+    const expiryUTC = expiry.toISOString().replace('T', ' ').split('.')[0];
+    console.log('Storing token in blacklist with expiry (UTC):', expiryUTC);
+    await pool.query(query, [token, expiryUTC, expiryUTC]);
+  }
+
+  static async isTokenBlacklisted(token) {
+    const pool = await poolPromise;
+    const query = `
+      SELECT Token
+      FROM dbo_tbltokenblacklist
+      WHERE Token = ? AND ExpiryDateTime > UTC_TIMESTAMP();
+    `;
+    const [rows] = await pool.query(query, [token]);
+    return rows.length > 0;
+  }
+
+  static async cleanExpiredTokens() {
+    const pool = await poolPromise;
+    const query = `
+      DELETE FROM dbo_tbltokenblacklist
+      WHERE ExpiryDateTime <= UTC_TIMESTAMP();
+    `;
+    await pool.query(query);
   }
 }
 

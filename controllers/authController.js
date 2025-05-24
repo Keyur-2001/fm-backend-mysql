@@ -40,7 +40,6 @@ class AuthController {
         { expiresIn: '24h' }
       );
 
-      // Log email data before sending
       console.log('Sending welcome email with:', { email: EmailID, loginID: LoginID, password: Password });
       if (!EmailID || !LoginID) {
         console.warn('EmailID or LoginID is undefined, email will fail');
@@ -210,6 +209,34 @@ class AuthController {
     }
   }
 
+  static async logout(req, res) {
+    try {
+      const token = req.headers.authorization?.split('Bearer ')[1];
+      if (!token) {
+        return res.status(400).json({ message: 'No token provided' });
+      }
+
+      console.log('Blacklisting token:', token);
+
+      const decoded = jwt.decode(token);
+      if (!decoded || !decoded.exp) {
+        return res.status(400).json({ message: 'Invalid token' });
+      }
+
+      const expiry = new Date(decoded.exp * 1000);
+      console.log('Token expiry:', expiry.toISOString());
+      await User.blacklistToken(token, expiry);
+
+      const isBlacklisted = await User.isTokenBlacklisted(token);
+      console.log('Is token blacklisted after logout?', isBlacklisted);
+
+      return res.status(200).json({ message: 'Logged out successfully' });
+    } catch (error) {
+      console.error('Error logging out:', error);
+      return res.status(500).json({ message: 'Error logging out', error: error.message });
+    }
+  }
+
   static async forgotPassword(req, res) {
     try {
       const { EmailID } = req.body;
@@ -238,7 +265,7 @@ class AuthController {
 
       const result = await PasswordReset.resetPassword(EmailID, resetToken, newPassword);
       if (!result.success) {
-        return res.status(400).json({ message: result.message });
+        return res.status(400).json({ message: 'Invalid or used reset token' });
       }
 
       return res.status(200).json({ message: result.message });
@@ -250,15 +277,11 @@ class AuthController {
 
   static async verifyToken(req, res) {
     try {
-      const token = req.headers.authorization?.split('Bearer ')[1];
-      if (!token) {
-        return res.status(401).json({ message: 'No token provided' });
-      }
-
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      const user = await User.getUserByLoginID(decoded.personId);
+      // Since authMiddleware has already verified the token and attached req.user,
+      // we can directly use req.user instead of re-verifying
+      const user = await User.getUserByPersonID(req.user.personId);
       if (!user) {
-        return res.status(401).json({ message: 'Invalid or expired token' });
+        return res.status(401).json({ message: 'User not found' });
       }
 
       return res.status(200).json({
@@ -271,7 +294,7 @@ class AuthController {
       });
     } catch (error) {
       console.error('Error verifying token:', error);
-      return res.status(401).json({ message: 'Invalid or expired token', error: error.message });
+      return res.status(401).json({ message: 'Error verifying token', error: error.message });
     }
   }
 }
