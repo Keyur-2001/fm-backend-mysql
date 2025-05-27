@@ -1,21 +1,15 @@
 const express = require('express');
 const router = express.Router();
-const SalesQuotationController = require('../controllers/salesQuotationController');
-// const authMiddleware = require('../middleware/authMiddleware');
+const {
+  createSalesQuotation,
+  updateSalesQuotation,
+  deleteSalesQuotation,
+  getSalesQuotation,
+} = require('../controllers/salesQuotationController');
 
-// Route to create a SalesQuotation
-router.post('/',  SalesQuotationController.createSalesQuotation);
-
-// Route to update a SalesQuotation
-router.put('/:id', SalesQuotationController.updateSalesQuotation);
-
-// Route to delete a SalesQuotation
-router.delete('/:id',  SalesQuotationController.deleteSalesQuotation);
-
-// Route to get a specific SalesQuotation
-router.get('/:id',  SalesQuotationController.getSalesQuotation);
-
-// Route to get all SalesQuotations with pagination
-router.get('/', SalesQuotationController.getAllSalesQuotations);
+router.post('/create', createSalesQuotation);
+router.put('/update', updateSalesQuotation);
+router.delete('/delete', deleteSalesQuotation);
+router.get('/get', getSalesQuotation);
 
 module.exports = router;
