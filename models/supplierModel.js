@@ -57,8 +57,8 @@ class SupplierModel {
         data.supplierEmail || null,
         data.billingCurrencyId || null,
         data.companyId || null,
-        data.externalSupplierYN || 0,
-        data.userId
+        data.externalSupplierYN || 0
+        // data.userId
       ];
 
       // Call SP_ManageSupplier
@@ -129,8 +129,8 @@ class SupplierModel {
         data.supplierEmail || null,
         data.billingCurrencyId || null,
         data.companyId || null,
-        data.externalSupplierYN || null,
-        data.userId
+        data.externalSupplierYN || null
+        // data.userId
       ];
 
       // Call SP_ManageSupplier

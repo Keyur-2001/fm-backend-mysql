@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
+const bcrypt = require('bcryptjs');
 
 // Initial admin signup (no authentication required)
 router.post('/initial-admin-signup', AuthController.initialAdminSignup);

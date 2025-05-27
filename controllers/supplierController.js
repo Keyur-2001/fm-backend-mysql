@@ -36,10 +36,10 @@ class SupplierController {
     try {
       const data = req.body;
       // Validate required fields
-      if (!data.supplierName || !data.userId) {
+      if (!data.supplierName) {
         return res.status(400).json({
           success: false,
-          message: 'SupplierName and UserID are required.',
+          message: 'SupplierName required.',
           data: null,
           supplierId: null,
           newSupplierId: null

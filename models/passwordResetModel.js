@@ -1,7 +1,7 @@
 const crypto = require('crypto');
 const mysql = require('mysql2/promise');
 const poolPromise = require('../config/db.config');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const EmailService = require('../utils/emailService');
 
 class PasswordReset {
