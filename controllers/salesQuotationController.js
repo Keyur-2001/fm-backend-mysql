@@ -3,7 +3,7 @@ const {
   manageSalesQuotation,
 } = require('../models/salesQuotationModel');
 
-// INSERT
+// Create a new sales quotation
 const createSalesQuotation = async (req, res) => {
   try {
     const {
@@ -40,7 +40,7 @@ const createSalesQuotation = async (req, res) => {
     } = req.body;
 
     if (!PurchaseRFQID || !CreatedByID) {
-      return res.status(400).json({ error: 'PurchaseRFQID and CreatedByID are required' });
+      return res.status(400).json({ success: false, message: 'PurchaseRFQID and CreatedByID are required' });
     }
 
     const result = await createSalesQuotationFromPurchaseRFQ({
@@ -78,23 +78,28 @@ const createSalesQuotation = async (req, res) => {
 
     if (result.result === 1) {
       return res.status(201).json({
+        success: true,
         message: result.message,
         newSalesQuotationID: result.newSalesQuotationID,
       });
     } else {
-      return res.status(400).json({ error: result.message || 'Failed to create sales quotation' });
+      return res.status(400).json({ success: false, message: result.message || 'Failed to create sales quotation' });
     }
   } catch (error) {
     console.error('Error creating Sales Quotation:', error.message);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
   }
 };
 
-// UPDATE
+// Update a sales quotation by ID
 const updateSalesQuotation = async (req, res) => {
   try {
+    const SalesQuotationID = parseInt(req.params.id, 10);
+    if (isNaN(SalesQuotationID)) {
+      return res.status(400).json({ success: false, message: 'Valid SalesQuotationID is required' });
+    }
+
     const {
-      SalesQuotationID,
       UpdatedByID,
       SalesRFQID,
       SupplierID,
@@ -126,8 +131,8 @@ const updateSalesQuotation = async (req, res) => {
       DebugMode = 0,
     } = req.body;
 
-    if (!SalesQuotationID || !UpdatedByID) {
-      return res.status(400).json({ error: 'SalesQuotationID and UpdatedByID are required' });
+    if (!UpdatedByID) {
+      return res.status(400).json({ success: false, message: 'UpdatedByID is required' });
     }
 
     const result = await manageSalesQuotation({
@@ -165,23 +170,28 @@ const updateSalesQuotation = async (req, res) => {
     });
 
     if (result.result === 1) {
-      return res.status(200).json({ message: result.message });
+      return res.status(200).json({ success: true, message: result.message });
     } else {
-      return res.status(400).json({ error: result.message || 'Failed to update sales quotation' });
+      return res.status(400).json({ success: false, message: result.message || 'Failed to update sales quotation' });
     }
   } catch (error) {
-    console.error('Error updating Sales Quotation:', error.message);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    console.error(`Error updating Sales Quotation ID ${req.params.id}:`, error.message);
+    return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
   }
 };
 
-// DELETE
+// Delete a sales quotation by ID
 const deleteSalesQuotation = async (req, res) => {
   try {
-    const { SalesQuotationID, DeletedByID, DebugMode = 0 } = req.body;
+    const SalesQuotationID = parseInt(req.params.id, 10);
+    if (isNaN(SalesQuotationID)) {
+      return res.status(400).json({ success: false, message: 'Valid SalesQuotationID is required' });
+    }
 
-    if (!SalesQuotationID || !DeletedByID) {
-      return res.status(400).json({ error: 'SalesQuotationID and DeletedByID are required' });
+    const { DeletedByID, DebugMode = 0 } = req.body;
+
+    if (!DeletedByID) {
+      return res.status(400).json({ success: false, message: 'DeletedByID is required' });
     }
 
     const result = await manageSalesQuotation({
@@ -192,24 +202,25 @@ const deleteSalesQuotation = async (req, res) => {
     });
 
     if (result.result === 1) {
-      return res.status(200).json({ message: result.message });
+      return res.status(200).json({ success: true, message: result.message });
     } else {
-      return res.status(400).json({ error: result.message || 'Failed to delete sales quotation' });
+      return res.status(400).json({ success: false, message: result.message || 'Failed to delete sales quotation' });
     }
   } catch (error) {
-    console.error('Error deleting Sales Quotation:', error.message);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    console.error(`Error deleting Sales Quotation ID ${req.params.id}:`, error.message);
+    return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
   }
 };
 
-// SELECT
+// Get a sales quotation by ID
 const getSalesQuotation = async (req, res) => {
   try {
-    const { SalesQuotationID, DebugMode = 0 } = req.query;
-
-    if (!SalesQuotationID) {
-      return res.status(400).json({ error: 'SalesQuotationID is required' });
+    const SalesQuotationID = parseInt(req.params.id, 10);
+    if (isNaN(SalesQuotationID)) {
+      return res.status(400).json({ success: false, message: 'Valid SalesQuotationID is required' });
     }
+
+    const { DebugMode = 0 } = req.query;
 
     const result = await manageSalesQuotation({
       Action: 'SELECT',
@@ -219,15 +230,16 @@ const getSalesQuotation = async (req, res) => {
 
     if (result.result === 1) {
       return res.status(200).json({
+        success: true,
         message: result.message,
         data: result.recordset,
       });
     } else {
-      return res.status(400).json({ error: result.message || 'Failed to fetch sales quotation' });
+      return res.status(400).json({ success: false, message: result.message || 'Failed to fetch sales quotation' });
     }
   } catch (error) {
-    console.error('Error fetching Sales Quotation:', error.message);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    console.error(`Error fetching Sales Quotation ID ${req.params.id}:`, error.message);
+    return res.status(500).json({ success: false, message: error.message || 'Internal Server Error' });
   }
 };
 
