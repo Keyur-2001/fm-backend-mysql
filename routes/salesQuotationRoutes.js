@@ -7,9 +7,16 @@ const {
   getSalesQuotation,
 } = require('../controllers/salesQuotationController');
 
-router.post('/create', createSalesQuotation);
-router.put('/update', updateSalesQuotation);
-router.delete('/delete', deleteSalesQuotation);
-router.get('/get', getSalesQuotation);
+// Create a new sales quotation
+router.post('/', createSalesQuotation);
+
+// Update a sales quotation by ID
+router.put('/:id', updateSalesQuotation);
+
+// Delete a sales quotation by ID
+router.delete('/:id', deleteSalesQuotation);
+
+// Get a sales quotation by ID
+router.get('/:id', getSalesQuotation);
 
 module.exports = router;
