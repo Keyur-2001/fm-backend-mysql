@@ -2,7 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const poolPromise = require('./config/db.config');
-const salesRFQRoutes = require('./routes/salesRFQRoutes');
+// const salesRFQRoutes = require('./routes/salesRFQRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
@@ -85,7 +85,7 @@ async function startServer() {
       ['/api/person-types', personTypeRoutes],
       // ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
-      ['/api/auth', authRoutes],
+       ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],
       ['/api/country-of-origin', countryOfOriginRoutes],
       ['/api/address-types', addressTypeRoutes],
@@ -135,7 +135,7 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7000;
+    const PORT = process.env.PORT || 7001;
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
