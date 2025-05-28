@@ -100,8 +100,8 @@ async function startServer() {
       // ['/api/formRole', formRoleRoutes],
       // ['/api/formRoleApproval', formRoleApprovalRoutes],
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
-      ['/api/sales-rfq', salesRFQRoutes],
-      ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
+      // ['/api/sales-rfq', salesRFQRoutes],
+      // ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
       // ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
       // ['/api/purchase-rfq', purchaseRFQRoutes],
       // ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
@@ -135,7 +135,7 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7001;
+    const PORT = process.env.PORT || 7000;
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
