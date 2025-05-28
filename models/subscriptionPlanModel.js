@@ -151,11 +151,11 @@ class SubscriptionPlanModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.subscriptionPlanName,
-        data.description,
-        data.fees,
-        data.billingFrequencyId,
-        data.createdById,
+        data.SubscriptionPlanName,
+        data.Description,
+        data.Fees,
+        data.BillingFrequencyID,
+        data.CreatedByID,
         null // p_DeletedByID
       ];
 
@@ -192,7 +192,7 @@ class SubscriptionPlanModel {
   }
 
   // Delete a Subscription Plan
-  static async deleteSubscriptionPlan(id, deletedById) {
+  static async deleteSubscriptionPlan(id, DeletedByID) {
     try {
       const pool = await poolPromise;
 
@@ -204,7 +204,7 @@ class SubscriptionPlanModel {
         null, // p_Fees
         null, // p_BillingFrequencyID
         null, // p_CreatedByID
-        deletedById
+        DeletedByID
       ];
 
       // Log query parameters
