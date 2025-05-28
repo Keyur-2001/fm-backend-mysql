@@ -41,7 +41,7 @@ const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
 // const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 // const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
-// const formRoutes = require('./routes/formRoutes');
+const formRoutes = require('./routes/formRoutes');
 // const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 // const collectionRateRoutes = require('./routes/collectionRateRoutes');
 
@@ -96,7 +96,7 @@ async function startServer() {
       ['/api/roles', RolesRoutes],
       ['/api/permissions', permissionRoutes],
       // ['/api/rolepermissions', rolePermissionRoutes],
-      // ['/api/forms', formRoutes],
+      ['/api/forms', formRoutes],
       ['/api/formRole', formRoleRoutes],
       ['/api/formRoleApprover', formRoleApproverRoutes],
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
