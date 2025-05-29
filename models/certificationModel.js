@@ -8,6 +8,7 @@ class CertificationModel {
 
       // Validate parameters
       const queryParams = [
+        'SELECT ALL',
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
         fromDate ? new Date(fromDate).toISOString().split('T')[0] : null,
