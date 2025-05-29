@@ -58,17 +58,17 @@ class CustomerModel {
       const queryParams = [
         'INSERT',
         null, // p_CustomerID
-        data.customerName,
-        data.companyId,
-        data.customerEmail,
-        data.importCode,
-        data.billingCurrencyId,
-        data.website,
-        data.customerNotes,
+        data.CustomerName,
+        data.CompanyID,
+        data.CustomerEmail,
+        data.ImportCode,
+        data.BillingCurrencyID,
+        data.Website,
+        data.CustomerNotes,
         data.isInQuickBooks ? 1 : 0,
-        data.quickBookAccountId,
-        data.customerAddressId,
-        data.createdById
+        data.QuickBookAccountID,
+        data.CustomerAddressID,
+        data.CreatedByID
       ];
 
       // Log query parameters
@@ -98,7 +98,7 @@ class CustomerModel {
       }
 
       return {
-        customerId: null, // SP does not return new ID explicitly
+        CustomerID: null, // SP does not return new ID explicitly
         message: output[0].p_Message
       };
     } catch (err) {
@@ -169,17 +169,17 @@ class CustomerModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.customerName,
-        data.companyId,
-        data.customerEmail,
-        data.importCode,
-        data.billingCurrencyId,
-        data.website,
-        data.customerNotes,
+        data.CustomerName,
+        data.CompanyID,
+        data.CustomerEmail,
+        data.ImportCode,
+        data.BillingCurrencyID,
+        data.Website,
+        data.CustomerNotes,
         data.isInQuickBooks ? 1 : 0,
-        data.quickBookAccountId,
-        data.customerAddressId,
-        data.createdById
+        data.QuickBookAccountID,
+        data.CustomerAddressID,
+        data.CreatedByID
       ];
 
       // Log query parameters
@@ -218,7 +218,7 @@ class CustomerModel {
   }
 
   // Delete a Customer
-  static async deleteCustomer(id, createdById) {
+  static async deleteCustomer(id) {
     try {
       const pool = await poolPromise;
 

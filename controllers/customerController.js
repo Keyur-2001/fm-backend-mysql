@@ -34,21 +34,21 @@ class CustomerController {
   static async createCustomer(req, res) {
     try {
       const {
-        customerName,
-        companyId,
-        customerEmail,
-        importCode,
-        billingCurrencyId,
-        website,
-        customerNotes,
+        CustomerName,
+        CompanyID,
+        CustomerEmail,
+        ImportCode,
+        BillingCurrencyID,
+        Website,
+        CustomerNotes,
         isInQuickBooks,
-        quickBookAccountId,
-        customerAddressId,
-        createdById
+        QuickBookAccountID,
+        CustomerAddressID,
+        CreatedByID
       } = req.body;
 
       // Basic validation
-      if (!customerName || !companyId || !createdById) {
+      if (!CustomerName || !CompanyID || !CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'CustomerName, CompanyID, and CreatedByID are required',
@@ -58,17 +58,17 @@ class CustomerController {
       }
 
       const result = await CustomerModel.createCustomer({
-        customerName,
-        companyId,
-        customerEmail,
-        importCode,
-        billingCurrencyId,
-        website,
-        customerNotes,
+        CustomerName,
+        CompanyID,
+        CustomerEmail,
+        ImportCode,
+        BillingCurrencyID,
+        Website,
+        CustomerNotes,
         isInQuickBooks,
-        quickBookAccountId,
-        customerAddressId,
-        createdById
+        QuickBookAccountID,
+        CustomerAddressID,
+        CreatedByID
       });
 
       return res.status(201).json({
@@ -135,17 +135,17 @@ class CustomerController {
     try {
       const { id } = req.params;
       const {
-        customerName,
-        companyId,
-        customerEmail,
-        importCode,
-        billingCurrencyId,
-        website,
-        customerNotes,
+        CustomerName,
+        CompanyID,
+        CustomerEmail,
+        ImportCode,
+        BillingCurrencyID,
+        Website,
+        CustomerNotes,
         isInQuickBooks,
-        quickBookAccountId,
-        customerAddressId,
-        createdById
+        QuickBookAccountID,
+        CustomerAddressID,
+        CreatedByID
       } = req.body;
 
       if (!id || isNaN(id)) {
@@ -157,7 +157,7 @@ class CustomerController {
         });
       }
 
-      if (!customerName || !companyId || !createdById) {
+      if (!CustomerName || !CompanyID || !CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'CustomerName, CompanyID, and CreatedByID are required',
@@ -167,17 +167,17 @@ class CustomerController {
       }
 
       const result = await CustomerModel.updateCustomer(parseInt(id), {
-        customerName,
-        companyId,
-        customerEmail,
-        importCode,
-        billingCurrencyId,
-        website,
-        customerNotes,
+        CustomerName,
+        CompanyID,
+        CustomerEmail,
+        ImportCode,
+        BillingCurrencyID,
+        Website,
+        CustomerNotes,
         isInQuickBooks,
-        quickBookAccountId,
-        customerAddressId,
-        createdById
+        QuickBookAccountID,
+        CustomerAddressID,
+        CreatedByID
       });
 
       return res.status(200).json({
@@ -212,16 +212,16 @@ class CustomerController {
         });
       }
 
-      if (!createdById) {
-        return res.status(400).json({
-          success: false,
-          message: 'CreatedByID is required',
-          data: null,
-          customerId: id
-        });
-      }
+      // if (!createdById) {
+      //   return res.status(400).json({
+      //     success: false,
+      //     message: 'CreatedByID is required',
+      //     data: null,
+      //     customerId: id
+      //   });
+      // }
 
-      const result = await CustomerModel.deleteCustomer(parseInt(id), createdById);
+      const result = await CustomerModel.deleteCustomer(parseInt(id));
 
       return res.status(200).json({
         success: true,
@@ -240,5 +240,4 @@ class CustomerController {
     }
   }
 }
-
 module.exports = CustomerController;

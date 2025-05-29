@@ -44,6 +44,8 @@ const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSupp
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
+const salesOrderRoutes = require('./routes/SalesOrderRoutes');
+const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 
 const app = express();
 
@@ -114,7 +116,9 @@ async function startServer() {
       ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
       ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
-      ['/api/collectionRate', collectionRateRoutes]
+      ['/api/collectionRate', collectionRateRoutes],
+      ['/api/sales-Order', salesOrderRoutes],
+      ['/api/send-sales-quotation', sendSalesQuotationRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 
