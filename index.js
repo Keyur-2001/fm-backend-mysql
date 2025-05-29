@@ -27,7 +27,7 @@ const addressTypeRoutes = require('./routes/addressTypeRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const bankAccountRoutes = require('./routes/bankAccountRoutes');
-// const certificationRoutes = require('./routes/certificationRoutes');
+const certificationRoutes = require('./routes/certificationRoutes');
 const RolesRoutes = require('./routes/roleRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
 // const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
@@ -95,7 +95,7 @@ async function startServer() {
       ['/api/warehouses', warehouseRoutes],
       ['/api/vehicles', vehicleRoutes],
       ['/api/bank-accounts', bankAccountRoutes],
-      // ['/api/certifications', certificationRoutes],
+      ['/api/certifications', certificationRoutes],
       ['/api/roles', RolesRoutes],
       ['/api/permissions', permissionRoutes],
       // ['/api/rolepermissions', rolePermissionRoutes],
