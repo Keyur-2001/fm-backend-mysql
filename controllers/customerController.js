@@ -201,7 +201,7 @@ class CustomerController {
   static async deleteCustomer(req, res) {
     try {
       const { id } = req.params;
-      const { createdById } = req.body;
+      const { deletedById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -212,16 +212,16 @@ class CustomerController {
         });
       }
 
-      if (!createdById) {
+      if (!deletedById) {
         return res.status(400).json({
           success: false,
-          message: 'CreatedByID is required',
+          message: 'DeletedByID is required',
           data: null,
           customerId: id
         });
       }
 
-      const result = await CustomerModel.deleteCustomer(parseInt(id), createdById);
+      const result = await CustomerModel.deleteCustomer(parseInt(id), deletedById);
 
       return res.status(200).json({
         success: true,
