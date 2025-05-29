@@ -45,8 +45,8 @@ const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 // const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
 // const formRoutes = require('./routes/formRoutes');
-// const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
-// const collectionRateRoutes = require('./routes/collectionRateRoutes');
+const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
+const collectionRateRoutes = require('./routes/collectionRateRoutes');
 
 const app = express();
 
@@ -116,8 +116,8 @@ async function startServer() {
       // ['/api/sales-Quotation', salesQuotationRoutes],
       // ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
       // ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
-      // ['/api/taxChargesType', taxChargesTypeRoutes],
-      // ['/api/collectionRate', collectionRateRoutes]
+      ['/api/taxChargesType', taxChargesTypeRoutes],
+      ['/api/collectionRate', collectionRateRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 
