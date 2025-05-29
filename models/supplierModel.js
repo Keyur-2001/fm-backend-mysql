@@ -14,27 +14,38 @@ class SupplierModel {
         toDate ? new Date(toDate) : null
       ];
 
-      // Call SP_GetAllSuppliers
-      const [result] = await pool.query(
+      // Log query parameters
+      console.log('getAllSuppliers params:', queryParams);
+
+      // Call SP_GetAllSuppliers (assumed to exist)
+      const [results] = await pool.query(
         'CALL SP_GetAllSuppliers(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      // Log results
+      console.log('getAllSuppliers results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 0) {
-        throw new Error(outParams.message || 'Failed to retrieve Suppliers');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+      
+      // Log output
+      console.log('getAllSuppliers output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllSuppliers');
       }
 
-      // Total count fallback (since SP_GetAllSuppliers doesn't return a separate count)
-      const totalRecords = result[0].length;
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve suppliers');
+      }
 
       return {
-        data: result[0],
-        totalRecords
+        data: results[0] || [],
+        totalRecords: null // SP does not return total count
       };
     } catch (err) {
+      console.error('getAllSuppliers error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -48,39 +59,51 @@ class SupplierModel {
         'INSERT',
         null, // p_SupplierID
         data.supplierName,
-        data.supplierGroupId || null,
-        data.supplierTypeId || null,
-        data.supplierAddressId || null,
-        data.supplierExportCode || null,
-        data.saPartner || null,
-        data.saPartnerExportCode || null,
-        data.supplierEmail || null,
-        data.billingCurrencyId || null,
-        data.companyId || null,
-        data.externalSupplierYN || 0,
+        data.supplierGroupId,
+        data.supplierTypeId,
+        data.supplierAddressId,
+        data.supplierExportCode,
+        data.saPartner,
+        data.saPartnerExportCode,
+        data.supplierEmail,
+        data.billingCurrencyId,
+        data.companyId,
+        data.externalSupplierYn ? 1 : 0,
         data.userId
       ];
 
+      // Log query parameters
+      console.log('createSupplier params:', queryParams);
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_NewSupplierID AS newSupplierId, @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('createSupplier results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to create Supplier');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_SupplierID AS p_SupplierID');
+
+      // Log output
+      console.log('createSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSupplier');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to create Supplier');
       }
 
       return {
-        newSupplierId: outParams.newSupplierId,
-        message: outParams.message
+        supplierId: output[0].p_SupplierID || null, // SP returns the new SupplierID
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('createSupplier error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -90,23 +113,52 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_SupplierName
+        null, // p_SupplierGroupID
+        null, // p_SupplierTypeID
+        null, // p_SupplierAddressID
+        null, // p_SupplierExportCode
+        null, // p_SAPartner
+        null, // p_SAPartnerExportCode
+        null, // p_SupplierEmail
+        null, // p_BillingCurrencyID
+        null, // p_CompanyID
+        null, // p_ExternalSupplierYN
+        null  // p_UserID
+      ];
+
+      // Log query parameters
+      console.log('getSupplierById params:', queryParams);
+
       // Call SP_ManageSupplier
-      const [result] = await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
-        ['SELECT', id, null, null, null, null, null, null, null, null, null, null, null, null]
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('getSupplierById results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Supplier not found');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getSupplierById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSupplier');
       }
 
-      return result[0][0] || null;
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Supplier not found');
+      }
+
+      return results[0][0] || null;
     } catch (err) {
+      console.error('getSupplierById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -119,39 +171,51 @@ class SupplierModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.supplierName || null,
-        data.supplierGroupId || null,
-        data.supplierTypeId || null,
-        data.supplierAddressId || null,
-        data.supplierExportCode || null,
-        data.saPartner || null,
-        data.saPartnerExportCode || null,
-        data.supplierEmail || null,
-        data.billingCurrencyId || null,
-        data.companyId || null,
-        data.externalSupplierYN || null,
+        data.supplierName,
+        data.supplierGroupId,
+        data.supplierTypeId,
+        data.supplierAddressId,
+        data.supplierExportCode,
+        data.saPartner,
+        data.saPartnerExportCode,
+        data.supplierEmail,
+        data.billingCurrencyId,
+        data.companyId,
+        data.externalSupplierYn ? 1 : 0,
         data.userId
       ];
 
+      // Log query parameters
+      console.log('updateSupplier params:', queryParams);
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('updateSupplier results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to update Supplier');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('updateSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSupplier');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to update Supplier');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('updateSupplier error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -164,29 +228,51 @@ class SupplierModel {
       const queryParams = [
         'DELETE',
         id,
-        null, null, null, null, null, null, null, null, null, null, null,
+        null, // p_SupplierName
+        null, // p_SupplierGroupID
+        null, // p_SupplierTypeID
+        null, // p_SupplierAddressID
+        null, // p_SupplierExportCode
+        null, // p_SAPartner
+        null, // p_SAPartnerExportCode
+        null, // p_SupplierEmail
+        null, // p_BillingCurrencyID
+        null, // p_CompanyID
+        null, // p_ExternalSupplierYN
         userId
       ];
 
+      // Log query parameters
+      console.log('deleteSupplier params:', queryParams);
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('deleteSupplier results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to delete Supplier');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('deleteSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSupplier');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to delete Supplier');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('deleteSupplier error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
