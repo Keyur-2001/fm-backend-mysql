@@ -10,12 +10,15 @@ const supplierRoutes = require('./routes/supplierRoutes');
 const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
 // const addressRoutes = require('./routes/addressRoutes');
 const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
+// const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
+const addressRoutes = require('./routes/addressRoutes');
+// const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 // const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
 const personTypeRoutes = require('./routes/personTypeRoutes');
 // const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
-// const itemRoutes = require('./routes/itemRoutes');
+const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
 const authRoutes = require('./routes/authRoutes');
 const cityRoutes = require('./routes/cityRoutes');
@@ -25,7 +28,7 @@ const warehouseRoutes = require('./routes/warehouseRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const bankAccountRoutes = require('./routes/bankAccountRoutes');
 // const certificationRoutes = require('./routes/certificationRoutes');
-const RolesRoutes = require('./routes/rolesRoutes');
+const RolesRoutes = require('./routes/roleRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
 // const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
 // const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
@@ -78,12 +81,12 @@ async function startServer() {
       ['/api/companies', companyRoutes],
       ['/api/suppliers', supplierRoutes],
       // ['/api/service-types', serviceTypeRoutes],
-      // ['/api/addresses', addressRoutes],
+      ['/api/addresses', addressRoutes],
       // ['/api/mailing-priorities', mailingPriorityRoutes],
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
       ['/api/person-types', personTypeRoutes],
-      // ['/api/items', itemRoutes],
+      ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
        ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],

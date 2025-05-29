@@ -6,35 +6,49 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
-      // Validate parameters
-      const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
-      ];
+      // Validate pagination parameters
+      const pageNum = parseInt(pageNumber, 10);
+      const pageSz = parseInt(pageSize, 10);
+      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+        throw new Error('Invalid pageNumber or pageSize');
+      }
+
+      // Validate date parameters
+      const validatedFromDate = fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null;
+      const validatedToDate = toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null;
+
+      const queryParams = [pageNum, pageSz, validatedFromDate, validatedToDate];
+
+      console.log('getAllSuppliers params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_GetAllSuppliers
-      const [result] = await pool.query(
+      const [results] = await pool.query(
         'CALL SP_GetAllSuppliers(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      console.log('getAllSuppliers results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 0) {
-        throw new Error(outParams.message || 'Failed to retrieve Suppliers');
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('getAllSuppliers output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_Result === null) {
+        throw new Error('Invalid output from SP_GetAllSuppliers');
       }
 
-      // Total count fallback (since SP_GetAllSuppliers doesn't return a separate count)
-      const totalRecords = result[0].length;
+      // Treat p_Result = 1 or success message as success
+      if (output[0].p_Result !== 1 && !output[0].p_Message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve suppliers');
+      }
 
       return {
-        data: result[0],
-        totalRecords
+        data: Array.isArray(results[0]) ? results[0] : [],
+        totalRecords: Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : results[0].length
       };
     } catch (err) {
+      console.error('getAllSuppliers error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -44,43 +58,81 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
+      // Validate input
+      if (!data.supplierName || typeof data.supplierName !== 'string' || data.supplierName.trim() === '') {
+        throw new Error('Valid supplierName is required');
+      }
+      if (!data.companyId || isNaN(parseInt(data.companyId))) {
+        throw new Error('Valid companyId is required');
+      }
+      if (!data.userId || isNaN(parseInt(data.userId))) {
+        throw new Error('Valid userId is required');
+      }
+      if (data.supplierEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.supplierEmail)) {
+        throw new Error('Valid supplierEmail is required');
+      }
+      if (data.supplierGroupId && isNaN(parseInt(data.supplierGroupId))) {
+        throw new Error('Valid supplierGroupId is required');
+      }
+      if (data.supplierTypeId && isNaN(parseInt(data.supplierTypeId))) {
+        throw new Error('Valid supplierTypeId is required');
+      }
+      if (data.supplierAddressId && isNaN(parseInt(data.supplierAddressId))) {
+        throw new Error('Valid supplierAddressId is required');
+      }
+      if (data.billingCurrencyId && isNaN(parseInt(data.billingCurrencyId))) {
+        throw new Error('Valid billingCurrencyId is required');
+      }
+
       const queryParams = [
         'INSERT',
-        null, // p_SupplierID
-        data.supplierName,
-        data.supplierGroupId || null,
-        data.supplierTypeId || null,
-        data.supplierAddressId || null,
-        data.supplierExportCode || null,
-        data.saPartner || null,
-        data.saPartnerExportCode || null,
-        data.supplierEmail || null,
-        data.billingCurrencyId || null,
-        data.companyId || null,
-        data.externalSupplierYN || 0
-        // data.userId
+        null, // p_SupplierID (INOUT)
+        data.supplierName ? data.supplierName.trim() : null,
+        data.supplierGroupId ? parseInt(data.supplierGroupId) : null,
+        data.supplierTypeId ? parseInt(data.supplierTypeId) : null,
+        data.supplierAddressId ? parseInt(data.supplierAddressId) : null,
+        data.supplierExportCode ? data.supplierExportCode.trim() : null,
+        data.saPartner ? parseInt(data.saPartner) : null,
+        data.saPartnerExportCode ? data.saPartnerExportCode.trim() : null,
+        data.supplierEmail ? data.supplierEmail.trim() : null,
+        data.billingCurrencyId ? parseInt(data.billingCurrencyId) : null,
+        data.companyId ? parseInt(data.companyId) : null,
+        data.externalSupplierYn ? 1 : 0,
+        data.userId ? parseInt(data.userId) : null
       ];
 
+      console.log('createSupplier params:', JSON.stringify(queryParams, null, 2));
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_NewSupplierID AS newSupplierId, @p_Result AS result, @p_Message AS message'
+      console.log('createSupplier results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query(
+        'SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_SupplierID AS p_SupplierID'
       );
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to create Supplier');
+      console.log('createSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_Result === null) {
+        throw new Error('Invalid output from SP_ManageSupplier');
+      }
+
+      // Treat p_Result = 1 or success message as success
+      if (output[0].p_Result !== 1 && !output[0].p_Message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_Message || 'Failed to create supplier');
       }
 
       return {
-        newSupplierId: outParams.newSupplierId,
-        message: outParams.message
+        supplierId: output[0].p_SupplierID || null,
+        message: output[0].p_Message || 'Supplier created successfully'
       };
     } catch (err) {
+      console.error('createSupplier error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -90,23 +142,46 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
-      // Call SP_ManageSupplier
-      const [result] = await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
-        ['SELECT', id, null, null, null, null, null, null, null, null, null, null, null, null]
-      );
-
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
-
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Supplier not found');
+      const supplierId = parseInt(id, 10);
+      if (isNaN(supplierId)) {
+        throw new Error('Valid SupplierID is required');
       }
 
-      return result[0][0] || null;
+      const queryParams = [
+        'SELECT',
+        supplierId,
+        null, null, null, null, null, null, null, null, null, null, null, null
+      ];
+
+      console.log('getSupplierById params:', JSON.stringify(queryParams, null, 2));
+
+      // Call SP_ManageSupplier
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('getSupplierById results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query(
+        'SELECT @p_Result AS p_Result, @p_Message AS p_Message'
+      );
+
+      console.log('getSupplierById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_Result === null) {
+        throw new Error('Invalid output from SP_ManageSupplier');
+      }
+
+      // Treat p_Result = 1 or success message as success
+      if (output[0].p_Result !== 1 && !output[0].p_Message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_Message || 'Supplier not found');
+      }
+
+      return Array.isArray(results[0]) && results[0].length > 0 ? results[0][0] : null;
     } catch (err) {
+      console.error('getSupplierById error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -116,42 +191,83 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
+      const supplierId = parseInt(id, 10);
+      if (isNaN(supplierId)) {
+        throw new Error('Valid SupplierID is required');
+      }
+      if (!data.supplierName || typeof data.supplierName !== 'string' || data.supplierName.trim() === '') {
+        throw new Error('Valid supplierName is required');
+      }
+      if (!data.companyId || isNaN(parseInt(data.companyId))) {
+        throw new Error('Valid companyId is required');
+      }
+      if (!data.userId || isNaN(parseInt(data.userId))) {
+        throw new Error('Valid userId is required');
+      }
+      if (data.supplierEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.supplierEmail)) {
+        throw new Error('Valid supplierEmail is required');
+      }
+      if (data.supplierGroupId && isNaN(parseInt(data.supplierGroupId))) {
+        throw new Error('Valid supplierGroupId is required');
+      }
+      if (data.supplierTypeId && isNaN(parseInt(data.supplierTypeId))) {
+        throw new Error('Valid supplierTypeId is required');
+      }
+      if (data.supplierAddressId && isNaN(parseInt(data.supplierAddressId))) {
+        throw new Error('Valid supplierAddressId is required');
+      }
+      if (data.billingCurrencyId && isNaN(parseInt(data.billingCurrencyId))) {
+        throw new Error('Valid billingCurrencyId is required');
+      }
+
       const queryParams = [
         'UPDATE',
-        id,
-        data.supplierName || null,
-        data.supplierGroupId || null,
-        data.supplierTypeId || null,
-        data.supplierAddressId || null,
-        data.supplierExportCode || null,
-        data.saPartner || null,
-        data.saPartnerExportCode || null,
-        data.supplierEmail || null,
-        data.billingCurrencyId || null,
-        data.companyId || null,
-        data.externalSupplierYN || null
-        // data.userId
+        supplierId,
+        data.supplierName ? data.supplierName.trim() : null,
+        data.supplierGroupId ? parseInt(data.supplierGroupId) : null,
+        data.supplierTypeId ? parseInt(data.supplierTypeId) : null,
+        data.supplierAddressId ? parseInt(data.supplierAddressId) : null,
+        data.supplierExportCode ? data.supplierExportCode.trim() : null,
+        data.saPartner ? parseInt(data.saPartner) : null,
+        data.saPartnerExportCode ? data.saPartnerExportCode.trim() : null,
+        data.supplierEmail ? data.supplierEmail.trim() : null,
+        data.billingCurrencyId ? parseInt(data.billingCurrencyId) : null,
+        data.companyId ? parseInt(data.companyId) : null,
+        data.externalSupplierYn ? 1 : 0,
+        data.userId ? parseInt(data.userId) : null
       ];
 
+      console.log('updateSupplier params:', JSON.stringify(queryParams, null, 2));
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
+      console.log('updateSupplier results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query(
+        'SELECT @p_Result AS p_Result, @p_Message AS p_Message'
       );
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to update Supplier');
+      console.log('updateSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_Result === null) {
+        throw new Error('Invalid output from SP_ManageSupplier');
+      }
+
+      // Treat p_Result = 1 or success message as success
+      if (output[0].p_Result !== 1 && !output[0].p_Message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_Message || 'Failed to update supplier');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message || 'Supplier updated successfully'
       };
     } catch (err) {
+      console.error('updateSupplier error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -161,32 +277,53 @@ class SupplierModel {
     try {
       const pool = await poolPromise;
 
+      const supplierId = parseInt(id, 10);
+      const validatedUserId = parseInt(userId, 10);
+      if (isNaN(supplierId)) {
+        throw new Error('Valid SupplierID is required');
+      }
+      if (isNaN(validatedUserId)) {
+        throw new Error('Valid userId is required');
+      }
+
       const queryParams = [
         'DELETE',
-        id,
+        supplierId,
         null, null, null, null, null, null, null, null, null, null, null,
-        userId
+        validatedUserId
       ];
 
+      console.log('deleteSupplier params:', JSON.stringify(queryParams, null, 2));
+
       // Call SP_ManageSupplier
-      await pool.query(
-        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSupplierID, @p_Result, @p_Message)',
+      const [results] = await pool.query(
+        'CALL SP_ManageSupplier(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
+      console.log('deleteSupplier results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query(
+        'SELECT @p_Result AS p_Result, @p_Message AS p_Message'
       );
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to delete Supplier');
+      console.log('deleteSupplier output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_Result === null) {
+        throw new Error('Invalid output from SP_ManageSupplier');
+      }
+
+      // Treat p_Result = 1 or success message as success
+      if (output[0].p_Result !== 1 && !output[0].p_Message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_Message || 'Failed to delete supplier');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message || 'Supplier deleted successfully'
       };
     } catch (err) {
+      console.error('deleteSupplier error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
