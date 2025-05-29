@@ -15,7 +15,7 @@ const currencyRoutes = require('./routes/currencyRoutes');
 const personRoutes = require('./routes/personRoutes');
 // const personTypeRoutes = require('./routes/personTypeRoutes');
 // const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
-// const itemRoutes = require('./routes/itemRoutes');
+const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
 const authRoutes = require('./routes/authRoutes');
 const cityRoutes = require('./routes/cityRoutes');
@@ -83,7 +83,7 @@ async function startServer() {
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
       // ['/api/person-types', personTypeRoutes],
-      // ['/api/items', itemRoutes],
+      ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
        ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],
