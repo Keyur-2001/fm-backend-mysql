@@ -1,20 +1,23 @@
 const express = require('express');
+const { check } = require('express-validator');
+const CurrencyController = require('../controllers/CurrencyController');
+// const authMiddleware = require('../middleware/auth'); // Assume auth middleware
+
 const router = express.Router();
-const CurrencyController = require('../controllers/currencyController');
 
-// Get all currencies (paginated)
+// Validation rules
+const currencyValidation = [
+  check('currencyName')
+    .notEmpty().withMessage('CurrencyName is required')
+    .isString().withMessage('CurrencyName must be a string')
+    .trim()
+];
+
+// Routes
 router.get('/', CurrencyController.getAllCurrencies);
-
-// Create a new currency
-router.post('/', CurrencyController.createCurrency);
-
-// Get a currency by ID
+router.post('/', currencyValidation, CurrencyController.createCurrency);
 router.get('/:id', CurrencyController.getCurrencyById);
-
-// Update a currency
-router.put('/:id', CurrencyController.updateCurrency);
-
-// Delete a currency
+router.put('/:id', currencyValidation, CurrencyController.updateCurrency);
 router.delete('/:id', CurrencyController.deleteCurrency);
 
 module.exports = router;
