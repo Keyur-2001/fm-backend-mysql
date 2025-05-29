@@ -1,103 +1,49 @@
 const poolPromise = require('../config/db.config');
 
 class RoleModel {
-  // Get paginated Roles with filtering
-  static async getAllRoles({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null, roleName = null, createdById = null }) {
+  // Get all Roles or a single Role by ID
+  static async getAllRoles({ roleId = null }) {
     try {
       const pool = await poolPromise;
 
-      // Validate parameters
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null,
-        roleName || null,
-        createdById || null
+        'SELECT',
+        roleId ? parseInt(roleId) : null,
+        null, // p_rolename
+        null, // p_description
+        null, // p_createdbyid
+        null  // p_deletedbyid
       ];
 
-      // Log query parameters
-      console.log('getAllRoles params:', queryParams);
+      console.log('getRoles params:', JSON.stringify(queryParams, null, 2));
 
-      // Call SP_GetAllRoles
       const [results] = await pool.query(
-        'CALL SP_GetAllRoles(?, ?, ?, ?, ?, ?, @p_TotalRecords)',
+        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, @p_newroleid, @p_result, @p_message)',
         queryParams
       );
 
-      // Log results
-      console.log('getAllRoles results:', JSON.stringify(results, null, 2));
+      console.log('getRoles results:', JSON.stringify(results, null, 2));
 
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_TotalRecords AS p_TotalRecords');
-
-      // Log output
-      console.log('getAllRoles output:', JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_TotalRecords === 'undefined') {
-        throw new Error('Output parameters missing from SP_GetAllRoles');
-      }
-
-      if (output[0].p_TotalRecords === -1) {
-        throw new Error('Failed to retrieve roles');
-      }
-
-      return {
-        data: results[0] || [],
-        totalRecords: output[0].p_TotalRecords
-      };
-    } catch (err) {
-      console.error('getAllRoles error:', err);
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Create a new Role
-  static async createRole(data) {
-    try {
-      const pool = await poolPromise;
-
-      const queryParams = [
-        'INSERT',
-        null, // p_roleid
-        data.roleName,
-        data.description,
-        data.createdById,
-        null // p_deletedbyid
-      ];
-
-      // Log query parameters
-      console.log('createRole params:', queryParams);
-
-      // Call SP_ManageRoles
-      const [results] = await pool.query(
-        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [...queryParams, null, null, null] // Append output parameters
+      const [output] = await pool.query(
+        'SELECT @p_result AS p_result, @p_message AS p_message'
       );
 
-      // Log results
-      console.log('createRole results:', JSON.stringify(results, null, 2));
+      console.log('getRoles output:', JSON.stringify(output, null, 2));
 
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_result AS p_result, @p_message AS p_message, @p_newroleid AS p_newroleid');
-
-      // Log output
-      console.log('createRole output:', JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_result === 'undefined') {
-        throw new Error('Output parameters missing from SP_ManageRoles');
+      if (!output || !output[0] || output[0].p_result === null) {
+        throw new Error('Invalid output from SP_ManageRoles');
       }
 
-      if (output[0].p_result !== 1) {
-        throw new Error(output[0].p_message || 'Failed to create Role');
+      if (output[0].p_result !== 1 && !output[0].p_message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_message || 'Failed to retrieve roles');
       }
 
       return {
-        roleId: output[0].p_newroleid || null,
-        message: output[0].p_message
+        data: Array.isArray(results[0]) ? results[0] : [],
+        totalRecords: results[0].length
       };
     } catch (err) {
-      console.error('createRole error:', err);
+      console.error('getRoles error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -107,142 +53,219 @@ class RoleModel {
     try {
       const pool = await poolPromise;
 
+      const roleId = parseInt(id, 10);
+      if (isNaN(roleId)) {
+        throw new Error('Valid RoleID is required');
+      }
+
       const queryParams = [
         'SELECT',
-        id,
+        roleId,
         null, // p_rolename
         null, // p_description
         null, // p_createdbyid
         null  // p_deletedbyid
       ];
 
-      // Log query parameters
-      console.log('getRoleById params:', queryParams);
+      console.log('getRoleById params:', JSON.stringify(queryParams, null, 2));
 
-      // Call SP_ManageRoles
       const [results] = await pool.query(
-        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [...queryParams, null, null, null] // Append output parameters
+        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, @p_newroleid, @p_result, @p_message)',
+        queryParams
       );
 
-      // Log results
       console.log('getRoleById results:', JSON.stringify(results, null, 2));
 
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_result AS p_result, @p_message AS p_message');
+      const [output] = await pool.query(
+        'SELECT @p_result AS p_result, @p_message AS p_message'
+      );
 
-      // Log output
       console.log('getRoleById output:', JSON.stringify(output, null, 2));
 
-      if (!output || !output[0] || typeof output[0].p_result === 'undefined') {
-        throw new Error('Output parameters missing from SP_ManageRoles');
+      if (!output || !output[0] || output[0].p_result === null) {
+        throw new Error('Invalid output from SP_ManageRoles');
       }
 
-      if (output[0].p_result !== 1) {
+      if (output[0].p_result !== 1 && !output[0].p_message.toLowerCase().includes('successfully')) {
         throw new Error(output[0].p_message || 'Role not found');
       }
 
-      return results[0][0] || null;
+      return Array.isArray(results[0]) && results[0].length > 0 ? results[0][0] : null;
     } catch (err) {
-      console.error('getRoleById error:', err);
+      console.error('getRoleById error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Create a new Role
+  static async createRole(data) {
+    try {
+      const pool = await poolPromise;
+
+      // Validate input
+      if (!data.roleName || typeof data.roleName !== 'string' || data.roleName.trim() === '') {
+        throw new Error('Valid roleName is required');
+      }
+      if (!data.createdById || isNaN(parseInt(data.createdById))) {
+        throw new Error('Valid createdById is required');
+      }
+      if (data.description && typeof data.description !== 'string') {
+        throw new Error('Valid description is required');
+      }
+
+      const queryParams = [
+        'INSERT',
+        null, // p_roleid
+        data.roleName.trim(),
+        data.description ? data.description.trim() : null,
+        parseInt(data.createdById),
+        null  // p_deletedbyid
+      ];
+
+      console.log('createRole params:', JSON.stringify(queryParams, null, 2));
+
+      const [results] = await pool.query(
+        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, @p_newroleid, @p_result, @p_message)',
+        queryParams
+      );
+
+      console.log('createRole results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query(
+        'SELECT @p_newroleid AS p_newroleid, @p_result AS p_result, @p_message AS p_message'
+      );
+
+      console.log('createRole output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_result === null) {
+        throw new Error('Invalid output from SP_ManageRoles');
+      }
+
+      if (output[0].p_result !== 1 && !output[0].p_message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_message || 'Failed to create role');
+      }
+
+      return {
+        roleId: output[0].p_newroleid || null,
+        message: output[0].p_message || 'Role created successfully'
+      };
+    } catch (err) {
+      console.error('createRole error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
   // Update a Role
-  static async updateRole(id, data) {
+  static async updateRole(roleId, data) {
     try {
       const pool = await poolPromise;
 
-      const queryParams = [
-        'UPDATE',
-        id,
-        data.roleName,
-        data.description,
-        data.createdById,
-        null // p_deletedbyid
-      ];
-
-      // Log query parameters
-      console.log('updateRole params:', queryParams);
-
-      // Call SP_ManageRoles
-      const [results] = await pool.query(
-        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [...queryParams, null, null, null] // Append output parameters
-      );
-
-      // Log results
-      console.log('updateRole results:', JSON.stringify(results, null, 2));
-
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_result AS p_result, @p_message AS p_message');
-
-      // Log output
-      console.log('updateRole output:', JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_result === 'undefined') {
-        throw new Error('Output parameters missing from SP_ManageRoles');
+      const validatedRoleId = parseInt(roleId, 10);
+      if (isNaN(validatedRoleId)) {
+        throw new Error('Valid RoleID is required');
+      }
+      if (!data.roleName || typeof data.roleName !== 'string' || data.roleName.trim() === '') {
+        throw new Error('Valid roleName is required');
+      }
+      if (!data.createdById || isNaN(parseInt(data.createdById))) {
+        throw new Error('Valid createdById is required');
+      }
+      if (data.description && typeof data.description !== 'string') {
+        throw new Error('Valid description is required');
       }
 
-      if (output[0].p_result !== 1) {
-        throw new Error(output[0].p_message || 'Failed to update Role');
+      const queryParams = [
+        'UPDATE',
+        validatedRoleId,
+        data.roleName.trim(),
+        data.description ? data.description.trim() : null,
+        parseInt(data.createdById),
+        null  // p_deletedbyid
+      ];
+
+      console.log('updateRole params:', JSON.stringify(queryParams, null, 2));
+
+      const [results] = await pool.query(
+        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, @p_newroleid, @p_result, @p_message)',
+        queryParams
+      );
+
+      console.log('updateRole results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query(
+        'SELECT @p_result AS p_result, @p_message AS p_message'
+      );
+
+      console.log('updateRole output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || output[0].p_result === null) {
+        throw new Error('Invalid output from SP_ManageRoles');
+      }
+
+      if (output[0].p_result !== 1 && !output[0].p_message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_message || 'Failed to update role');
       }
 
       return {
-        message: output[0].p_message
+        message: output[0].p_message || 'Role updated successfully'
       };
     } catch (err) {
-      console.error('updateRole error:', err);
+      console.error('updateRole error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
   // Delete a Role
-  static async deleteRole(id, deletedById) {
+  static async deleteRole(roleId, deletedById) {
     try {
       const pool = await poolPromise;
 
+      const validatedRoleId = parseInt(roleId, 10);
+      const validatedDeletedById = parseInt(deletedById, 10);
+      if (isNaN(validatedRoleId)) {
+        throw new Error('Valid RoleID is required');
+      }
+      if (isNaN(validatedDeletedById)) {
+        throw new Error('Valid deletedById is required');
+      }
+
       const queryParams = [
         'DELETE',
-        id,
+        validatedRoleId,
         null, // p_rolename
         null, // p_description
         null, // p_createdbyid
-        deletedById
+        validatedDeletedById
       ];
 
-      // Log query parameters
-      console.log('deleteRole params:', queryParams);
+      console.log('deleteRole params:', JSON.stringify(queryParams, null, 2));
 
-      // Call SP_ManageRoles
       const [results] = await pool.query(
-        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [...queryParams, null, null, null] // Append output parameters
+        'CALL SP_ManageRoles(?, ?, ?, ?, ?, ?, @p_newroleid, @p_result, @p_message)',
+        queryParams
       );
 
-      // Log results
       console.log('deleteRole results:', JSON.stringify(results, null, 2));
 
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_result AS p_result, @p_message AS p_message');
+      const [output] = await pool.query(
+        'SELECT @p_result AS p_result, @p_message AS p_message'
+      );
 
-      // Log output
       console.log('deleteRole output:', JSON.stringify(output, null, 2));
 
-      if (!output || !output[0] || typeof output[0].p_result === 'undefined') {
-        throw new Error('Output parameters missing from SP_ManageRoles');
+      if (!output || !output[0] || output[0].p_result === null) {
+        throw new Error('Invalid output from SP_ManageRoles');
       }
 
-      if (output[0].p_result !== 1) {
-        throw new Error(output[0].p_message || 'Failed to delete Role');
+      if (output[0].p_result !== 1 && !output[0].p_message.toLowerCase().includes('successfully')) {
+        throw new Error(output[0].p_message || 'Failed to delete role');
       }
 
       return {
-        message: output[0].p_message
+        message: output[0].p_message || 'Role deleted successfully'
       };
     } catch (err) {
-      console.error('deleteRole error:', err);
+      console.error('deleteRole error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
