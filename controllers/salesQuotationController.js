@@ -39,9 +39,26 @@ class SalesQuotationController {
   // Create a new Sales Quotation
   static async createSalesQuotation(req, res) {
     try {
-      const data = req.body;
+
+       const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create Sales-Quotation',
+          data: null,
+          purchaseRFQId: null,
+          newPurchaseRFQId: null
+        });
+      }
+
+
+      const data = {
+        PurchaseRFQID: req.body.PurchaseRFQID,
+        CreatedByID: req.user.personId
+      }
+
       // Validate required fields
-      if (!data.purchaseRFQId || !data.createdById) {
+      if (!data.PurchaseRFQID ) {
         return res.status(400).json({
           success: false,
           message: 'PurchaseRFQID and CreatedByID are required.',
@@ -110,7 +127,7 @@ class SalesQuotationController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.createdById) {
+      if (!data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'CreatedByID is required.',
@@ -144,8 +161,8 @@ class SalesQuotationController {
   static async deleteSalesQuotation(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
-      if (!deletedById) {
+      const { DeletedByID } = req.body;
+      if (!DeletedByID) {
         return res.status(400).json({
           success: false,
           message: 'DeletedByID is required.',
@@ -155,7 +172,7 @@ class SalesQuotationController {
         });
       }
 
-      const result = await SalesQuotationModel.deleteSalesQuotation(parseInt(id), deletedById);
+      const result = await SalesQuotationModel.deleteSalesQuotation(parseInt(id), DeletedByID);
       res.status(200).json({
         success: true,
         message: result.message,

@@ -55,10 +55,10 @@ class SalesQuotationModel {
       const queryParams = [
         'INSERT',
         null, // p_SalesQuotationID
-        data.salesRFQId || null,
-        data.purchaseRFQId,
+        data.SalesRFQID || null,
+        data.PurchaseRFQID,
         data.supplierId || null,
-        data.status || 'Pending',
+        data.Status || 'Pending',
         data.originAddressId || null,
         data.collectionAddressId || null,
         data.billingAddressId || null,
@@ -83,7 +83,7 @@ class SalesQuotationModel {
         data.supplierContactPersonId || null,
         data.isDeliveryOnly || 0,
         data.taxesAndOtherCharges || 0,
-        data.createdById,
+        data.CreatedByID,
         null // p_DeletedByID
       ];
 
@@ -178,10 +178,10 @@ class SalesQuotationModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.salesRFQId || null,
-        data.purchaseRFQId || null,
+        data.SalesRFQID || null,
+        data.PurchaseRFQID || null,
         data.supplierId || null,
-        data.status || null,
+        data.Status || null,
         data.originAddressId || null,
         data.collectionAddressId || null,
         data.billingAddressId || null,
@@ -205,8 +205,8 @@ class SalesQuotationModel {
         data.currencyId || null,
         data.supplierContactPersonId || null,
         data.isDeliveryOnly || null,
-        data.taxesAndOtherCharges || null,
-        data.createdById || null,
+        data.TaxesAndOtherCharges || null,
+        data.CreatedByID || null,
         null // p_DeletedByID
       ];
 
@@ -232,7 +232,7 @@ class SalesQuotationModel {
   }
 
   // Delete a Sales Quotation
-  static async deleteSalesQuotation(id, deletedById) {
+  static async deleteSalesQuotation(id, DeletedByID) {
     try {
       const pool = await poolPromise;
 
@@ -268,7 +268,7 @@ class SalesQuotationModel {
         null, // p_IsDeliveryOnly
         null, // p_TaxesAndOtherCharges
         null, // p_CreatedByID
-        deletedById
+        DeletedByID
       ];
 
       const [result] = await pool.query(
