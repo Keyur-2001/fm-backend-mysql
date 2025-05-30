@@ -6,34 +6,21 @@ class SubscriptionPlanController {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
-      // Sanitize inputs
-      const pageNum = parseInt(pageNumber) || 1;
-      const pageSz = parseInt(pageSize) || 10;
-
-      if (pageNum < 1 || pageSz < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'PageNumber and PageSize must be positive integers',
-          data: null,
-          subscriptionPlanId: null
-        });
-      }
-
       const subscriptionPlans = await SubscriptionPlanModel.getAllSubscriptionPlans({
-        pageNumber: pageNum,
-        pageSize: pageSz,
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize),
         fromDate,
         toDate
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Subscription Plans retrieved successfully',
+        message: 'Subscription plans retrieved successfully',
         data: subscriptionPlans.data,
         totalRecords: subscriptionPlans.totalRecords
       });
     } catch (err) {
-      console.error('getAllSubscriptionPlans error:', err.stack);
+      console.error('getAllSubscriptionPlans error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -46,16 +33,10 @@ class SubscriptionPlanController {
   // Create a new Subscription Plan
   static async createSubscriptionPlan(req, res) {
     try {
-      const {
-        SubscriptionPlanName,
-        Description,
-        Fees,
-        BillingFrequencyID,
-        CreatedByID
-      } = req.body;
+      const { subscriptionPlanName, description, fees, billingFrequencyId, createdById } = req.body;
 
       // Basic validation
-      if (!SubscriptionPlanName || Fees == null || !BillingFrequencyID || !CreatedByID) {
+      if (!subscriptionPlanName || fees == null || !billingFrequencyId || !createdById) {
         return res.status(400).json({
           success: false,
           message: 'SubscriptionPlanName, Fees, BillingFrequencyID, and CreatedByID are required',
@@ -64,25 +45,13 @@ class SubscriptionPlanController {
         });
       }
 
-      // Sanitize inputs
-      const sanitizedData = {
-        SubscriptionPlanName: String(SubscriptionPlanName).trim(),
-        Description: Description ? String(Description).trim() : null,
-        Fees: parseFloat(Fees),
-        BillingFrequencyID: parseInt(BillingFrequencyID),
-        CreatedByID: parseInt(CreatedByID)
-      };
-
-      if (isNaN(sanitizedData.Fees) || isNaN(sanitizedData.BillingFrequencyID) || isNaN(sanitizedData.CreatedByID)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Fees, BillingFrequencyID, and CreatedByID must be valid numbers',
-          data: null,
-          SubscriptionPlanID: null
-        });
-      }
-
-      const result = await SubscriptionPlanModel.createSubscriptionPlan(sanitizedData);
+      const result = await SubscriptionPlanModel.createSubscriptionPlan({
+        subscriptionPlanName,
+        description,
+        fees,
+        billingFrequencyId,
+        createdById
+      });
 
       return res.status(201).json({
         success: true,
@@ -91,7 +60,7 @@ class SubscriptionPlanController {
         subscriptionPlanId: result.subscriptionPlanId
       });
     } catch (err) {
-      console.error('createSubscriptionPlan error:', err.stack);
+      console.error('createSubscriptionPlan error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -106,8 +75,7 @@ class SubscriptionPlanController {
     try {
       const { id } = req.params;
 
-      const subscriptionPlanId = parseInt(id);
-      if (!id || isNaN(subscriptionPlanId)) {
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
           message: 'Valid SubscriptionPlanID is required',
@@ -116,25 +84,25 @@ class SubscriptionPlanController {
         });
       }
 
-      const subscriptionPlan = await SubscriptionPlanModel.getSubscriptionPlanById(subscriptionPlanId);
+      const subscriptionPlan = await SubscriptionPlanModel.getSubscriptionPlanById(parseInt(id));
 
       if (!subscriptionPlan) {
         return res.status(404).json({
           success: false,
-          message: 'Subscription Plan not found or is deleted',
+          message: 'Subscription plan not found',
           data: null,
-          subscriptionPlanId
+          subscriptionPlanId: id
         });
       }
 
       return res.status(200).json({
         success: true,
-        message: 'Subscription Plan retrieved successfully',
+        message: 'Subscription plan retrieved successfully',
         data: subscriptionPlan,
-        subscriptionPlanId
+        subscriptionPlanId: id
       });
     } catch (err) {
-      console.error('getSubscriptionPlanById error:', err.stack);
+      console.error('getSubscriptionPlanById error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -148,16 +116,9 @@ class SubscriptionPlanController {
   static async updateSubscriptionPlan(req, res) {
     try {
       const { id } = req.params;
-      const {
-        SubscriptionPlanName,
-        Description,
-        Fees,
-        BillingFrequencyID,
-        CreatedByID
-      } = req.body;
+      const { subscriptionPlanName, description, fees, billingFrequencyId, createdById } = req.body;
 
-      const subscriptionPlanId = parseInt(id);
-      if (!id || isNaN(subscriptionPlanId)) {
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
           message: 'Valid SubscriptionPlanID is required',
@@ -166,44 +127,31 @@ class SubscriptionPlanController {
         });
       }
 
-      // Basic validation
-      if (!SubscriptionPlanName || Fees == null || !BillingFrequencyID || !CreatedByID) {
+      if (!subscriptionPlanName || fees == null || !billingFrequencyId || !createdById) {
         return res.status(400).json({
           success: false,
           message: 'SubscriptionPlanName, Fees, BillingFrequencyID, and CreatedByID are required',
           data: null,
-          subscriptionPlanId
+          subscriptionPlanId: id
         });
       }
 
-      // Sanitize inputs
-      const sanitizedData = {
-        subscriptionPlanName: String(SubscriptionPlanName).trim(),
-        description: Description ? String(Description).trim() : null,
-        fees: parseFloat(Fees),
-        billingFrequencyId: parseInt(BillingFrequencyID),
-        createdById: parseInt(CreatedByID)
-      };
-
-      if (isNaN(sanitizedData.fees) || isNaN(sanitizedData.billingFrequencyId) || isNaN(sanitizedData.createdById)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Fees, BillingFrequencyID, and CreatedByID must be valid numbers',
-          data: null,
-          subscriptionPlanId
-        });
-      }
-
-      const result = await SubscriptionPlanModel.updateSubscriptionPlan(subscriptionPlanId, sanitizedData);
+      const result = await SubscriptionPlanModel.updateSubscriptionPlan(parseInt(id), {
+        subscriptionPlanName,
+        description,
+        fees,
+        billingFrequencyId,
+        createdById
+      });
 
       return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        subscriptionPlanId
+        subscriptionPlanId: id
       });
     } catch (err) {
-      console.error('updateSubscriptionPlan error:', err.stack);
+      console.error('updateSubscriptionPlan error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -217,10 +165,9 @@ class SubscriptionPlanController {
   static async deleteSubscriptionPlan(req, res) {
     try {
       const { id } = req.params;
-      const { DeletedByID } = req.body;
+      const { deletedById } = req.body;
 
-      const subscriptionPlanId = parseInt(id);
-      if (!id || isNaN(subscriptionPlanId)) {
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
           message: 'Valid SubscriptionPlanID is required',
@@ -229,25 +176,25 @@ class SubscriptionPlanController {
         });
       }
 
-      if (!DeletedByID || isNaN(parseInt(DeletedByID))) {
+      if (!deletedById) {
         return res.status(400).json({
           success: false,
-          message: 'Valid DeletedByID is required',
+          message: 'DeletedByID is required',
           data: null,
-          subscriptionPlanId
+          subscriptionPlanId: id
         });
       }
 
-      const result = await SubscriptionPlanModel.deleteSubscriptionPlan(subscriptionPlanId, parseInt(DeletedByID));
+      const result = await SubscriptionPlanModel.deleteSubscriptionPlan(parseInt(id), deletedById);
 
       return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        subscriptionPlanId
+        subscriptionPlanId: id
       });
     } catch (err) {
-      console.error('deleteSubscriptionPlan error:', err.stack);
+      console.error('deleteSubscriptionPlan error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,

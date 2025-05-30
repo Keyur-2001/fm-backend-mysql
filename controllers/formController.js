@@ -1,16 +1,13 @@
 const FormModel = require('../models/formModel');
 
 class FormController {
-  // Get all Forms with pagination
   static async getAllForms(req, res) {
     try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+      const { pageNumber, pageSize } = req.query;
 
       const forms = await FormModel.getAllForms({
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-        fromDate,
-        toDate
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize)
       });
 
       return res.status(200).json({
@@ -30,12 +27,10 @@ class FormController {
     }
   }
 
-  // Create a new Form
   static async createForm(req, res) {
     try {
       const { formName, createdById } = req.body;
 
-      // Basic validation
       if (!formName || !createdById) {
         return res.status(400).json({
           success: false,
@@ -67,7 +62,6 @@ class FormController {
     }
   }
 
-  // Get a single Form by ID
   static async getFormById(req, res) {
     try {
       const { id } = req.params;
@@ -109,11 +103,10 @@ class FormController {
     }
   }
 
-  // Update a Form
   static async updateForm(req, res) {
     try {
       const { id } = req.params;
-      const { formName, isDeleted, deletedById } = req.body;
+      const { formName, isDeleted, createdById, deletedById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -124,10 +117,19 @@ class FormController {
         });
       }
 
-      if (!formName) {
+      if (!formName || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FormName is required',
+          message: 'FormName and CreatedByID are required',
+          data: null,
+          formId: id
+        });
+      }
+
+      if (isDeleted && !deletedById) {
+        return res.status(400).json({
+          success: false,
+          message: 'DeletedByID is required when IsDeleted is true',
           data: null,
           formId: id
         });
@@ -136,6 +138,7 @@ class FormController {
       const result = await FormModel.updateForm(parseInt(id), {
         formName,
         isDeleted,
+        createdById,
         deletedById
       });
 
@@ -156,7 +159,6 @@ class FormController {
     }
   }
 
-  // Delete a Form
   static async deleteForm(req, res) {
     try {
       const { id } = req.params;

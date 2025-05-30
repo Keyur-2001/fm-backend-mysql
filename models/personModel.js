@@ -1,11 +1,12 @@
 const poolPromise = require('../config/db.config');
 
 class PersonModel {
-  // Get paginated persons
+  // Get paginated Persons
   static async getAllPersons({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
@@ -13,38 +14,29 @@ class PersonModel {
         toDate ? new Date(toDate) : null
       ];
 
-      console.log('getAllPersons params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('getAllPersons params:', queryParams);
 
+      // Call SP_GetAllPerson
       const [results] = await pool.query(
-        'CALL SP_GetAllPerson(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_GetAllPerson(?, ?, ?, ?)',
         queryParams
       );
 
+      // Log results
       console.log('getAllPersons results:', JSON.stringify(results, null, 2));
-
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-      console.log('getAllPersons output:', JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_GetAllPerson: ${JSON.stringify(output)}`);
-      }
-
-      if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to retrieve persons');
-      }
 
       return {
         data: results[0] || [],
-        totalRecords: results[1][0]?.TotalRecords || 0
+        totalRecords: results[1] && results[1][0] ? results[1][0].TotalRecords : 0
       };
     } catch (err) {
-      console.error('getAllPersons error:', err.stack);
+      console.error('getAllPersons error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Create a new person
+  // Create a new Person
   static async createPerson(data) {
     try {
       const pool = await poolPromise;
@@ -63,46 +55,48 @@ class PersonModel {
         data.dob ? new Date(data.dob) : null,
         data.joiningDate ? new Date(data.joiningDate) : null,
         data.companyId,
-        data.isExternal ? 1 : 0,
+        data.isExternal,
         data.loginId,
         data.password,
         data.emailId,
-        data.isDarkMode ? 1 : 0,
+        data.isDarkMode,
         data.createdById
       ];
 
-      console.log('createPerson params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('createPerson params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManagePerson with session variables for OUT/INOUT parameters
+      await pool.query(
         'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('createPerson results:', JSON.stringify(results, null, 2));
+      // Fetch output parameters, including p_PersonID
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_PersonID AS p_PersonID');
 
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
+      // Log output
       console.log('createPerson output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManagePerson: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManagePerson');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to create person');
+        throw new Error(output[0].p_Message || 'Failed to create Person');
       }
 
       return {
-        personId: results[0]?.PersonID || null,
+        personId: output[0].p_PersonID || null,
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('createPerson error:', err.stack);
+      console.error('createPerson error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Get a single person by ID
+  // Get a single Person by ID
   static async getPersonById(id) {
     try {
       const pool = await poolPromise;
@@ -129,21 +123,26 @@ class PersonModel {
         null  // p_CreatedByID
       ];
 
-      console.log('getPersonById params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('getPersonById params:', queryParams);
 
+      // Call SP_ManagePerson with session variables for OUT/INOUT parameters
       const [results] = await pool.query(
         'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
+      // Log results
       console.log('getPersonById results:', JSON.stringify(results, null, 2));
 
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('getPersonById output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManagePerson: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManagePerson');
       }
 
       if (output[0].p_Result !== 1) {
@@ -152,12 +151,12 @@ class PersonModel {
 
       return results[0][0] || null;
     } catch (err) {
-      console.error('getPersonById error:', err.stack);
+      console.error('getPersonById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a person
+  // Update a Person
   static async updatePerson(id, data) {
     try {
       const pool = await poolPromise;
@@ -176,45 +175,47 @@ class PersonModel {
         data.dob ? new Date(data.dob) : null,
         data.joiningDate ? new Date(data.joiningDate) : null,
         data.companyId,
-        data.isExternal ? 1 : 0,
+        data.isExternal,
         data.loginId,
         data.password,
         data.emailId,
-        data.isDarkMode ? 1 : 0,
+        data.isDarkMode,
         data.createdById
       ];
 
-      console.log('updatePerson params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('updatePerson params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManagePerson with session variables for OUT/INOUT parameters
+      await pool.query(
         'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('updatePerson results:', JSON.stringify(results, null, 2));
-
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('updatePerson output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManagePerson: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManagePerson');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to update person');
+        throw new Error(output[0].p_Message || 'Failed to update Person');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('updatePerson error:', err.stack);
+      console.error('updatePerson error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Delete a person
+  // Delete a Person
   static async deletePerson(id, createdById) {
     try {
       const pool = await poolPromise;
@@ -241,32 +242,34 @@ class PersonModel {
         createdById
       ];
 
-      console.log('deletePerson params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('deletePerson params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManagePerson with session variables for OUT/INOUT parameters
+      await pool.query(
         'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('deletePerson results:', JSON.stringify(results, null, 2));
-
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('deletePerson output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManagePerson: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManagePerson');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to delete person');
+        throw new Error(output[0].p_Message || 'Failed to delete Person');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('deletePerson error:', err.stack);
+      console.error('deletePerson error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

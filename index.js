@@ -16,7 +16,7 @@ const addressRoutes = require('./routes/addressRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 // const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
-const personTypeRoutes = require('./routes/personTypeRoutes');
+// const personTypeRoutes = require('./routes/personTypeRoutes');
 // const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
@@ -35,7 +35,7 @@ const permissionRoutes = require('./routes/permissionRoutes');
 // const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 // const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
-// const formRoleRoutes = require('./routes/formRoleRoutes');
+const formRoleRoutes = require('./routes/formRoleRoutes');
 // const formRoleApprovalRoutes = require('./routes/formRoleApprovalRoutes');
 // const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
 // const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
@@ -44,7 +44,7 @@ const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 // const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 // const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
-// const formRoutes = require('./routes/formRoutes');
+const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
 
@@ -85,7 +85,7 @@ async function startServer() {
       // ['/api/mailing-priorities', mailingPriorityRoutes],
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
-      ['/api/person-types', personTypeRoutes],
+      // ['/api/person-types', personTypeRoutes],
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
        ['/api/auth', authRoutes],
@@ -99,8 +99,8 @@ async function startServer() {
       ['/api/roles', RolesRoutes],
       ['/api/permissions', permissionRoutes],
       // ['/api/rolepermissions', rolePermissionRoutes],
-      // ['/api/forms', formRoutes],
-      // ['/api/formRole', formRoleRoutes],
+      ['/api/forms', formRoutes],
+      ['/api/formRole', formRoleRoutes],
       // ['/api/formRoleApproval', formRoleApprovalRoutes],
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
       // ['/api/sales-rfq', salesRFQRoutes],
