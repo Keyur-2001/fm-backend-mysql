@@ -1,30 +1,64 @@
 const CountryOfOriginModel = require('../models/countryOfOriginModel');
 
 class CountryOfOriginController {
+  // Get all Countries of Origin with pagination
+  static async getAllCountriesOfOrigin(req, res) {
+    try {
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+      const countries = await CountryOfOriginModel.getAllCountriesOfOrigin({
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize),
+        fromDate,
+        toDate
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Countries of Origin retrieved successfully',
+        data: countries.data,
+        totalRecords: countries.totalRecords
+      });
+    } catch (err) {
+      console.error('getAllCountriesOfOrigin error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        countryOfOriginId: null
+      });
+    }
+  }
+
   // Create a new Country of Origin
   static async createCountryOfOrigin(req, res) {
     try {
-      const data = req.body;
-      // Validate required fields
-      if (!data.countryOfOrigin || !data.createdById) {
+      const { countryOfOrigin, createdById } = req.body;
+
+      // Basic validation
+      if (!countryOfOrigin || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'CountryOfOrigin and CreatedById are required.',
+          message: 'CountryOfOrigin and CreatedByID are required',
           data: null,
           countryOfOriginId: null
         });
       }
 
-      const result = await CountryOfOriginModel.createCountryOfOrigin(data);
-      res.status(201).json({
+      const result = await CountryOfOriginModel.createCountryOfOrigin({
+        countryOfOrigin,
+        createdById
+      });
+
+      return res.status(201).json({
         success: true,
         message: result.message,
         data: null,
         countryOfOriginId: result.countryOfOriginId
       });
     } catch (err) {
-      console.error('Error in createCountryOfOrigin:', err);
-      res.status(500).json({
+      console.error('createCountryOfOrigin error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
@@ -37,24 +71,36 @@ class CountryOfOriginController {
   static async getCountryOfOriginById(req, res) {
     try {
       const { id } = req.params;
-      const countryOfOrigin = await CountryOfOriginModel.getCountryOfOriginById(parseInt(id));
-      if (!countryOfOrigin) {
+
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Country of Origin not found.',
+          message: 'Valid CountryOfOriginID is required',
           data: null,
           countryOfOriginId: null
         });
       }
-      res.status(200).json({
+
+      const country = await CountryOfOriginModel.getCountryOfOriginById(parseInt(id));
+
+      if (!country) {
+        return res.status(404).json({
+          success: false,
+          message: 'Country of Origin not found',
+          data: null,
+          countryOfOriginId: id
+        });
+      }
+
+      return res.status(200).json({
         success: true,
-        message: 'Country of Origin retrieved successfully.',
-        data: countryOfOrigin,
+        message: 'Country of Origin retrieved successfully',
+        data: country,
         countryOfOriginId: id
       });
     } catch (err) {
-      console.error('Error in getCountryOfOriginById:', err);
-      res.status(500).json({
+      console.error('getCountryOfOriginById error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
@@ -67,27 +113,40 @@ class CountryOfOriginController {
   static async updateCountryOfOrigin(req, res) {
     try {
       const { id } = req.params;
-      const data = req.body;
-      // Validate required fields
-      if (!data.createdById) {
+      const { countryOfOrigin, createdById } = req.body;
+
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'CreatedById is required.',
+          message: 'Valid CountryOfOriginID is required',
           data: null,
           countryOfOriginId: null
         });
       }
 
-      const result = await CountryOfOriginModel.updateCountryOfOrigin(parseInt(id), data);
-      res.status(200).json({
+      if (!countryOfOrigin || !createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'CountryOfOrigin and CreatedByID are required',
+          data: null,
+          countryOfOriginId: id
+        });
+      }
+
+      const result = await CountryOfOriginModel.updateCountryOfOrigin(parseInt(id), {
+        countryOfOrigin,
+        createdById
+      });
+
+      return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
         countryOfOriginId: id
       });
     } catch (err) {
-      console.error('Error in updateCountryOfOrigin:', err);
-      res.status(500).json({
+      console.error('updateCountryOfOrigin error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
@@ -100,18 +159,37 @@ class CountryOfOriginController {
   static async deleteCountryOfOrigin(req, res) {
     try {
       const { id } = req.params;
-      const { createdById } = req.body; // No validation, pass as-is
+      const { createdById } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CountryOfOriginID is required',
+          data: null,
+          countryOfOriginId: null
+        });
+      }
+
+      if (!createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'CreatedByID is required',
+          data: null,
+          countryOfOriginId: id
+        });
+      }
 
       const result = await CountryOfOriginModel.deleteCountryOfOrigin(parseInt(id), createdById);
-      res.status(200).json({
+
+      return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
         countryOfOriginId: id
       });
     } catch (err) {
-      console.error('Error in deleteCountryOfOrigin:', err);
-      res.status(500).json({
+      console.error('deleteCountryOfOrigin error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,

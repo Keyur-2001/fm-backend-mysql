@@ -1,18 +1,55 @@
 const poolPromise = require('../config/db.config');
 
 class CurrencyModel {
+  // Helper method to check if currencyName is unique
+  static async checkCurrencyNameUniqueness(currencyName, excludeCurrencyId = null) {
+    try {
+      const pool = await poolPromise;
+      let query = 'SELECT COUNT(*) AS count FROM dbo_tblcurrency WHERE CurrencyName = ?';
+      let params = [currencyName.trim()];
+
+      if (excludeCurrencyId && !isNaN(excludeCurrencyId)) {
+        query += ' AND CurrencyID != ?';
+        params.push(Number(excludeCurrencyId));
+      }
+
+      console.log('checkCurrencyNameUniqueness query:', query);
+      console.log('checkCurrencyNameUniqueness params:', params);
+
+      const [results] = await pool.query(query, params);
+      const isUnique = results[0].count === 0;
+
+      console.log(`Currency name '${currencyName}' isUnique: ${isUnique}`);
+      return isUnique;
+    } catch (error) {
+      console.error('Error checking currency name uniqueness:', error.stack);
+      if (error.code === 'ER_NO_SUCH_TABLE') {
+        throw new Error('Currency table (dbo_tblcurrency) does not exist in the database');
+      }
+      throw new Error(`Failed to check currency name uniqueness: ${error.message}`);
+    }
+  }
+
   // Get paginated Currencies
   static async getAllCurrencies({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
+      const pageNum = parseInt(pageNumber, 10);
+      const pageSz = parseInt(pageSize, 10);
+      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+        throw new Error('Invalid pageNumber or pageSize');
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        pageNum,
+        pageSz,
+        fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null,
+        toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null
       ];
+
+      console.log('getAllCurrencies params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_GetAllCurrencies
       const [results] = await pool.query(
@@ -20,21 +57,30 @@ class CurrencyModel {
         queryParams
       );
 
+      console.log('getAllCurrencies results:', JSON.stringify(results, null, 2));
+
       // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
+
+      console.log('getAllCurrencies outParams:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || outParams.result === null) {
+        throw new Error('Invalid output from SP_GetAllCurrencies');
+      }
 
       if (outParams.result !== 0) {
         throw new Error(outParams.message || 'Failed to retrieve currencies');
       }
 
       return {
-        data: results[0],
+        data: Array.isArray(results[0]) ? results[0] : [],
         totalRecords: null // SP does not return total count
       };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+    } catch (error) {
+      console.error('getAllCurrencies error:', error.stack);
+      throw new Error(`Database error: ${error.message}`);
     }
   }
 
@@ -43,12 +89,28 @@ class CurrencyModel {
     try {
       const pool = await poolPromise;
 
+      // Validate input
+      if (!data.currencyName || typeof data.currencyName !== 'string' || data.currencyName.trim() === '') {
+        throw new Error('Invalid input: CurrencyName is required');
+      }
+      if (!data.createdById || isNaN(parseInt(data.createdById))) {
+        throw new Error('Invalid input: CreatedById is required');
+      }
+
+      // Check for duplicate currencyName
+      const isUnique = await this.checkCurrencyNameUniqueness(data.currencyName);
+      if (!isUnique) {
+        throw new Error(`Currency name '${data.currencyName}' already exists`);
+      }
+
       const queryParams = [
         'INSERT',
         null, // p_CurrencyID
-        data.currencyName,
-        data.createdById
+        data.currencyName.trim(),
+        parseInt(data.createdById)
       ];
+
+      console.log('createCurrency params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCurrency
       await pool.query(
@@ -61,16 +123,27 @@ class CurrencyModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      console.log('createCurrency outParams:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || outParams.result === null) {
+        throw new Error('Invalid output from SP_ManageCurrency');
+      }
+
       if (outParams.result !== 1) {
         throw new Error(outParams.message || 'Failed to create Currency');
       }
 
+      // Extract CurrencyID from message (e.g., "Currency created successfully. ID: 1")
+      const currencyIdMatch = outParams.message.match(/ID: (\d+)/);
+      const currencyId = currencyIdMatch ? parseInt(currencyIdMatch[1]) : null;
+
       return {
-        currencyId: null, // SP does not return new ID
-        message: outParams.message
+        currencyId,
+        message: outParams.message || 'Currency created successfully'
       };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+    } catch (error) {
+      console.error('createCurrency error:', error.stack);
+      throw new Error(`Database error: ${error.message}`);
     }
   }
 
@@ -79,24 +152,42 @@ class CurrencyModel {
     try {
       const pool = await poolPromise;
 
+      const currencyId = parseInt(id, 10);
+      if (isNaN(currencyId) || currencyId < 1) {
+        throw new Error('Invalid currencyId');
+      }
+
+      const queryParams = ['SELECT', currencyId, null, null];
+
+      console.log('getCurrencyById params:', JSON.stringify(queryParams, null, 2));
+
       // Call SP_ManageCurrency
       const [results] = await pool.query(
         'CALL SP_ManageCurrency(?, ?, ?, ?, @p_Result, @p_Message)',
-        ['SELECT', id, null, null]
+        queryParams
       );
+
+      console.log('getCurrencyById results:', JSON.stringify(results, null, 2));
 
       // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      console.log('getCurrencyById outParams:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || outParams.result === null) {
+        throw new Error('Invalid output from SP_ManageCurrency');
+      }
+
       if (outParams.result !== 1) {
         throw new Error(outParams.message || 'Currency not found');
       }
 
       return results[0][0] || null;
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+    } catch (error) {
+      console.error('getCurrencyById error:', error.stack);
+      throw new Error(`Database error: ${error.message}`);
     }
   }
 
@@ -105,12 +196,33 @@ class CurrencyModel {
     try {
       const pool = await poolPromise;
 
+      const currencyId = parseInt(id, 10);
+      if (isNaN(currencyId) || currencyId < 1) {
+        throw new Error('Invalid currencyId');
+      }
+
+      // Validate input
+      if (!data.currencyName || typeof data.currencyName !== 'string' || data.currencyName.trim() === '') {
+        throw new Error('Invalid input: CurrencyName is required');
+      }
+      if (!data.createdById || isNaN(parseInt(data.createdById))) {
+        throw new Error('Invalid input: CreatedById is required');
+      }
+
+      // Check for duplicate currencyName
+      const isUnique = await this.checkCurrencyNameUniqueness(data.currencyName, currencyId);
+      if (!isUnique) {
+        throw new Error(`Currency name '${data.currencyName}' already exists`);
+      }
+
       const queryParams = [
         'UPDATE',
-        id,
-        data.currencyName || null,
-        data.createdById
+        currencyId,
+        data.currencyName.trim(),
+        parseInt(data.createdById)
       ];
+
+      console.log('updateCurrency params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCurrency
       await pool.query(
@@ -123,15 +235,22 @@ class CurrencyModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      console.log('updateCurrency outParams:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || outParams.result === null) {
+        throw new Error('Invalid output from SP_ManageCurrency');
+      }
+
       if (outParams.result !== 1) {
         throw new Error(outParams.message || 'Failed to update Currency');
       }
 
       return {
-        message: outParams.message
+        message: outParams.message || 'Currency updated successfully'
       };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+    } catch (error) {
+      console.error('updateCurrency error:', error.stack);
+      throw new Error(`Database error: ${error.message}`);
     }
   }
 
@@ -140,12 +259,24 @@ class CurrencyModel {
     try {
       const pool = await poolPromise;
 
+      const currencyId = parseInt(id, 10);
+      if (isNaN(currencyId) || currencyId < 1) {
+        throw new Error('Invalid currencyId');
+      }
+
+      const validatedCreatedById = createdById && !isNaN(parseInt(createdById)) ? parseInt(createdById) : null;
+      if (!validatedCreatedById) {
+        throw new Error('Invalid createdById');
+      }
+
       const queryParams = [
         'DELETE',
-        id,
-        null, // p_CurrencyName
-        createdById || null // p_CreatedByID
+        currencyId,
+        null,
+        validatedCreatedById
       ];
+
+      console.log('deleteCurrency params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCurrency
       await pool.query(
@@ -158,15 +289,22 @@ class CurrencyModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      console.log('deleteCurrency outParams:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || outParams.result === null) {
+        throw new Error('Invalid output from SP_ManageCurrency');
+      }
+
       if (outParams.result !== 1) {
         throw new Error(outParams.message || 'Failed to delete Currency');
       }
 
       return {
-        message: outParams.message
+        message: outParams.message || 'Currency deleted successfully'
       };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+    } catch (error) {
+      console.error('deleteCurrency error:', error.stack);
+      throw new Error(`Database error: ${error.message}`);
     }
   }
 }

@@ -10,11 +10,14 @@ const serviceTypeRoutes = require('./routes/serviceTypeRoutes');
 const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
 const addressRoutes = require('./routes/addressRoutes');
 const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
+
 const currencyRoutes = require('./routes/currencyRoutes');
 const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
 const personTypeRoutes = require('./routes/personTypeRoutes');
 const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
+const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
+const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -25,11 +28,9 @@ const warehouseRoutes = require('./routes/warehouseRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const bankAccountRoutes = require('./routes/bankAccountRoutes');
 const certificationRoutes = require('./routes/certificationRoutes');
-const RolesRoutes = require('./routes/rolesRoutes');
+const RolesRoutes = require('./routes/roleRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
 const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
-const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
-const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
@@ -41,11 +42,12 @@ const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes'
 const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
+
+const salesOrderRoutes = require('./routes/SalesOrderRoutes');
+const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
-const salesOrderRoutes = require('./routes/SalesOrderRoutes');
-const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 
 const app = express();
 
@@ -87,7 +89,7 @@ async function startServer() {
       ['/api/person-types', personTypeRoutes],
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
-      ['/api/auth', authRoutes],
+       ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],
       ['/api/country-of-origin', countryOfOriginRoutes],
       ['/api/address-types', addressTypeRoutes],
@@ -119,6 +121,21 @@ async function startServer() {
       ['/api/collectionRate', collectionRateRoutes],
       ['/api/sales-Order', salesOrderRoutes],
       ['/api/send-sales-quotation', sendSalesQuotationRoutes]
+      // ['/api/sales-rfq', salesRFQRoutes],
+      // ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
+      // ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
+      // ['/api/purchase-rfq', purchaseRFQRoutes],
+      // ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
+      // ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
+      // ['/api/supplier-Quotation', supplierQuotationRoutes],
+      // ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
+      // ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      // ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      // ['/api/sales-Quotation', salesQuotationRoutes],
+      // ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
+      // ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      // ['/api/taxChargesType', taxChargesTypeRoutes],
+      // ['/api/collectionRate', collectionRateRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 
@@ -149,7 +166,7 @@ async function startServer() {
       console.log(`Received ${signal}. Shutting down...`);
       try {
         server.close(() => {
-          console.log('HTTP server closed');
+          console.log('HTTP server closedbcrypt');
         });
 
         if (pool) {
