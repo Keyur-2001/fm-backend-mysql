@@ -1,205 +1,296 @@
-const mysql = require('mysql2/promise');
 const poolPromise = require('../config/db.config');
 
-// INSERT from PurchaseRFQ
-const createSalesQuotationFromPurchaseRFQ = async ({
-  PurchaseRFQID,
-  CreatedByID,
-  SalesRFQID = null,
-  SupplierID = null,
-  Status = 'Pending',
-  OriginAddressID = null,
-  CollectionAddressID = null,
-  BillingAddressID = null,
-  DestinationAddressID = null,
-  CollectionWarehouseID = null,
-  PostingDate = null,
-  DeliveryDate = null,
-  RequiredByDate = null,
-  DateReceived = null,
-  ServiceTypeID = null,
-  ExternalRefNo = null,
-  ExternalSupplierID = null,
-  CustomerID = null,
-  CompanyID = null,
-  Terms = null,
-  PackagingRequiredYN = 0,
-  CollectFromSupplierYN = 0,
-  SalesQuotationCompletedYN = 0,
-  ShippingPriorityID = null,
-  ValidTillDate = null,
-  CurrencyID = null,
-  SupplierContactPersonID = null,
-  IsDeliveryOnly = 0,
-  TaxesAndOtherCharges = 0,
-  DebugMode = 0,
-}) => {
-  const pool = await poolPromise;
-  try {
-    // Call the stored procedure with 32 input parameters
-    await pool.query(
-      `CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)`,
-      [
+class SalesQuotationModel {
+  // Get all Sales Quotations
+  static async getAllSalesQuotations({
+    pageNumber = 1,
+    pageSize = 10,
+    sortColumn = 'SalesQuotationID',
+    sortDirection = 'ASC',
+    fromDate = null,
+    toDate = null,
+    status = null,
+    customerId = null,
+    supplierId = null
+  }) {
+    try {
+      const pool = await poolPromise;
+
+      // Validate parameters
+      const queryParams = [
+        pageNumber > 0 ? pageNumber : 1,
+        pageSize > 0 ? pageSize : 10,
+        sortColumn || 'SalesQuotationID',
+        sortDirection.toUpperCase() === 'DESC' ? 'DESC' : 'ASC',
+        fromDate || null,
+        toDate || null,
+        status || null,
+        customerId ? parseInt(customerId) : null,
+        supplierId ? parseInt(supplierId) : null
+      ];
+
+      // Call SP_GetAllSalesQuotation
+      const [result] = await pool.query(
+        'CALL SP_GetAllSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, @p_TotalRecords)',
+        queryParams
+      );
+
+      // Retrieve OUT parameter
+      const [[{ totalRecords }]] = await pool.query('SELECT @p_TotalRecords AS totalRecords');
+
+      return {
+        data: result[0],
+        totalRecords: totalRecords || 0
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Create a new Sales Quotation
+  static async createSalesQuotation(data) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
         'INSERT',
-        null, // p_SalesQuotationID (null for INSERT)
-        SalesRFQID,
-        PurchaseRFQID,
-        SupplierID,
-        Status,
-        OriginAddressID,
-        CollectionAddressID,
-        BillingAddressID,
-        DestinationAddressID,
-        CollectionWarehouseID,
-        PostingDate,
-        DeliveryDate,
-        RequiredByDate,
-        DateReceived,
-        ServiceTypeID,
-        ExternalRefNo,
-        ExternalSupplierID,
-        CustomerID,
-        CompanyID,
-        Terms,
-        PackagingRequiredYN,
-        CollectFromSupplierYN,
-        SalesQuotationCompletedYN,
-        ShippingPriorityID,
-        ValidTillDate,
-        CurrencyID,
-        SupplierContactPersonID,
-        IsDeliveryOnly,
-        TaxesAndOtherCharges,
-        CreatedByID,
-        null, // p_DeletedByID (null for INSERT)
-      ]
-    );
+        null, // p_SalesQuotationID
+        data.salesRFQId || null,
+        data.purchaseRFQId,
+        data.supplierId || null,
+        data.status || 'Pending',
+        data.originAddressId || null,
+        data.collectionAddressId || null,
+        data.billingAddressId || null,
+        data.destinationAddressId || null,
+        data.collectionWarehouseId || null,
+        data.postingDate || null,
+        data.deliveryDate || null,
+        data.requiredByDate || null,
+        data.dateReceived || null,
+        data.serviceTypeId || null,
+        data.externalRefNo || null,
+        data.externalSupplierId || null,
+        data.customerId || null,
+        data.companyId || null,
+        data.terms || null,
+        data.packagingRequiredYN || 0,
+        data.collectFromSupplierYN || 0,
+        data.salesQuotationCompletedYN || 0,
+        data.shippingPriorityId || null,
+        data.validTillDate || null,
+        data.currencyId || null,
+        data.supplierContactPersonId || null,
+        data.isDeliveryOnly || 0,
+        data.taxesAndOtherCharges || 0,
+        data.createdById,
+        null // p_DeletedByID
+      ];
 
-    // Retrieve the OUT parameters
-    const [outResult] = await pool.query(
-      `SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_NewSalesQuotationID AS p_NewSalesQuotationID`
-    );
+      // Call SP_ManageSalesQuotation
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        queryParams
+      );
 
-    const { p_Result, p_Message, p_NewSalesQuotationID } = outResult[0] || {};
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId'
+      );
 
-    // Validate OUT parameters
-    if (p_Result === null || p_Result === undefined || p_Message === null || p_Message === undefined) {
-      throw new Error('Stored procedure failed to return valid OUT parameters');
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to create Sales Quotation');
+      }
+
+      return {
+        newSalesQuotationId: outParams.newSalesQuotationId,
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
     }
-
-    return {
-      result: p_Result,
-      message: p_Message,
-      newSalesQuotationID: p_NewSalesQuotationID,
-    };
-  } catch (error) {
-    throw new Error(`Failed to create sales quotation: ${error.message}`);
   }
-};
 
-// MANAGE SalesQuotation (UPDATE, DELETE, SELECT)
-const manageSalesQuotation = async ({
-  Action,
-  SalesQuotationID,
-  UpdatedByID = null,
-  DeletedByID = null,
-  SalesRFQID = null,
-  SupplierID = null,
-  Status = null,
-  OriginAddressID = null,
-  CollectionAddressID = null,
-  BillingAddressID = null,
-  DestinationAddressID = null,
-  CollectionWarehouseID = null,
-  PostingDate = null,
-  DeliveryDate = null,
-  RequiredByDate = null,
-  DateReceived = null,
-  ServiceTypeID = null,
-  ExternalRefNo = null,
-  ExternalSupplierID = null,
-  CustomerID = null,
-  CompanyID = null,
-  Terms = null,
-  PackagingRequiredYN = null,
-  CollectFromSupplierYN = null,
-  SalesQuotationCompletedYN = null,
-  ShippingPriorityID = null,
-  ValidTillDate = null,
-  CurrencyID = null,
-  SupplierContactPersonID = null,
-  IsDeliveryOnly = null,
-  TaxesAndOtherCharges = null,
-  DebugMode = 0,
-}) => {
-  const pool = await poolPromise;
-  try {
-    // Call the stored procedure with 32 input parameters
-    const [result] = await pool.query(
-      `CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)`,
-      [
-        Action,
-        SalesQuotationID,
-        SalesRFQID,
-        null, // PurchaseRFQID (not used in UPDATE/DELETE/SELECT)
-        SupplierID,
-        Status,
-        OriginAddressID,
-        CollectionAddressID,
-        BillingAddressID,
-        DestinationAddressID,
-        CollectionWarehouseID,
-        PostingDate,
-        DeliveryDate,
-        RequiredByDate,
-        DateReceived,
-        ServiceTypeID,
-        ExternalRefNo,
-        ExternalSupplierID,
-        CustomerID,
-        CompanyID,
-        Terms,
-        PackagingRequiredYN,
-        CollectFromSupplierYN,
-        SalesQuotationCompletedYN,
-        ShippingPriorityID,
-        ValidTillDate,
-        CurrencyID,
-        SupplierContactPersonID,
-        IsDeliveryOnly,
-        TaxesAndOtherCharges,
-        UpdatedByID,
-        DeletedByID,
-      ]
-    );
+  // Get a single Sales Quotation by ID
+  static async getSalesQuotationById(id) {
+    try {
+      const pool = await poolPromise;
 
-    // Retrieve the OUT parameters
-    const [outResult] = await pool.query(
-      `SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_NewSalesQuotationID AS p_NewSalesQuotationID`
-    );
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_SalesRFQID
+        null, // p_PurchaseRFQID
+        null, // p_SupplierID
+        null, // p_Status
+        null, // p_OriginAddressID
+        null, // p_CollectionAddressID
+        null, // p_BillingAddressID
+        null, // p_DestinationAddressID
+        null, // p_CollectionWarehouseID
+        null, // p_PostingDate
+        null, // p_DeliveryDate
+        null, // p_RequiredByDate
+        null, // p_DateReceived
+        null, // p_ServiceTypeID
+        null, // p_ExternalRefNo
+        null, // p_ExternalSupplierID
+        null, // p_CustomerID
+        null, // p_CompanyID
+        null, // p_Terms
+        null, // p_PackagingRequiredYN
+        null, // p_CollectFromSupplierYN
+        null, // p_SalesQuotationCompletedYN
+        null, // p_ShippingPriorityID
+        null, // p_ValidTillDate
+        null, // p_CurrencyID
+        null, // p_SupplierContactPersonID
+        null, // p_IsDeliveryOnly
+        null, // p_TaxesAndOtherCharges
+        null, // p_CreatedByID
+        null // p_DeletedByID
+      ];
 
-    const { p_Result, p_Message, p_NewSalesQuotationID } = outResult[0] || {};
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        queryParams
+      );
 
-    // Validate OUT parameters
-    if (p_Result === null || p_Result === undefined || p_Message === null || p_Message === undefined) {
-      throw new Error('Stored procedure failed to return valid OUT parameters');
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Sales Quotation not found or deleted');
+      }
+
+      return result[0][0] || null;
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
     }
-
-    // For SELECT, return the recordset from the first result set
-    const recordset = Action === 'SELECT' ? result[0] : [];
-
-    return {
-      result: p_Result,
-      message: p_Message,
-      newSalesQuotationID: p_NewSalesQuotationID,
-      recordset,
-    };
-  } catch (error) {
-    throw new Error(`Failed to manage sales quotation: ${error.message}`);
   }
-};
 
-module.exports = {
-  createSalesQuotationFromPurchaseRFQ,
-  manageSalesQuotation,
-};
+  // Update a Sales Quotation
+  static async updateSalesQuotation(id, data) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'UPDATE',
+        id,
+        data.salesRFQId || null,
+        data.purchaseRFQId || null,
+        data.supplierId || null,
+        data.status || null,
+        data.originAddressId || null,
+        data.collectionAddressId || null,
+        data.billingAddressId || null,
+        data.destinationAddressId || null,
+        data.collectionWarehouseId || null,
+        data.postingDate || null,
+        data.deliveryDate || null,
+        data.requiredByDate || null,
+        data.dateReceived || null,
+        data.serviceTypeId || null,
+        data.externalRefNo || null,
+        data.externalSupplierId || null,
+        data.customerId || null,
+        data.companyId || null,
+        data.terms || null,
+        data.packagingRequiredYN || null,
+        data.collectFromSupplierYN || null,
+        data.salesQuotationCompletedYN || null,
+        data.shippingPriorityId || null,
+        data.validTillDate || null,
+        data.currencyId || null,
+        data.supplierContactPersonId || null,
+        data.isDeliveryOnly || null,
+        data.taxesAndOtherCharges || null,
+        data.createdById || null,
+        null // p_DeletedByID
+      ];
+
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to update Sales Quotation');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Delete a Sales Quotation
+  static async deleteSalesQuotation(id, deletedById) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'DELETE',
+        id,
+        null, // p_SalesRFQID
+        null, // p_PurchaseRFQID
+        null, // p_SupplierID
+        null, // p_Status
+        null, // p_OriginAddressID
+        null, // p_CollectionAddressID
+        null, // p_BillingAddressID
+        null, // p_DestinationAddressID
+        null, // p_CollectionWarehouseID
+        null, // p_PostingDate
+        null, // p_DeliveryDate
+        null, // p_RequiredByDate
+        null, // p_DateReceived
+        null, // p_ServiceTypeID
+        null, // p_ExternalRefNo
+        null, // p_ExternalSupplierID
+        null, // p_CustomerID
+        null, // p_CompanyID
+        null, // p_Terms
+        null, // p_PackagingRequiredYN
+        null, // p_CollectFromSupplierYN
+        null, // p_SalesQuotationCompletedYN
+        null, // p_ShippingPriorityID
+        null, // p_ValidTillDate
+        null, // p_CurrencyID
+        null, // p_SupplierContactPersonID
+        null, // p_IsDeliveryOnly
+        null, // p_TaxesAndOtherCharges
+        null, // p_CreatedByID
+        deletedById
+      ];
+
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to delete Sales Quotation');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+}
+
+module.exports = SalesQuotationModel;

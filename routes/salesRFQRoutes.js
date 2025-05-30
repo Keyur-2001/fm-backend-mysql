@@ -10,7 +10,7 @@ router.get('/', SalesRFQController.getAllSalesRFQs);
 router.get('/:id', SalesRFQController.getSalesRFQ);
 
 // Create a new SalesRFQ
-router.post('/', authMiddleware, SalesRFQController.createSalesRFQ);
+router.post('/', SalesRFQController.createSalesRFQ);
 
 // Update a SalesRFQ
 router.put('/:id', authMiddleware, SalesRFQController.updateSalesRFQ);
