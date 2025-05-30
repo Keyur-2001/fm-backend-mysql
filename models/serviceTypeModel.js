@@ -1,70 +1,234 @@
-const sql = require('mssql');
-const poolPromise = require('../config/db.config'); // Import the poolPromise from db.js
-
-// Define fields to select from tblServiceType
-const serviceTypeFields = `
-    ServiceTypeID,
-    ServiceGroup,
-    ServiceType,
-    CreatedByID,
-    CreatedDateTime,
-    IsDeleted,
-    DeletedDateTime,
-    DeletedByID,
-    RowVersionColumn
-`;
+const poolPromise = require('../config/db.config');
 
 class ServiceTypeModel {
-  // Private helper to get connected pool
-  static async #getPool() {
+  // Get paginated Service Types
+  static async getAllServiceTypes({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
-      if (!pool.connected) {
-        throw new Error('Database pool is not connected');
+
+      // Validate parameters
+      const queryParams = [
+        pageNumber > 0 ? pageNumber : 1,
+        pageSize > 0 ? pageSize : 10,
+        fromDate ? new Date(fromDate) : null,
+        toDate ? new Date(toDate) : null
+      ];
+
+      // Log query parameters
+      console.log('getAllServiceTypes params:', queryParams);
+
+      // Call SP_GetAllServiceType with session variables for OUT parameters
+      const [results] = await pool.query(
+        'CALL SP_GetAllServiceType(?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Log results
+      console.log('getAllServiceTypes results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getAllServiceTypes output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllServiceType');
       }
-      return pool;
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve Service Types');
+      }
+
+      return {
+        data: results[0] || [],
+        totalRecords: null // SP does not return total count
+      };
     } catch (err) {
-      console.error('Failed to get database pool:', err);
-      throw new Error('Database connection unavailable');
+      console.error('getAllServiceTypes error:', err);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Get all non-deleted service types
-  static async getAllServiceTypes() {
+  // Create a new Service Type
+  static async createServiceType(data) {
     try {
-      const pool = await this.#getPool();
-      const result = await pool.request()
-        .query(`SELECT ${serviceTypeFields} 
-                FROM dbo.tblServiceType 
-                WHERE IsDeleted = 0 
-                ORDER BY ServiceType`); // Added ORDER BY for consistency
-      return result.recordset ?? []; // Return empty array if no results
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'INSERT',
+        null, // p_ServiceTypeID
+        data.serviceGroup,
+        data.serviceType,
+        data.createdById
+      ];
+
+      // Log query parameters
+      console.log('createServiceType params:', queryParams);
+
+      // Call SP_ManageServiceType with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageServiceType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Fetch output parameters, including p_ServiceTypeID
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_ServiceTypeID AS p_ServiceTypeID');
+
+      // Log output
+      console.log('createServiceType output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageServiceType');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to create Service Type');
+      }
+
+      return {
+        serviceTypeId: output[0].p_ServiceTypeID || null,
+        message: output[0].p_Message
+      };
     } catch (err) {
-      console.error('SQL error in getAllServiceTypes:', err);
-      throw new Error(`Failed to retrieve service types: ${err.message}`);
+      console.error('createServiceType error:', err);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Get a single service type by ID
+  // Get a single Service Type by ID
   static async getServiceTypeById(id) {
     try {
-      // Input validation
-      const serviceTypeId = parseInt(id);
-      if (isNaN(serviceTypeId)) {
-        throw new Error('ServiceType ID must be a valid number');
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_ServiceGroup
+        null, // p_ServiceType
+        null  // p_CreatedByID
+      ];
+
+      // Log query parameters
+      console.log('getServiceTypeById params:', queryParams);
+
+      // Call SP_ManageServiceType with session variables for OUT parameters
+      const [results] = await pool.query(
+        'CALL SP_ManageServiceType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Log results
+      console.log('getServiceTypeById results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getServiceTypeById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageServiceType');
       }
 
-      const pool = await this.#getPool();
-      const result = await pool.request()
-        .input('ServiceTypeID', sql.Int, serviceTypeId)
-        .query(`SELECT ${serviceTypeFields} 
-                FROM dbo.tblServiceType 
-                WHERE ServiceTypeID = @ServiceTypeID 
-                AND IsDeleted = 0`);
-      return result.recordset[0] ?? null; // Return null if not found
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Service Type not found');
+      }
+
+      return results[0][0] || null;
     } catch (err) {
-      console.error(`SQL error in getServiceTypeById for ID ${id}:`, err);
-      throw new Error(`Failed to retrieve service type ${id}: ${err.message}`);
+      console.error('getServiceTypeById error:', err);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Update a Service Type
+  static async updateServiceType(id, data) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'UPDATE',
+        id,
+        data.serviceGroup,
+        data.serviceType,
+        data.createdById
+      ];
+
+      // Log query parameters
+      console.log('updateServiceType params:', queryParams);
+
+      // Call SP_ManageServiceType with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageServiceType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('updateServiceType output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageServiceType');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to update Service Type');
+      }
+
+      return {
+        message: output[0].p_Message
+      };
+    } catch (err) {
+      console.error('updateServiceType error:', err);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Delete a Service Type
+  static async deleteServiceType(id, createdById) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'DELETE',
+        id,
+        null, // p_ServiceGroup
+        null, // p_ServiceType
+        createdById
+      ];
+
+      // Log query parameters
+      console.log('deleteServiceType params:', queryParams);
+
+      // Call SP_ManageServiceType with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageServiceType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('deleteServiceType output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageServiceType');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to delete Service Type');
+      }
+
+      return {
+        message: output[0].p_Message
+      };
+    } catch (err) {
+      console.error('deleteServiceType error:', err);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 }
