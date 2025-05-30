@@ -34,9 +34,25 @@ class SupplierQuotationController {
   // Create a new Supplier Quotation
   static async createSupplierQuotation(req, res) {
     try {
-      const data = req.body;
+
+        const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create  supplier-Quotation',
+          data: null,
+          supplierQuotationId: null,
+          newsupplierQuotationId: null
+        });
+      }
+
+      const data = {
+       PurchaseRFQID: req.body.PurchaseRFQID,
+      SupplierID: req.body.SupplierID,
+        CreatedByID: req.user.personId
+      };
       // Validate required fields
-      if (!data.purchaseRFQId || !data.supplierId || !data.createdById) {
+      if (!data.PurchaseRFQID || !data.SupplierID) {
         return res.status(400).json({
           success: false,
           message: 'PurchaseRFQId, SupplierId, and CreatedById are required.',
@@ -108,7 +124,7 @@ class SupplierQuotationController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.purchaseRFQId || !data.supplierId || !data.createdById) {
+      if (!data.PurchaseRFQID || !data.SupplierID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'PurchaseRFQId, SupplierId, and CreatedById are required.',
@@ -142,8 +158,8 @@ class SupplierQuotationController {
   static async deleteSupplierQuotation(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
-      if (!deletedById) {
+      const { DeletedByID } = req.body;
+      if (!DeletedByID) {
         return res.status(400).json({
           success: false,
           message: 'DeletedById is required.',
@@ -153,7 +169,7 @@ class SupplierQuotationController {
         });
       }
 
-      const result = await SupplierQuotationModel.deleteSupplierQuotation(parseInt(id), deletedById);
+      const result = await SupplierQuotationModel.deleteSupplierQuotation(parseInt(id), DeletedByID);
       res.status(200).json({
         success: true,
         message: result.message,

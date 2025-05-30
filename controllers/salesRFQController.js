@@ -3,16 +3,16 @@ const SalesRFQModel = require('../models/salesRFQModel');
 class SalesRFQController {
   static async createSalesRFQ(req, res) {
     try {
-      // const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      // if (!req.user || !allowedRoles.includes(req.user.role)) {
-      //   return res.status(403).json({
-      //     success: false,
-      //     message: 'Only Administrators or Customer Order Coordinators can create SalesRFQ',
-      //     data: null,
-      //     salesRFQId: null,
-      //     newSalesRFQId: null
-      //   });
-      // }
+      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create SalesRFQ',
+          data: null,
+          salesRFQId: null,
+          newSalesRFQId: null
+        });
+      }
 
       const salesRFQData = {
         Series: req.body.Series,

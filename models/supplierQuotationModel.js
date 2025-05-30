@@ -37,15 +37,15 @@ class SupplierQuotationModel {
       const queryParams = [
         'INSERT',
         null, // p_SupplierQuotationID
-        data.supplierId,
-        data.purchaseRFQId,
-        data.certificationId,
-        data.status || 'Draft',
-        data.createdById,
+        data.SupplierID,
+        data.PurchaseRFQID,
+        data.CertificationID,
+        data.Status || 'Draft',
+        data.CreatedByID,
         null, // p_DeletedByID
         data.rate || 0,
-        data.countryOfOriginId,
-        data.salesAmount || 0,
+        data.CountryOfOriginID,
+        data.SalesAmount || 0,
         data.taxesAndOtherCharges || 0,
         data.total || 0,
         data.fileContent || null,

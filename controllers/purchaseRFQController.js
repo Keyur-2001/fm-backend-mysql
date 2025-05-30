@@ -32,9 +32,25 @@ class PurchaseRFQController {
   // Create a new Purchase RFQ
   static async createPurchaseRFQ(req, res) {
     try {
-      const data = req.body;
-      // Validate required fields
-      if (!data.salesRFQId || !data.createdById) {
+
+      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create Purchase RFQ',
+          data: null,
+          purchaseRFQId: null,
+          newPurchaseRFQId: null
+        });
+      }
+
+
+     
+       const data = {
+        SalesRFQID: req.body.SalesRFQID,
+        CreatedByID: req.user.personId
+      };
+      if (!data.SalesRFQID ) {
         return res.status(400).json({
           success: false,
           message: 'SalesRFQID and CreatedByID are required.',
@@ -103,7 +119,7 @@ class PurchaseRFQController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.salesRFQId || !data.createdById) {
+      if (!data.SalesRFQID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'SalesRFQID and CreatedByID are required.',
@@ -137,8 +153,8 @@ class PurchaseRFQController {
   static async deletePurchaseRFQ(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
-      if (!deletedById) {
+      const { DeletedByID } = req.body;
+      if (!DeletedByID) {
         return res.status(400).json({
           success: false,
           message: 'DeletedByID is required.',
@@ -148,7 +164,7 @@ class PurchaseRFQController {
         });
       }
 
-      const result = await PurchaseRFQModel.deletePurchaseRFQ(parseInt(id), deletedById);
+      const result = await PurchaseRFQModel.deletePurchaseRFQ(parseInt(id), DeletedByID);
       res.status(200).json({
         success: true,
         message: result.message,

@@ -38,8 +38,8 @@ class PurchaseRFQModel {
       const queryParams = [
         'INSERT',
         null, // p_PurchaseRFQID
-        data.salesRFQId,
-        data.createdById,
+        data.SalesRFQID,
+        data.CreatedByID,
         null // p_DeletedByID
       ];
 
@@ -107,8 +107,8 @@ class PurchaseRFQModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.salesRFQId,
-        data.createdById,
+        data.SalesRFQID,
+        data.CreatedByID,
         null // p_DeletedByID
       ];
 
@@ -134,7 +134,7 @@ class PurchaseRFQModel {
   }
 
   // Delete a Purchase RFQ
-  static async deletePurchaseRFQ(id, deletedById) {
+  static async deletePurchaseRFQ(id, DeletedByID) {
     try {
       const pool = await poolPromise;
 
@@ -143,7 +143,7 @@ class PurchaseRFQModel {
         id,
         null, // p_SalesRFQID
         null, // p_CreatedByID
-        deletedById
+        DeletedByID
       ];
 
       const [result] = await pool.query(

@@ -1,12 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const SalesRFQApprovalController = require('../controllers/salesRFQApprovalController');
+// const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/', SalesRFQApprovalController.createSalesRFQApproval);
-router.put('/', SalesRFQApprovalController.updateSalesRFQApproval);
-router.delete('/', SalesRFQApprovalController.deleteSalesRFQApproval);
-router.get('/:salesRFQId/:approverId', SalesRFQApprovalController.getSalesRFQApproval);
-router.get('/', SalesRFQApprovalController.getAllSalesRFQApprovals);
-router.get('/paginated', SalesRFQApprovalController.getPaginatedSalesRFQApprovals);
+// Get Sales RFQ approvals (specific SalesRFQID or paginated)
+router.get('/', SalesRFQApprovalController.getSalesRFQApprovals);
 
 module.exports = router;
