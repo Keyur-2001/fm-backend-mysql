@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-// const CertificationController = require('../controllers/certificationController');
+const CertificationController = require('../controllers/certificationController.js')
 
 // Get all certifications (paginated)
 // router.get('/', CertificationController.getAllCertifications);

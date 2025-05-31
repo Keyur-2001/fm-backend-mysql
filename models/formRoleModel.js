@@ -1,85 +1,175 @@
-const sql = require('mssql');
 const poolPromise = require('../config/db.config');
 
 class FormRoleModel {
-  async getAllFormRoles(params) {
+  // Get paginated FormRoles
+  static async getAllFormRoles({ pageNumber = 1, pageSize = 10, fromDate, toDate, formId, roleId, createdBy }) {
     try {
       const pool = await poolPromise;
-      const request = pool.request();
 
-      // Input parameters
-      request.input('PageNumber', sql.Int, params.PageNumber || 1);
-      request.input('PageSize', sql.Int, params.PageSize || 10);
-      request.input('FromDate', sql.Date, params.FromDate || null);
-      request.input('ToDate', sql.Date, params.ToDate || null);
-      request.input('FormID', sql.Int, params.FormID || null);
-      request.input('RoleID', sql.Int, params.RoleID || null);
-      request.input('DateField', sql.NVarChar(50), params.DateField || 'CreatedDateTime');
-      request.input('CreatedBy', sql.NVarChar(128), params.CreatedBy || null);
+      // Validate parameters
+      const queryParams = [
+        pageNumber > 0 ? pageNumber : 1,
+        pageSize > 0 ? pageSize : 10,
+        fromDate || null,
+        toDate || null,
+        formId || null,
+        roleId || null,
+        createdBy || null
+      ];
 
-      // Output parameter
-      request.output('TotalRecords', sql.Int);
+      // Call SP_GetAllFormRoles
+      const [result] = await pool.query(
+        'CALL SP_GetAllFormRoles(?, ?, ?, ?, ?, ?, ?, @p_TotalRecords)',
+        queryParams
+      );
 
-      const result = await request.execute('SP_GetAllFormRoles');
+      // Retrieve OUT parameter
+      const [[outParams]] = await pool.query('SELECT @p_TotalRecords AS totalRecords');
 
       return {
-        success: true,
-        data: result.recordset,
-        totalRecords: result.output.TotalRecords,
-        pageNumber: params.PageNumber || 1,
-        pageSize: params.PageSize || 10
+        success: outParams.totalRecords !== -1,
+        message: outParams.totalRecords !== -1 ? 'FormRoles fetched successfully.' : 'Error fetching FormRoles.',
+        data: result[0] || [],
+        totalRecords: outParams.totalRecords !== -1 ? outParams.totalRecords : 0
       };
-    } catch (error) {
-      throw new Error(`Database error: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-
-  async executeStoredProcedure(action, params) {
+  // Create a new FormRole
+  static async createFormRole(data) {
     try {
       const pool = await poolPromise;
-      const request = pool.request();
 
-      // Input parameters
-      request.input('Action', sql.NVarChar(10), action);
-      if (params.FormRoleID) request.input('FormRoleID', sql.Int, params.FormRoleID);
-      if (params.FormID) request.input('FormID', sql.Int, params.FormID);
-      if (params.RoleID) request.input('RoleID', sql.Int, params.RoleID);
-      if (params.ReadOnly !== undefined) request.input('ReadOnly', sql.Bit, params.ReadOnly);
-      if (params.Write !== undefined) request.input('Write', sql.Bit, params.Write);
-      if (params.CreatedByID) request.input('CreatedByID', sql.Int, params.CreatedByID);
+      const queryParams = [
+        'INSERT',
+        null, // p_FormRoleID
+        data.formId,
+        data.roleId,
+        data.readOnly || 0,
+        data.writeOnly || 0, 
+        data.createdById
+      ];
 
-      // Output parameters
-      request.output('Result', sql.Int);
-      request.output('Message', sql.NVarChar(500));
+      // Call SP_ManageFormRole
+      const [result] = await pool.query(
+        'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
 
-      const result = await request.execute('SP_ManageFormRole');
+      // Retrieve OUT parameters and new FormRoleID
+      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      const newFormRoleId = result[0] && result[0][0] ? result[0][0].FormRoleID : null;
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to create FormRole');
+      }
 
       return {
-        success: result.output.Result === 1,
-        message: result.output.Message,
-        data: result.recordset,
+        newFormRoleId,
+        message: outParams.message
       };
-    } catch (error) {
-      throw new Error(`Database error: ${error.message}`);
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  async create(formRole) {
-    return this.executeStoredProcedure('INSERT', formRole);
+  // Get a single FormRole by ID
+  static async getFormRoleById(id) {
+    try {
+      const pool = await poolPromise;
+
+      // Call SP_ManageFormRole
+      const [result] = await pool.query(
+        'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        ['SELECT', id, null, null, null, null, null]
+      );
+
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'FormRole not found');
+      }
+
+      return result[0][0] || null;
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
   }
 
-  async update(formRole) {
-    return this.executeStoredProcedure('UPDATE', formRole);
+  // Update a FormRole
+  static async updateFormRole(id, data) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'UPDATE',
+        id,
+        data.formId,
+        data.roleId,
+        data.readOnly || 0,
+        data.writeOnly || 0,
+        data.createdById
+      ];
+
+      // Call SP_ManageFormRole
+      await pool.query(
+        'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to update FormRole');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
   }
 
-  async delete(formRoleID, createdByID) {
-    return this.executeStoredProcedure('DELETE', { FormRoleID: formRoleID, CreatedByID: createdByID });
-  }
+  // Delete a FormRole
+  static async deleteFormRole(id, createdById) {
+    try {
+      const pool = await poolPromise;
 
-  async getById(formRoleID) {
-    return this.executeStoredProcedure('SELECT', { FormRoleID: formRoleID });
+      const queryParams = [
+        'DELETE',
+        id,
+        null,
+        null,
+        null,
+        null,
+        createdById
+      ];
+
+      // Call SP_ManageFormRole
+      await pool.query(
+        'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to delete FormRole');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
   }
 }
 
-module.exports = new FormRoleModel();
+module.exports = FormRoleModel;

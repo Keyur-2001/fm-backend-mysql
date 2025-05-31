@@ -21,4 +21,4 @@ router.delete('/:id', authMiddleware, SalesRFQController.deleteSalesRFQ);
 // Approve a SalesRFQ
 router.post('/approve', authMiddleware, SalesRFQController.approveSalesRFQ);
 
-module.exports = router;
+module.exports = router; 

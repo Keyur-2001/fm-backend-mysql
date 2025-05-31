@@ -1,32 +1,51 @@
-const SupplierModel = require('../models/supplierModel');
+const SupplierModel = require('../models/SupplierModel');
 
 class SupplierController {
-  // Get all Suppliers
+  // Get all Suppliers with pagination
   static async getAllSuppliers(req, res) {
     try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
-      const result = await SupplierModel.getAllSuppliers({
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-        fromDate: fromDate || null,
-        toDate: toDate || null
+      if (!req.query) {
+        return res.status(400).json({
+          success: false,
+          message: 'Query parameters are required',
+          data: [],
+          totalRecords: 0
+        });
+      }
+
+      const { pageNumber = '1', pageSize = '10', fromDate, toDate } = req.query;
+      const pageNum = parseInt(pageNumber, 10);
+      const pageSz = parseInt(pageSize, 10);
+
+      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber or pageSize',
+          data: [],
+          totalRecords: 0
+        });
+      }
+
+      const suppliers = await SupplierModel.getAllSuppliers({
+        pageNumber: pageNum,
+        pageSize: pageSz,
+        fromDate,
+        toDate
       });
-      res.status(200).json({
+
+      return res.status(200).json({
         success: true,
-        message: 'Supplier records retrieved successfully.',
-        data: result.data,
-        totalRecords: result.totalRecords,
-        supplierId: null,
-        newSupplierId: null
+        message: 'Suppliers retrieved successfully',
+        data: suppliers.data,
+        totalRecords: suppliers.totalRecords
       });
     } catch (err) {
-      console.error('Error in getAllSuppliers:', err);
-      res.status(500).json({
+      console.error('getAllSuppliers error:', err.stack);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
-        supplierId: null,
-        newSupplierId: null
+        data: [],
+        totalRecords: 0
       });
     }
   }
@@ -34,34 +53,66 @@ class SupplierController {
   // Create a new Supplier
   static async createSupplier(req, res) {
     try {
-      const data = req.body;
-      // Validate required fields
-      if (!data.supplierName || !data.userId) {
+      const {
+        supplierName,
+        supplierGroupId,
+        supplierTypeId,
+        supplierAddressId,
+        supplierExportCode,
+        supplierEmail,
+        saPartner,
+        saPartnerExportCode,
+        billingCurrencyId,
+        companyId,
+        externalSupplier,
+        userId
+      } = req.body;
+
+      console.log('createSupplier req.body:', JSON.stringify(req.body, null, 2));
+
+      const missingFields = [];
+      if (!supplierName) missingFields.push('SupplierName');
+      if (!companyId) missingFields.push('CompanyId');
+      if (!userId) missingFields.push('UserId');
+      if (!supplierEmail) missingFields.push('SupplierEmail');
+
+      if (missingFields.length > 0) {
         return res.status(400).json({
           success: false,
-          message: 'SupplierName and UserID are required.',
+          message: `Missing required fields: ${missingFields.join(', ')}`,
           data: null,
-          supplierId: null,
-          newSupplierId: null
+          supplierId: null
         });
       }
 
-      const result = await SupplierModel.createSupplier(data);
-      res.status(201).json({
+      const result = await SupplierModel.createSupplier({
+        supplierName,
+        supplierGroupId,
+        supplierTypeId,
+        supplierAddressId,
+        supplierExportCode,
+        supplierEmail,
+        saPartner,
+        saPartnerExportCode,
+        billingCurrencyId,
+        companyId,
+        externalSupplier,
+        userId
+      });
+
+      return res.status(201).json({
         success: true,
         message: result.message,
         data: null,
-        supplierId: null,
-        newSupplierId: result.newSupplierId
+        supplierId: result.supplierId
       });
     } catch (err) {
-      console.error('Error in createSupplier:', err);
-      res.status(500).json({
+      console.error('createSupplier error:', err.stack);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        supplierId: null,
-        newSupplierId: null
+        supplierId: null
       });
     }
   }
@@ -70,31 +121,42 @@ class SupplierController {
   static async getSupplierById(req, res) {
     try {
       const { id } = req.params;
+
+      console.log('getSupplierById id:', id);
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid SupplierID is required',
+          data: null,
+          supplierId: null
+        });
+      }
+
       const supplier = await SupplierModel.getSupplierById(parseInt(id));
+
       if (!supplier) {
         return res.status(404).json({
           success: false,
-          message: 'Supplier not found.',
+          message: 'Supplier not found',
           data: null,
-          supplierId: null,
-          newSupplierId: null
+          supplierId: id
         });
       }
-      res.status(200).json({
+
+      return res.status(200).json({
         success: true,
-        message: 'Supplier retrieved successfully.',
+        message: 'Supplier retrieved successfully',
         data: supplier,
-        supplierId: id,
-        newSupplierId: null
+        supplierId: id
       });
     } catch (err) {
-      console.error('Error in getSupplierById:', err);
-      res.status(500).json({
+      console.error('getSupplierById error:', err.stack);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        supplierId: null,
-        newSupplierId: null
+        supplierId: null
       });
     }
   }
@@ -103,34 +165,75 @@ class SupplierController {
   static async updateSupplier(req, res) {
     try {
       const { id } = req.params;
-      const data = req.body;
-      // Validate required fields
-      if (!data.userId) {
+      const {
+        supplierName,
+        supplierGroupId,
+        supplierTypeId,
+        supplierAddressId,
+        supplierExportCode,
+        supplierEmail,
+        saPartner,
+        saPartnerExportCode,
+        billingCurrencyId,
+        companyId,
+        externalSupplier,
+        userId
+      } = req.body;
+
+      console.log('updateSupplier req.body:', JSON.stringify(req.body, null, 2));
+
+      if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'UserID is required.',
+          message: 'Valid SupplierID is required',
           data: null,
-          supplierId: null,
-          newSupplierId: null
+          supplierId: null
         });
       }
 
-      const result = await SupplierModel.updateSupplier(parseInt(id), data);
-      res.status(200).json({
+      const missingFields = [];
+      if (!supplierName) missingFields.push('SupplierName');
+      if (!companyId) missingFields.push('CompanyId');
+      if (!userId) missingFields.push('UserId');
+      if (!supplierEmail) missingFields.push('SupplierEmail');
+
+      if (missingFields.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Missing required fields: ${missingFields.join(', ')}`,
+          data: null,
+          supplierId: id
+        });
+      }
+
+      const result = await SupplierModel.updateSupplier(parseInt(id), {
+        supplierName,
+        supplierGroupId,
+        supplierTypeId,
+        supplierAddressId,
+        supplierExportCode,
+        supplierEmail,
+        saPartner,
+        saPartnerExportCode,
+        billingCurrencyId,
+        companyId,
+        externalSupplier,
+        userId
+      });
+
+      return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        supplierId: id,
-        newSupplierId: null
+        supplierId: id
       });
     } catch (err) {
-      console.error('Error in updateSupplier:', err);
-      res.status(500).json({
+      console.error('updateSupplier error:', err.stack);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        supplierId: null,
-        newSupplierId: null
+        supplierId: null
       });
     }
   }
@@ -140,32 +243,42 @@ class SupplierController {
     try {
       const { id } = req.params;
       const { userId } = req.body;
+
+      console.log('deleteSupplier req.body:', JSON.stringify(req.body, null, 2));
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid SupplierID is required',
+          data: null,
+          supplierId: null
+        });
+      }
+
       if (!userId) {
         return res.status(400).json({
           success: false,
-          message: 'UserID is required.',
+          message: 'UserId is required',
           data: null,
-          supplierId: null,
-          newSupplierId: null
+          supplierId: id
         });
       }
 
       const result = await SupplierModel.deleteSupplier(parseInt(id), userId);
-      res.status(200).json({
+
+      return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        supplierId: id,
-        newSupplierId: null
+        supplierId: id
       });
     } catch (err) {
-      console.error('Error in deleteSupplier:', err);
-      res.status(500).json({
+      console.error('deleteSupplier error:', err.stack);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        supplierId: null,
-        newSupplierId: null
+        supplierId: null
       });
     }
   }
