@@ -134,7 +134,7 @@ class PurchaseRFQModel {
   }
 
   // Delete a Purchase RFQ
-  static async deletePurchaseRFQ(id, DeletedByID) {
+  static async deletePurchaseRFQ(id, deletedById) {
     try {
       const pool = await poolPromise;
 
@@ -143,7 +143,7 @@ class PurchaseRFQModel {
         id,
         null, // p_SalesRFQID
         null, // p_CreatedByID
-        DeletedByID
+        deletedById
       ];
 
       const [result] = await pool.query(
@@ -164,6 +164,211 @@ class PurchaseRFQModel {
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Helper: Check form role approver permission
+  static async #checkFormRoleApproverPermission(approverID, formName) {
+    try {
+      const pool = await poolPromise;
+      const query = `
+        SELECT fra.UserID
+        FROM dbo_tblformroleapprover fra
+        JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+        JOIN dbo_tblform f ON fr.FormID = f.FormID
+        WHERE fra.UserID = ?
+          AND f.FormName = ?
+          AND fra.ActiveYN = 1
+          AND f.IsDeleted = 0;
+      `;
+      const [result] = await pool.query(query, [parseInt(approverID), formName]);
+      return result.length > 0;
+    } catch (error) {
+      throw new Error(`Error checking form role approver permission: ${error.message}`);
+    }
+  }
+
+  // Helper: Check Purchase RFQ status
+  static async #checkPurchaseRFQStatus(purchaseRFQID) {
+    try {
+      const pool = await poolPromise;
+      const query = `
+        SELECT Status
+        FROM dbo_tblpurchaserfq
+        WHERE PurchaseRFQID = ? AND IsDeleted = 0;
+      `;
+      const [result] = await pool.query(query, [parseInt(purchaseRFQID)]);
+      if (result.length === 0) {
+        return { exists: false, status: null };
+      }
+      return { exists: true, status: result[0].Status };
+    } catch (error) {
+      throw new Error(`Error checking Purchase RFQ status: ${error.message}`);
+    }
+  }
+
+  // Helper: Insert approval record
+  static async #insertPurchaseRFQApproval(connection, approvalData) {
+    try {
+      const query = `
+        INSERT INTO dbo_tblpurchaserfqapproval (
+          PurchaseRFQID, ApproverID, ApprovedYN, ApproverDateTime, CreatedByID, CreatedDateTime, IsDeleted
+        ) VALUES (
+          ?, ?, ?, NOW(), ?, NOW(), 0
+        );
+      `;
+      const [result] = await connection.query(query, [
+        parseInt(approvalData.PurchaseRFQID),
+        parseInt(approvalData.ApproverID),
+        1,
+        parseInt(approvalData.ApproverID)
+      ]);
+      console.log(`Insert Debug: PurchaseRFQID=${approvalData.PurchaseRFQID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
+      return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
+    } catch (error) {
+      throw new Error(`Error inserting Purchase RFQ approval: ${error.message}`);
+    }
+  }
+
+  // Approve a Purchase RFQ
+  static async approvePurchaseRFQ(approvalData) {
+    let connection;
+    try {
+      const pool = await poolPromise;
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+
+      const requiredFields = ['PurchaseRFQID', 'ApproverID'];
+      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      if (missingFields.length > 0) {
+        throw new Error(`${missingFields.join(', ')} are required`);
+      }
+
+      const purchaseRFQID = parseInt(approvalData.PurchaseRFQID);
+      const approverID = parseInt(approvalData.ApproverID);
+      if (isNaN(purchaseRFQID) || isNaN(approverID)) {
+        throw new Error('Invalid PurchaseRFQID or ApproverID');
+      }
+
+      const formName = 'Purchase RFQ';
+      const hasPermission = await this.#checkFormRoleApproverPermission(approverID, formName);
+      if (!hasPermission) {
+        throw new Error('Approver does not have permission to approve this form');
+      }
+
+      const { exists, status } = await this.#checkPurchaseRFQStatus(purchaseRFQID);
+      if (!exists) {
+        throw new Error('Purchase RFQ does not exist or has been deleted');
+      }
+      if (status !== 'Pending') {
+        throw new Error(`Purchase RFQ status must be Pending to approve, current status: ${status}`);
+      }
+
+      // Check for existing approval
+      const [existingApproval] = await connection.query(
+        'SELECT 1 FROM dbo_tblpurchaserfqapproval WHERE PurchaseRFQID = ? AND ApproverID = ? AND IsDeleted = 0',
+        [purchaseRFQID, approverID]
+      );
+      if (existingApproval.length > 0) {
+        throw new Error('Approver has already approved this Purchase RFQ');
+      }
+
+      // Record approval
+      const approvalInsertResult = await this.#insertPurchaseRFQApproval(connection, { PurchaseRFQID: purchaseRFQID, ApproverID: approverID });
+      if (!approvalInsertResult.success) {
+        throw new Error(`Failed to insert approval record: ${approvalInsertResult.message}`);
+      }
+
+      // Get FormID
+      const [form] = await connection.query(
+        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        [formName]
+      );
+      if (!form.length) {
+        throw new Error('Invalid FormID for Purchase RFQ');
+      }
+      const formID = form[0].FormID;
+
+      // Get required approvers
+      const [requiredApproversList] = await connection.query(
+        `SELECT DISTINCT fra.UserID, p.FirstName
+         FROM dbo_tblformroleapprover fra
+         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+         JOIN dbo_tblperson p ON fra.UserID = p.PersonID
+         WHERE fr.FormID = ? AND fra.ActiveYN = 1`,
+        [formID]
+      );
+      const requiredCount = requiredApproversList.length;
+
+      // Get completed approvals
+      const [approvedList] = await connection.query(
+        `SELECT p.ApproverID, p.ApprovedYN
+         FROM dbo_tblpurchaserfqapproval p
+         WHERE p.PurchaseRFQID = ? AND p.IsDeleted = 0
+           AND p.ApproverID IN (
+             SELECT DISTINCT fra.UserID
+             FROM dbo_tblformroleapprover fra
+             JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+             WHERE fr.FormID = ? AND fra.ActiveYN = 1
+           )`,
+        [purchaseRFQID, formID]
+      );
+      const approved = approvedList.filter(a => a.ApprovedYN === 1).length;
+
+      // Check for mismatched ApproverIDs
+      const [allApprovals] = await connection.query(
+        'SELECT ApproverID FROM dbo_tblpurchaserfqapproval WHERE PurchaseRFQID = ? AND IsDeleted = 0',
+        [purchaseRFQID]
+      );
+      const requiredUserIDs = requiredApproversList.map(a => a.UserID);
+      const mismatchedApprovals = allApprovals.filter(a => !requiredUserIDs.includes(a.ApproverID));
+
+      // Debug logs
+      console.log(`Approval Debug: PurchaseRFQID=${purchaseRFQID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(requiredApproversList)}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(approvedList)}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(mismatchedApprovals)}`);
+
+      let message;
+      let isFullyApproved = false;
+
+      if (approved >= requiredCount) {
+        // All approvals complete
+        await connection.query(
+          'UPDATE dbo_tblpurchaserfq SET Status = ? WHERE PurchaseRFQID = ?',
+          ['Approved', purchaseRFQID]
+        );
+        message = 'Purchase RFQ fully approved.';
+        isFullyApproved = true;
+      } else {
+        // Partial approval
+        const remaining = requiredCount - approved;
+        message = `Approval recorded. Awaiting ${remaining} more approval(s).`;
+      }
+
+      await connection.commit();
+
+      return {
+        success: true,
+        message,
+        data: null,
+        purchaseRFQId: purchaseRFQID.toString(),
+        newPurchaseRFQId: null,
+        isFullyApproved
+      };
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error('Database error in approvePurchaseRFQ:', error);
+      return {
+        success: false,
+        message: `Approval failed: ${error.message || 'Unknown error'}`,
+        data: null,
+        purchaseRFQId: approvalData.PurchaseRFQID.toString(),
+        newPurchaseRFQId: null
+      };
+    } finally {
+      if (connection) {
+        connection.release();
+      }
     }
   }
 }
