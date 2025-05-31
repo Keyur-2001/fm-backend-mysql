@@ -96,7 +96,7 @@ class AuthController {
         // process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
-
+ 
       console.log('Sending welcome email with:', { email: EmailID, loginID: LoginID, password: Password });
       if (!EmailID || !LoginID) {
         console.warn('EmailID or LoginID is undefined, email will fail');
