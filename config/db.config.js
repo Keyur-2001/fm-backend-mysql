@@ -6,7 +6,7 @@ console.log('mysql2/promise module:', mysql);
 console.log('mysql.createPool:', mysql.createPool);
 
 const dbConfig = {
-  host: process.env.DB_SERVER || '15.207.115.108',
+  host: process.env.DB_SERVER || '43.204.140.91',
   user: process.env.DB_USER || 'mnv',
   password: process.env.DB_PASSWORD || 'Manav@21',
   database: process.env.DB_NAME || 'fleet_monkey',
