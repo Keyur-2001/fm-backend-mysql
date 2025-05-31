@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 class PersonController {
+  // Get all Persons with pagination
   static async getAllPersons(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -32,6 +33,10 @@ class PersonController {
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Create a new Person
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async createPerson(req, res) {
     try {
       const {
@@ -55,10 +60,15 @@ class PersonController {
         profileImage
       } = req.body;
 
+<<<<<<< HEAD
       if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
+=======
+      // Basic validation
+      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: null
         });
@@ -102,6 +112,10 @@ class PersonController {
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Get a single Person by ID
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async getPersonById(req, res) {
     try {
       const { id } = req.params;
@@ -143,6 +157,10 @@ class PersonController {
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Update a Person
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async updatePerson(req, res) {
     try {
       const { id } = req.params;
@@ -176,10 +194,10 @@ class PersonController {
         });
       }
 
-      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
+      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: id
         });
@@ -223,6 +241,10 @@ class PersonController {
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Delete a Person
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async deletePerson(req, res) {
     try {
       const { id } = req.params;

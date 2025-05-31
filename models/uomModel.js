@@ -53,13 +53,15 @@ class UOMModel {
         'INSERT',
         null, // p_UOMID
         data.uom,
-        data.createdById
+        data.createdById,
+        data.DeletedByID
+        
       ];
 
       console.log('createUOM params:', JSON.stringify(queryParams, null, 2));
 
       const [results] = await pool.query(
-        'CALL SP_ManageUOM(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageUOM(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -100,13 +102,14 @@ class UOMModel {
         'SELECT',
         id,
         null, // p_UOM
-        null  // p_CreatedByID
+        null,// p_CreatedByID
+        null
       ];
 
       console.log('getUOMById params:', JSON.stringify(queryParams, null, 2));
 
       const [results] = await pool.query(
-        'CALL SP_ManageUOM(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageUOM(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -140,13 +143,15 @@ class UOMModel {
         'UPDATE',
         id,
         data.uom,
-        data.createdById
+        data.createdById,
+        data.DeletedByID
+
       ];
 
       console.log('updateUOM params:', JSON.stringify(queryParams, null, 2));
 
       const [results] = await pool.query(
-        'CALL SP_ManageUOM(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageUOM(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -182,13 +187,14 @@ class UOMModel {
         'DELETE',
         id,
         null, // p_UOM
-        createdById
+        createdById,
+        null
       ];
 
       console.log('deleteUOM params:', JSON.stringify(queryParams, null, 2));
 
       const [results] = await pool.query(
-        'CALL SP_ManageUOM(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageUOM(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 

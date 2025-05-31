@@ -53,7 +53,7 @@ class AddressTypeModel {
 
       // Call sp_ManageAddressType
       await pool.query(
-        'CALL sp_ManageAddressType(?, ?, ?, ?, @p_NewAddressTypeID, @p_Result, @p_Message)',
+        'CALL sp_ManageAddressType(?, ?, ?, ?,  @p_Result, @p_Message)',
         queryParams
       );
 
@@ -82,7 +82,7 @@ class AddressTypeModel {
 
       // Call sp_ManageAddressType
       const [result] = await pool.query(
-        'CALL sp_ManageAddressType(?, ?, ?, ?, @p_NewAddressTypeID, @p_Result, @p_Message)',
+        'CALL sp_ManageAddressType(?, ?, ?, ?,  @p_Result, @p_Message)',
         ['SELECT', id, null, null]
       );
 
@@ -115,7 +115,7 @@ class AddressTypeModel {
 
       // Call sp_ManageAddressType
       await pool.query(
-        'CALL sp_ManageAddressType(?, ?, ?, ?, @p_NewAddressTypeID, @p_Result, @p_Message)',
+        'CALL sp_ManageAddressType(?, ?, ?, ?,  @p_Result, @p_Message)',
         queryParams
       );
 
@@ -150,7 +150,7 @@ class AddressTypeModel {
 
       // Call sp_ManageAddressType
       await pool.query(
-        'CALL sp_ManageAddressType(?, ?, ?, ?, @p_NewAddressTypeID, @p_Result, @p_Message)',
+        'CALL sp_ManageAddressType(?, ?, ?, ?,  @p_Result, @p_Message)',
         queryParams
       );
 

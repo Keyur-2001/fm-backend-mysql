@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // controllers/itemController.js
 const ItemModel = require('../models/itemModel');
 // No need for sql or dbConfig since the model handles the connection
@@ -27,10 +28,96 @@ class ItemController {
         success: false,
         error: 'Internal Server Error',
         message: err.message
+=======
+const ItemModel = require('../models/itemModel');
+
+class ItemController {
+  // Get all Items with pagination
+  static async getAllItems(req, res) {
+    try {
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+      const items = await ItemModel.getAllItems({
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize),
+        fromDate,
+        toDate
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: 'Items retrieved successfully',
+        data: items.data,
+        totalRecords: items.totalRecords
+      });
+    } catch (err) {
+      console.error('getAllItems error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       });
     }
   }
 
+<<<<<<< HEAD
+=======
+  // Create a new Item
+  static async createItem(req, res) {
+    try {
+      const {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      } = req.body;
+
+      // Basic validation
+      if (!itemCode || !itemName || !createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'ItemCode, ItemName, and CreatedByID are required',
+          data: null,
+          itemId: null
+        });
+      }
+
+      const result = await ItemModel.createItem({
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: result.message,
+        data: null,
+        itemId: result.itemId
+      });
+    } catch (err) {
+      console.error('createItem error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+      });
+    }
+  }
+
+  // Get a single Item by ID
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async getItemById(req, res) {
     try {
       const { id } = req.params;
@@ -38,15 +125,26 @@ class ItemController {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
+<<<<<<< HEAD
           message: 'Invalid Item ID'
         });
       }
 
       const item = await ItemModel.getItemById(id);
+=======
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
+        });
+      }
+
+      const item = await ItemModel.getItemById(parseInt(id));
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
 
       if (!item) {
         return res.status(404).json({
           success: false,
+<<<<<<< HEAD
           message: `Item with ID ${id} not found or has been deleted`
         });
       }
@@ -95,18 +193,57 @@ class ItemController {
         success: false,
         error: 'Internal Server Error',
         message: err.message
+=======
+          message: 'Item not found',
+          data: null,
+          itemId: id
+        });
+      }
+
+      return res.status(200).json({
+        success: true,
+        message: 'Item retrieved successfully',
+        data: item,
+        itemId: id
+      });
+    } catch (err) {
+      console.error('getItemById error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       });
     }
   }
 
+<<<<<<< HEAD
   static async updateItem(req, res) {
     try {
       const { id } = req.params;
       const data = req.body;
+=======
+  // Update an Item
+  static async updateItem(req, res) {
+    try {
+      const { id } = req.params;
+      const {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      } = req.body;
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
+<<<<<<< HEAD
           message: 'Invalid Item ID'
         });
       }
@@ -151,18 +288,68 @@ class ItemController {
         success: false,
         error: 'Internal Server Error',
         message: err.message
+=======
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
+        });
+      }
+
+      if (!itemCode || !itemName || !createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'ItemCode, ItemName, and CreatedByID are required',
+          data: null,
+          itemId: id
+        });
+      }
+
+      const result = await ItemModel.updateItem(parseInt(id), {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        itemId: id
+      });
+    } catch (err) {
+      console.error('updateItem error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       });
     }
   }
 
+<<<<<<< HEAD
   static async deleteItem(req, res) {
     try {
       const { id } = req.params;
       const deletedByID = req.user?.id || req.body.DeletedByID;
+=======
+  // Delete an Item
+  static async deleteItem(req, res) {
+    try {
+      const { id } = req.params;
+      const { createdById } = req.body;
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
+<<<<<<< HEAD
           message: 'Invalid Item ID'
         });
       }
@@ -199,6 +386,38 @@ class ItemController {
         success: false,
         error: 'Internal Server Error',
         message: err.message
+=======
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
+        });
+      }
+
+      if (!createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'CreatedByID is required',
+          data: null,
+          itemId: id
+        });
+      }
+
+      const result = await ItemModel.deleteItem(parseInt(id), createdById);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        itemId: id
+      });
+    } catch (err) {
+      console.error('deleteItem error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+>>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       });
     }
   }
