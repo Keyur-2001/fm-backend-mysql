@@ -39,17 +39,17 @@ const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelR
 const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
 const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
-const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
+// const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
 
 // const salesOrderRoutes = require('./routes/SalesOrderRoutes');
-const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
+// const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
-const salesOrderRoutes = require('./routes/SalesOrderRoutes');
-// const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
+const salesOrderRoutes = require('./routes/salesOrderRoutes');
+const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
 
 const app = express();
@@ -116,7 +116,7 @@ async function startServer() {
       ['/api/supplier-Quotation', supplierQuotationRoutes],
       ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
       ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
-      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      // ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
       ['/api/sales-Quotation', salesQuotationRoutes],
       ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
       ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
