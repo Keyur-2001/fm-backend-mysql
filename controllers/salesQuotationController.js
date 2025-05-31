@@ -39,9 +39,51 @@ class SalesQuotationController {
   // Create a new Sales Quotation
   static async createSalesQuotation(req, res) {
     try {
-      const data = req.body;
+      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create Sales Quotation',
+          data: null,
+          salesQuotationId: null,
+          newSalesQuotationId: null
+        });
+      }
+
+      const data = {
+        SalesRFQID: req.body.SalesRFQID,
+        PurchaseRFQID: req.body.PurchaseRFQID,
+        supplierId: req.body.supplierId,
+        Status: req.body.Status,
+        originAddressId: req.body.originAddressId,
+        collectionAddressId: req.body.collectionAddressId,
+        billingAddressId: req.body.billingAddressId,
+        destinationAddressId: req.body.destinationAddressId,
+        collectionWarehouseId: req.body.collectionWarehouseId,
+        postingDate: req.body.postingDate,
+        deliveryDate: req.body.deliveryDate,
+        requiredByDate: req.body.requiredByDate,
+        dateReceived: req.body.dateReceived,
+        serviceTypeId: req.body.serviceTypeId,
+        externalRefNo: req.body.externalRefNo,
+        externalSupplierId: req.body.externalSupplierId,
+        customerId: req.body.customerId,
+        companyId: req.body.companyId,
+        terms: req.body.terms,
+        packagingRequiredYN: req.body.packagingRequiredYN,
+        collectFromSupplierYN: req.body.collectFromSupplierYN,
+        salesQuotationCompletedYN: req.body.salesQuotationCompletedYN,
+        shippingPriorityId: req.body.shippingPriorityId,
+        validTillDate: req.body.validTillDate,
+        currencyId: req.body.currencyId,
+        supplierContactPersonId: req.body.supplierContactPersonId,
+        isDeliveryOnly: req.body.isDeliveryOnly,
+        taxesAndOtherCharges: req.body.taxesAndOtherCharges,
+        CreatedByID: req.user.personId
+      };
+
       // Validate required fields
-      if (!data.purchaseRFQId || !data.createdById) {
+      if (!data.PurchaseRFQID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'PurchaseRFQID and CreatedByID are required.',
@@ -108,9 +150,40 @@ class SalesQuotationController {
   static async updateSalesQuotation(req, res) {
     try {
       const { id } = req.params;
-      const data = req.body;
+      const data = {
+        SalesRFQID: req.body.SalesRFQID,
+        PurchaseRFQID: req.body.PurchaseRFQID,
+        supplierId: req.body.supplierId,
+        Status: req.body.Status,
+        originAddressId: req.body.originAddressId,
+        collectionAddressId: req.body.collectionAddressId,
+        billingAddressId: req.body.billingAddressId,
+        destinationAddressId: req.body.destinationAddressId,
+        collectionWarehouseId: req.body.collectionWarehouseId,
+        postingDate: req.body.postingDate,
+        deliveryDate: req.body.deliveryDate,
+        requiredByDate: req.body.requiredByDate,
+        dateReceived: req.body.dateReceived,
+        serviceTypeId: req.body.serviceTypeId,
+        externalRefNo: req.body.externalRefNo,
+        externalSupplierId: req.body.externalSupplierId,
+        customerId: req.body.customerId,
+        companyId: req.body.companyId,
+        terms: req.body.terms,
+        packagingRequiredYN: req.body.packagingRequiredYN,
+        collectFromSupplierYN: req.body.collectFromSupplierYN,
+        salesQuotationCompletedYN: req.body.salesQuotationCompletedYN,
+        shippingPriorityId: req.body.shippingPriorityId,
+        validTillDate: req.body.validTillDate,
+        currencyId: req.body.currencyId,
+        supplierContactPersonId: req.body.supplierContactPersonId,
+        isDeliveryOnly: req.body.isDeliveryOnly,
+        TaxesAndOtherCharges: req.body.taxesAndOtherCharges,
+        CreatedByID: req.user.personId
+      };
+
       // Validate required fields
-      if (!data.createdById) {
+      if (!data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'CreatedByID is required.',
@@ -144,11 +217,11 @@ class SalesQuotationController {
   static async deleteSalesQuotation(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
+      const deletedById = req.user?.personId;
       if (!deletedById) {
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          message: 'DeletedByID is required.',
+          message: 'Authentication required.',
           data: null,
           salesQuotationId: null,
           newSalesQuotationId: null
@@ -166,6 +239,51 @@ class SalesQuotationController {
     } catch (err) {
       console.error('Error in deleteSalesQuotation:', err);
       res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        salesQuotationId: null,
+        newSalesQuotationId: null
+      });
+    }
+  }
+
+  // Approve a Sales Quotation
+  static async approveSalesQuotation(req, res) {
+    try {
+      const { SalesQuotationID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!SalesQuotationID) {
+        return res.status(400).json({
+          success: false,
+          message: 'salesQuotationID is required',
+          data: null,
+          salesQuotationId: null,
+          newSalesQuotationId: null
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          salesQuotationId: null,
+          newSalesQuotationId: null
+        });
+      }
+
+      const approvalData = {
+        SalesQuotationID: parseInt(SalesQuotationID),
+        ApproverID: parseInt(approverID)
+      };
+
+      const result = await SalesQuotationModel.approveSalesQuotation(approvalData);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+    } catch (err) {
+      console.error('Approve SalesQuotation error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,

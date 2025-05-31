@@ -90,13 +90,13 @@ class SalesRFQParcelModel {
       const queryParams = [
         'INSERT',
         null, // p_SalesRFQParcelID
-        data.salesRFQId,
-        data.itemId,
-        data.certificationId || null,
+        data.SalesRFQID,
+        data.ItemID,
+        data.CertificationID || null,
         data.lineItemNumber || null,
-        data.itemQuantity || null,
-        data.uomId || null,
-        data.createdById,
+        data.ItemQuantity || null,
+        data.UOMID || null,
+        data.CreatedByID,
         null, // p_IsDeleted
         null, // p_DeletedDateTime
         null  // p_DeletedByID
@@ -132,13 +132,13 @@ class SalesRFQParcelModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.salesRFQId || null,
-        data.itemId || null,
-        data.certificationId || null,
+        data.SalesRFQID || null,
+        data.ItemID || null,
+        data.CertificationID || null,
         data.lineItemNumber || null,
-        data.itemQuantity || null,
-        data.uomId || null,
-        data.createdById,
+        data.ItemQuantity || null,
+        data.UOMID || null,
+        data.CreatedByID,
         null, // p_IsDeleted
         null, // p_DeletedDateTime
         null  // p_DeletedByID
@@ -166,7 +166,7 @@ class SalesRFQParcelModel {
   }
 
   // Delete a Sales RFQ Parcel
-  static async deleteSalesRFQParcel(id, deletedById) {
+  static async deleteSalesRFQParcel(id, DeletedByID) {
     try {
       const pool = await poolPromise;
 
@@ -182,7 +182,7 @@ class SalesRFQParcelModel {
         null, // p_CreatedByID
         1,    // p_IsDeleted
         new Date(), // p_DeletedDateTime
-        deletedById
+        DeletedByID
       ];
 
       const [result] = await pool.query(
