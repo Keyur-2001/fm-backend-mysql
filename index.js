@@ -46,6 +46,7 @@ const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
 const salesOrderRoutes = require('./routes/SalesOrderRoutes');
 const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
+const poRoutes = require('./routes/poRoutes');
 
 const app = express();
 
@@ -118,7 +119,8 @@ async function startServer() {
       ['/api/taxChargesType', taxChargesTypeRoutes],
       ['/api/collectionRate', collectionRateRoutes],
       ['/api/sales-Order', salesOrderRoutes],
-      ['/api/send-sales-quotation', sendSalesQuotationRoutes]
+      ['/api/send-sales-quotation', sendSalesQuotationRoutes],
+      ['/api/po', poRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 

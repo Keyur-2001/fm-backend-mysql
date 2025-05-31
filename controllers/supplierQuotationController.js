@@ -34,12 +34,37 @@ class SupplierQuotationController {
   // Create a new Supplier Quotation
   static async createSupplierQuotation(req, res) {
     try {
-      const data = req.body;
+      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create Supplier Quotation',
+          data: null,
+          supplierQuotationId: null,
+          newSupplierQuotationId: null
+        });
+      }
+
+      const data = {
+        PurchaseRFQID: req.body.PurchaseRFQID,
+        SupplierID: req.body.SupplierID,
+        CertificationID: req.body.CertificationID,
+        Status: req.body.Status,
+        CreatedByID: req.user.personId,
+        rate: req.body.rate,
+        CountryOfOriginID: req.body.CountryOfOriginID,
+        SalesAmount: req.body.SalesAmount,
+        taxesAndOtherCharges: req.body.taxesAndOtherCharges,
+        total: req.body.total,
+        fileContent: req.body.fileContent,
+        fileName: req.body.fileName
+      };
+
       // Validate required fields
-      if (!data.purchaseRFQId || !data.supplierId || !data.createdById) {
+      if (!data.PurchaseRFQID || !data.SupplierID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
-          message: 'PurchaseRFQId, SupplierId, and CreatedById are required.',
+          message: 'PurchaseRFQID, SupplierID, and CreatedByID are required.',
           data: null,
           supplierQuotationId: null,
           newSupplierQuotationId: null
@@ -106,12 +131,26 @@ class SupplierQuotationController {
   static async updateSupplierQuotation(req, res) {
     try {
       const { id } = req.params;
-      const data = req.body;
+      const data = {
+        SupplierID: req.body.SupplierID,
+        PurchaseRFQID: req.body.PurchaseRFQID,
+        CertificationID: req.body.CertificationID,
+        Status: req.body.Status,
+        CreatedByID: req.user.personId,
+        rate: req.body.rate,
+        CountryOfOriginID: req.body.CountryOfOriginID,
+        SalesAmount: req.body.SalesAmount,
+        taxesAndOtherCharges: req.body.taxesAndOtherCharges,
+        total: req.body.total,
+        fileContent: req.body.fileContent,
+        fileName: req.body.fileName
+      };
+
       // Validate required fields
-      if (!data.purchaseRFQId || !data.supplierId || !data.createdById) {
+      if (!data.PurchaseRFQID || !data.SupplierID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
-          message: 'PurchaseRFQId, SupplierId, and CreatedById are required.',
+          message: 'PurchaseRFQID, SupplierID, and CreatedByID are required.',
           data: null,
           supplierQuotationId: null,
           newSupplierQuotationId: null
@@ -142,11 +181,11 @@ class SupplierQuotationController {
   static async deleteSupplierQuotation(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
+      const deletedById = req.user?.personId;
       if (!deletedById) {
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          message: 'DeletedById is required.',
+          message: 'Authentication required.',
           data: null,
           supplierQuotationId: null,
           newSupplierQuotationId: null
@@ -164,6 +203,51 @@ class SupplierQuotationController {
     } catch (err) {
       console.error('Error in deleteSupplierQuotation:', err);
       res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        supplierQuotationId: null,
+        newSupplierQuotationId: null
+      });
+    }
+  }
+
+  // Approve a Supplier Quotation
+  static async approveSupplierQuotation(req, res) {
+    try {
+      const { SupplierQuotationID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!SupplierQuotationID) {
+        return res.status(400).json({
+          success: false,
+          message: 'supplierQuotationID is required',
+          data: null,
+          supplierQuotationId: null,
+          newSupplierQuotationId: null
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          supplierQuotationId: null,
+          newSupplierQuotationId: null
+        });
+      }
+
+      const approvalData = {
+        SupplierQuotationID: parseInt(SupplierQuotationID),
+        ApproverID: parseInt(approverID)
+      };
+
+      const result = await SupplierQuotationModel.approveSupplierQuotation(approvalData);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+    } catch (err) {
+      console.error('Approve SupplierQuotation error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,

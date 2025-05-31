@@ -66,7 +66,7 @@ class SalesRFQParcelController {
     try {
       const data = req.body;
       // Validate required fields
-      if (!data.salesRFQId || !data.itemId || !data.createdById) {
+      if (!data.SalesRFQID || !data.ItemID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'SalesRFQID, ItemID, and CreatedByID are required.',
@@ -102,7 +102,7 @@ class SalesRFQParcelController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.createdById) {
+      if (!data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'CreatedByID is required.',
@@ -136,8 +136,8 @@ class SalesRFQParcelController {
   static async deleteSalesRFQParcel(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
-      if (!deletedById) {
+      const { DeletedByID } = req.body;
+      if (!DeletedByID) {
         return res.status(400).json({
           success: false,
           message: 'DeletedByID is required.',
@@ -147,7 +147,7 @@ class SalesRFQParcelController {
         });
       }
 
-      const result = await SalesRFQParcelModel.deleteSalesRFQParcel(parseInt(id), deletedById);
+      const result = await SalesRFQParcelModel.deleteSalesRFQParcel(parseInt(id), DeletedByID);
       res.status(200).json({
         success: true,
         message: result.message,

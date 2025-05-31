@@ -37,7 +37,7 @@ class SupplierQuotationParcelController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.supplierQuotationId || !data.itemId || !data.createdById) {
+      if (!data.SupplierQuotationID || !data.ItemID || !data.Rate || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'SupplierQuotationId, ItemId, and CreatedById are required.',
@@ -68,8 +68,8 @@ class SupplierQuotationParcelController {
   static async deleteSupplierQuotationParcel(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
-      if (!deletedById) {
+      const { DeletedByID } = req.body;
+      if (!DeletedByID) {
         return res.status(400).json({
           success: false,
           message: 'DeletedById is required.',
