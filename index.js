@@ -44,7 +44,7 @@ const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSupp
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
-const salesOrderRoutes = require('./routes/SalesOrderRoutes');
+const salesOrderRoutes = require('./routes/salesOrderRoutes');
 const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
 
