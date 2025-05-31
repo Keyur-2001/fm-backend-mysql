@@ -1,10 +1,7 @@
 const CollectionRateModel = require('../models/collectionRateModel');
 
 class CollectionRateController {
-<<<<<<< HEAD
-=======
   // Get all Collection Rates with pagination
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async getAllCollectionRates(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -18,11 +15,7 @@ class CollectionRateController {
 
       return res.status(200).json({
         success: true,
-<<<<<<< HEAD
-        message: collectionRates.message || 'Collection rates retrieved successfully',
-=======
         message: 'Collection rates retrieved successfully',
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
         data: collectionRates.data,
         totalRecords: collectionRates.totalRecords
       });
@@ -37,8 +30,6 @@ class CollectionRateController {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Get all Collection Rates without pagination
   static async getAllCollectionRatesNoPagination(req, res) {
     try {
@@ -62,15 +53,11 @@ class CollectionRateController {
   }
 
   // Create a new Collection Rate
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async createCollectionRate(req, res) {
     try {
       const { warehouseId, distanceRadiusMin, distanceRadiusMax, rate, currencyId, createdById } = req.body;
 
-<<<<<<< HEAD
-=======
       // Basic validation
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       if (!warehouseId || distanceRadiusMin == null || distanceRadiusMax == null || rate == null || !currencyId || !createdById) {
         return res.status(400).json({
           success: false,
@@ -80,18 +67,6 @@ class CollectionRateController {
         });
       }
 
-<<<<<<< HEAD
-      if (distanceRadiusMin < 0 || distanceRadiusMax <= distanceRadiusMin || rate <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'DistanceRadiusMin must be non-negative, DistanceRadiusMax must be greater than DistanceRadiusMin, and Rate must be positive',
-          data: null,
-          collectionRateId: null
-        });
-      }
-
-=======
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       const result = await CollectionRateModel.createCollectionRate({
         warehouseId,
         distanceRadiusMin,
@@ -118,10 +93,7 @@ class CollectionRateController {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Get a single Collection Rate by ID
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async getCollectionRateById(req, res) {
     try {
       const { id } = req.params;
@@ -154,17 +126,6 @@ class CollectionRateController {
       });
     } catch (err) {
       console.error('getCollectionRateById error:', err);
-<<<<<<< HEAD
-      if (err.message.includes('Collection rate not found')) {
-        return res.status(404).json({
-          success: false,
-          message: 'Collection rate not found',
-          data: null,
-          collectionRateId: req.params.id || null
-        });
-      }
-=======
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -174,10 +135,7 @@ class CollectionRateController {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Update a Collection Rate
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async updateCollectionRate(req, res) {
     try {
       const { id } = req.params;
@@ -192,35 +150,10 @@ class CollectionRateController {
         });
       }
 
-<<<<<<< HEAD
-      if (distanceRadiusMin != null && distanceRadiusMin < 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'DistanceRadiusMin must be non-negative',
-          data: null,
-          collectionRateId: id
-        });
-      }
-
-      if (distanceRadiusMin != null && distanceRadiusMax != null && distanceRadiusMax <= distanceRadiusMin) {
-        return res.status(400).json({
-          success: false,
-          message: 'DistanceRadiusMax must be greater than DistanceRadiusMin',
-          data: null,
-          collectionRateId: id
-        });
-      }
-
-      if (rate != null && rate <= 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Rate must be positive',
-=======
       if (!warehouseId || distanceRadiusMin == null || distanceRadiusMax == null || rate == null || !currencyId || !createdById) {
         return res.status(400).json({
           success: false,
           message: 'WarehouseID, DistanceRadiusMin, DistanceRadiusMax, Rate, CurrencyID, and CreatedByID are required',
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
           data: null,
           collectionRateId: id
         });
@@ -252,10 +185,7 @@ class CollectionRateController {
     }
   }
 
-<<<<<<< HEAD
-=======
   // Delete a Collection Rate
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async deleteCollectionRate(req, res) {
     try {
       const { id } = req.params;

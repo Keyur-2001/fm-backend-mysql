@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 class PersonController {
-  // Get all Persons with pagination
+  // Get all persons with pagination
   static async getAllPersons(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -33,10 +33,7 @@ class PersonController {
     }
   }
 
-<<<<<<< HEAD
-=======
-  // Create a new Person
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
+  // Create a new person
   static async createPerson(req, res) {
     try {
       const {
@@ -60,12 +57,8 @@ class PersonController {
         profileImage
       } = req.body;
 
-<<<<<<< HEAD
-      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
-=======
       // Basic validation
-      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
+      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
           message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
@@ -112,10 +105,7 @@ class PersonController {
     }
   }
 
-<<<<<<< HEAD
-=======
-  // Get a single Person by ID
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
+  // Get a single person by ID
   static async getPersonById(req, res) {
     try {
       const { id } = req.params;
@@ -157,10 +147,7 @@ class PersonController {
     }
   }
 
-<<<<<<< HEAD
-=======
-  // Update a Person
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
+  // Update a person
   static async updatePerson(req, res) {
     try {
       const { id } = req.params;
@@ -241,10 +228,7 @@ class PersonController {
     }
   }
 
-<<<<<<< HEAD
-=======
-  // Delete a Person
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
+  // Delete a person
   static async deletePerson(req, res) {
     try {
       const { id } = req.params;

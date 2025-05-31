@@ -14,30 +14,21 @@ class PersonModel {
         toDate ? new Date(toDate) : null
       ];
 
-<<<<<<< HEAD
-=======
       // Log query parameters
       console.log('getAllPersons params:', queryParams);
 
       // Call SP_GetAllPerson
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       const [results] = await pool.query(
         'CALL SP_GetAllPerson(?, ?, ?, ?)',
         queryParams
       );
 
-<<<<<<< HEAD
-      return {
-        data: results[0] || [], // First result set: paginated data
-        totalRecords: results[1][0]?.TotalRecords || 0 // Second result set: total count
-=======
       // Log results
       console.log('getAllPersons results:', JSON.stringify(results, null, 2));
 
       return {
         data: results[0] || [],
         totalRecords: results[1] && results[1][0] ? results[1][0].TotalRecords : 0
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       };
     } catch (err) {
       console.error('getAllPersons error:', err);
@@ -45,12 +36,7 @@ class PersonModel {
     }
   }
 
-<<<<<<< HEAD
-
-  // Create a new person
-=======
   // Create a new Person
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
   static async createPerson(data) {
     try {
       const pool = await poolPromise;
@@ -73,20 +59,6 @@ class PersonModel {
         data.loginId,
         data.password,
         data.emailId,
-<<<<<<< HEAD
-        data.isDarkMode ? 1 : 0,
-        data.createdById,
-        data.profileImage || null // p_ProfileImage
-      ];
-
-      const [results] = await pool.query(
-        'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
-        queryParams
-      );
-
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-=======
         data.isDarkMode,
         data.createdById
       ];
@@ -106,7 +78,6 @@ class PersonModel {
       // Log output
       console.log('createPerson output:', JSON.stringify(output, null, 2));
 
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
         throw new Error('Output parameters missing from SP_ManagePerson');
       }
@@ -153,22 +124,15 @@ class PersonModel {
         null // p_ProfileImage
       ];
 
-<<<<<<< HEAD
-=======
       // Log query parameters
       console.log('getPersonById params:', queryParams);
 
       // Call SP_ManagePerson with session variables for OUT/INOUT parameters
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       const [results] = await pool.query(
         'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-<<<<<<< HEAD
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-=======
       // Log results
       console.log('getPersonById results:', JSON.stringify(results, null, 2));
 
@@ -178,7 +142,6 @@ class PersonModel {
       // Log output
       console.log('getPersonById output:', JSON.stringify(output, null, 2));
 
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
         throw new Error('Output parameters missing from SP_ManagePerson');
       }
@@ -217,20 +180,6 @@ class PersonModel {
         data.loginId,
         data.password,
         data.emailId,
-<<<<<<< HEAD
-        data.isDarkMode ? 1 : 0,
-        data.createdById,
-        data.profileImage || null // p_ProfileImage
-      ];
-
-      const [results] = await pool.query(
-        'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
-        queryParams
-      );
-
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-=======
         data.isDarkMode,
         data.createdById
       ];
@@ -250,7 +199,6 @@ class PersonModel {
       // Log output
       console.log('updatePerson output:', JSON.stringify(output, null, 2));
 
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
         throw new Error('Output parameters missing from SP_ManagePerson');
       }
@@ -296,15 +244,6 @@ class PersonModel {
         null // p_ProfileImage
       ];
 
-<<<<<<< HEAD
-      const [results] = await pool.query(
-        'CALL SP_ManagePerson(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
-        queryParams
-      );
-
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-=======
       // Log query parameters
       console.log('deletePerson params:', queryParams);
 
@@ -320,7 +259,6 @@ class PersonModel {
       // Log output
       console.log('deletePerson output:', JSON.stringify(output, null, 2));
 
->>>>>>> 242b5598e7132a94861b3e2479750753c8c0ccd7
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
         throw new Error('Output parameters missing from SP_ManagePerson');
       }
