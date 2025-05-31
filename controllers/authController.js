@@ -36,7 +36,8 @@ class AuthController {
 
       const token = jwt.sign(
         { personId, role: 'Administrator' },
-        process.env.JWT_SECRET,
+        // process.env.JWT_SECRET,
+        'your-secure-jwt-secret',
         { expiresIn: '24h' }
       );
 
@@ -91,7 +92,8 @@ class AuthController {
 
       const token = jwt.sign(
         { personId, role: 'Administrator' },
-        process.env.JWT_SECRET,
+       'your-secure-jwt-secret',
+        // process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -190,7 +192,8 @@ class AuthController {
 
       const token = jwt.sign(
         { personId: user.PersonID, role: user.RoleName },
-        process.env.JWT_SECRET,
+        // process.env.JWT_SECRET,
+        'your-secure-jwt-secret',
         { expiresIn: '24h' }
       );
 

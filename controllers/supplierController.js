@@ -1,4 +1,4 @@
-const SupplierModel = require('../models/SupplierModel');
+const SupplierModel = require('../models/supplierModel');
 
 class SupplierController {
   // Get all Suppliers with pagination
