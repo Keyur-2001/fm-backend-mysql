@@ -1,179 +1,206 @@
 const PurchaseRFQApprovalModel = require('../models/purchaseRFQApprovalModel');
 
 class PurchaseRFQApprovalController {
-  static async createPurchaseRFQApproval(req, res) {
+  // Get Purchase RFQ approvals (all, filtered by PurchaseRFQID, or paginated)
+  static async getPurchaseRFQApprovals(req, res) {
     try {
-      // Check if user has permission to create PurchaseRFQApproval
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
+      const { purchaseRFQID, pageNumber, pageSize } = req.query;
+
+      if (purchaseRFQID && isNaN(parseInt(purchaseRFQID))) {
+        return res.status(400).json({
           success: false,
-          message: 'Only Administrators or Customer Order Coordinators can create PurchaseRFQApproval',
+          message: 'Invalid or missing PurchaseRFQID',
           data: null,
-          purchaseRFQId: null
+          purchaseRFQId: null,
+          totalRecords: 0
         });
       }
 
-      const approvalData = {
-        PurchaseRFQID: req.body.purchaseRFQID ? parseInt(req.body.purchaseRFQID) : null,
-        ApproverID: parseInt(req.body.approverID) || req.user.personId, // Use authenticated user's personId
-        ApprovedYN: req.body.approvedYN != null ? Boolean(req.body.approvedYN) : null,
-        ApproverDateTime: req.body.approverDateTime || null
-      };
+      const result = await PurchaseRFQApprovalModel.getPurchaseRFQApprovals({
+        purchaseRFQID: purchaseRFQID ? parseInt(purchaseRFQID) : null,
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10
+      });
 
-      const result = await PurchaseRFQApprovalModel.createPurchaseRFQApproval(approvalData);
-      return res.status(result.success ? 201 : 400).json(result);
-    } catch (error) {
-      console.error('Create PurchaseRFQApproval error:', error);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+      console.error('Error in getPurchaseRFQApprovals:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        purchaseRFQId: null
+        purchaseRFQId: null,
+        totalRecords: 0
       });
     }
   }
 
-  static async getPurchaseRFQApproval(req, res) {
+  // Get a specific Purchase RFQ approval by PurchaseRFQID and ApproverID
+  static async getPurchaseRFQApprovalById(req, res) {
     try {
-      const purchaseRFQId = parseInt(req.params.purchaseRFQId);
-      const approverId = parseInt(req.params.approverId);
-      if (isNaN(purchaseRFQId) || isNaN(approverId)) {
+      const { purchaseRFQID, approverID } = req.params;
+
+      if (isNaN(parseInt(purchaseRFQID)) || isNaN(parseInt(approverID))) {
         return res.status(400).json({
           success: false,
           message: 'Invalid or missing PurchaseRFQID or ApproverID',
           data: null,
-          purchaseRFQId: null
+          purchaseRFQId: null,
         });
       }
 
-      const approvalData = {
-        PurchaseRFQID: purchaseRFQId,
-        ApproverID: approverId
-      };
+      if (!req.user) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          purchaseRFQId: null,
+        });
+      }
 
-      const result = await PurchaseRFQApprovalModel.getPurchaseRFQApproval(approvalData);
-      return res.status(result.success ? 200 : 404).json(result);
-    } catch (error) {
-      console.error('Get PurchaseRFQApproval error:', error);
+      const result = await PurchaseRFQApprovalModel.getPurchaseRFQApprovalById({
+        purchaseRFQID: parseInt(purchaseRFQID),
+        approverID: parseInt(approverID)
+      });
+
+      return res.status(result.success ? (result.data ? 200 : 404) : 400).json(result);
+    } catch (err) {
+      console.error('Error in getPurchaseRFQApprovalById:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        purchaseRFQId: null
+        purchaseRFQId: null,
       });
     }
   }
 
-  static async updatePurchaseRFQApproval(req, res) {
+  // Create a Purchase RFQ approval
+  static async createPurchaseRFQApproval(req, res) {
     try {
-      // Check if user has permission to update PurchaseRFQApproval
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
+      const { purchaseRFQID, approvedYN, approverDateTime } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!purchaseRFQID) {
+        return res.status(400).json({
           success: false,
-          message: 'Only Administrators or Customer Order Coordinators can update PurchaseRFQApproval',
+          message: 'purchaseRFQID is required',
           data: null,
-          purchaseRFQId: null
+          purchaseRFQId: null,
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          purchaseRFQId: null,
         });
       }
 
       const approvalData = {
-        PurchaseRFQID: req.body.purchaseRFQID ? parseInt(req.body.purchaseRFQID) : null,
-        ApproverID: parseInt(req.body.approverID) || req.user.personId, // Use authenticated user's personId
-        ApprovedYN: req.body.approvedYN != null ? Boolean(req.body.approvedYN) : null,
-        ApproverDateTime: req.body.approverDateTime || null
+        PurchaseRFQID: parseInt(purchaseRFQID),
+        ApproverID: parseInt(approverID),
+        ApprovedYN: approvedYN != null ? Boolean(approvedYN) : null,
+        ApproverDateTime: approverDateTime || null
+      };
+
+      const result = await PurchaseRFQApprovalModel.createPurchaseRFQApproval(approvalData);
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (err) {
+      console.error('Error in createPurchaseRFQApproval:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        purchaseRFQId: null,
+      });
+    }
+  }
+
+  // Update a Purchase RFQ approval
+  static async updatePurchaseRFQApproval(req, res) {
+    try {
+      const { purchaseRFQID, approvedYN, approverDateTime } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!purchaseRFQID) {
+        return res.status(400).json({
+          success: false,
+          message: 'purchaseRFQID is required',
+          data: null,
+          purchaseRFQId: null,
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          purchaseRFQId: null,
+        });
+      }
+
+      const approvalData = {
+        PurchaseRFQID: parseInt(purchaseRFQID),
+        ApproverID: parseInt(approverID),
+        ApprovedYN: approvedYN != null ? Boolean(approvedYN) : null,
+        ApproverDateTime: approverDateTime || null
       };
 
       const result = await PurchaseRFQApprovalModel.updatePurchaseRFQApproval(approvalData);
       return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Update PurchaseRFQApproval error:', error);
+    } catch (err) {
+      console.error('Error in updatePurchaseRFQApproval:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        purchaseRFQId: null
+        purchaseRFQId: null,
       });
     }
   }
 
+  // Delete a Purchase RFQ approval
   static async deletePurchaseRFQApproval(req, res) {
     try {
-      // Check if user has permission to delete PurchaseRFQApproval
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
+      const { purchaseRFQID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!purchaseRFQID) {
+        return res.status(400).json({
           success: false,
-          message: 'Only Administrators or Customer Order Coordinators can delete PurchaseRFQApproval',
+          message: 'purchaseRFQID is required',
           data: null,
-          purchaseRFQId: null
+          purchaseRFQId: null,
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          purchaseRFQId: null,
         });
       }
 
       const approvalData = {
-        PurchaseRFQID: req.body.purchaseRFQID ? parseInt(req.body.purchaseRFQID) : null,
-        ApproverID: parseInt(req.body.approverID) || req.user.personId // Use authenticated user's personId
+        PurchaseRFQID: parseInt(purchaseRFQID),
+        ApproverID: parseInt(approverID),
       };
 
       const result = await PurchaseRFQApprovalModel.deletePurchaseRFQApproval(approvalData);
       return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Delete PurchaseRFQApproval error:', error);
+    } catch (err) {
+      console.error('Error in deletePurchaseRFQApproval:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        purchaseRFQId: null
-      });
-    }
-  }
-
-  static async getAllPurchaseRFQApprovals(req, res) {
-    try {
-      const result = await PurchaseRFQApprovalModel.getAllPurchaseRFQApprovals();
-      return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Get All PurchaseRFQApprovals error:', error);
-      return res.status(500).json({
-        success: false,
-        message: `Server error: ${error.message}`,
-        data: null,
-        purchaseRFQId: null
-      });
-    }
-  }
-
-  static async getPaginatedPurchaseRFQApprovals(req, res) {
-    try {
-      const paginationData = {
-        PurchaseRFQID: req.query.purchaseRFQID ? parseInt(req.query.purchaseRFQID) : null,
-        ApproverID: req.query.approverID ? parseInt(req.query.approverID) : null,
-        ApprovedYN: req.query.approvedYN != null ? Boolean(req.query.approvedYN) : null,
-        PageNumber: parseInt(req.query.pageNumber) || 1,
-        PageSize: parseInt(req.query.pageSize) || 10,
-        SortColumn: req.query.sortColumn || 'PurchaseRFQID',
-        SortDirection: req.query.sortDirection && ['ASC', 'DESC'].includes(req.query.sortDirection.toUpperCase()) ? req.query.sortDirection.toUpperCase() : 'ASC'
-      };
-
-      if (paginationData.PageNumber < 1 || paginationData.PageSize < 1) {
-        return res.status(400).json({
-          success: false,
-          message: 'PageNumber and PageSize must be greater than or equal to 1',
-          data: null,
-          purchaseRFQId: paginationData.PurchaseRFQID
-        });
-      }
-
-      const result = await PurchaseRFQApprovalModel.getPaginatedPurchaseRFQApprovals(paginationData);
-      return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Get Paginated PurchaseRFQApprovals error:', error);
-      return res.status(500).json({
-        success: false,
-        message: `Server error: ${error.message}`,
-        data: null,
-        purchaseRFQId: null
+        purchaseRFQId: null,
       });
     }
   }

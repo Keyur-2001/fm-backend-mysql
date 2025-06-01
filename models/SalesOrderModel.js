@@ -338,11 +338,13 @@ class SalesOrderModel {
         parseInt(paginationData.PageNumber) || 1,
         parseInt(paginationData.PageSize) || 10,
         paginationData.FromDate ? new Date(paginationData.FromDate) : null,
-        paginationData.ToDate ? new Date(paginationData.ToDate) : null
+        paginationData.ToDate ? new Date(paginationData.ToDate) : null,
+        
+
       ];
 
       const [result] = await pool.query(
-        'CALL SP_GetAllSalesOrders(?, ?, ?, ?, @totalRecords)',
+        'CALL SP_GetAllSalesOrder(?, ?, ?, ?, @totalRecords)',
         queryParams
       );
 
