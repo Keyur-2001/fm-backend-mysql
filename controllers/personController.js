@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 class PersonController {
-  // Get all Persons with pagination
+  // Get all persons with pagination
   static async getAllPersons(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -33,7 +33,7 @@ class PersonController {
     }
   }
 
-  // Create a new Person
+  // Create a new person
   static async createPerson(req, res) {
     try {
       const {
@@ -58,7 +58,7 @@ class PersonController {
       } = req.body;
 
       // Basic validation
-      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
+      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
           message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
@@ -105,7 +105,7 @@ class PersonController {
     }
   }
 
-  // Get a single Person by ID
+  // Get a single person by ID
   static async getPersonById(req, res) {
     try {
       const { id } = req.params;
@@ -147,7 +147,7 @@ class PersonController {
     }
   }
 
-  // Update a Person
+  // Update a person
   static async updatePerson(req, res) {
     try {
       const { id } = req.params;
@@ -228,7 +228,7 @@ class PersonController {
     }
   }
 
-  // Delete a Person
+  // Delete a person
   static async deletePerson(req, res) {
     try {
       const { id } = req.params;
