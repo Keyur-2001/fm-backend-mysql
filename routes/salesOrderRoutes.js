@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const SalesOrderController = require('../controllers/SalesOrderController');
+const SalesOrderController = require('../controllers/salesOrderController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Get all SalesOrders

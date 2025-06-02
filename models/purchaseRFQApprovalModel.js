@@ -1,208 +1,303 @@
-const sql = require('mssql');
 const poolPromise = require('../config/db.config');
 
 class PurchaseRFQApprovalModel {
-  static async #executeManageStoredProcedure(action, approvalData) {
+  // Get Purchase RFQ approvals (all, filtered by PurchaseRFQID, or paginated)
+  static async getPurchaseRFQApprovals({ purchaseRFQID = null, pageNumber = 1, pageSize = 10 }) {
     try {
       const pool = await poolPromise;
-      const request = pool.request();
 
-      // Input parameters
-      request.input('Action', sql.NVarChar(10), action);
-      if (approvalData.PurchaseRFQID) request.input('PurchaseRFQID', sql.Int, parseInt(approvalData.PurchaseRFQID));
-      if (approvalData.ApproverID) request.input('ApproverID', sql.Int, parseInt(approvalData.ApproverID));
-      if (approvalData.ApprovedYN != null) request.input('ApprovedYN', sql.Bit, approvalData.ApprovedYN);
-      if (approvalData.ApproverDateTime) request.input('ApproverDateTime', sql.DateTime, new Date(approvalData.ApproverDateTime));
+      // For pagination, we’ll mimic SalesRFQApprovalModel’s approach, but SP_ManagePurchaseRFQApproval doesn’t support it natively
+      // Apply pagination in code if purchaseRFQID is not provided
+      let queryParams = [
+        'SELECT',
+        purchaseRFQID ? parseInt(purchaseRFQID) : null,
+        null, // ApproverID
+        null, // ApprovedYN
+        null, // ApproverDateTime
+      ];
 
-      // Output parameters
-      request.output('Result', sql.Int);
-      request.output('Message', sql.NVarChar(500));
+      const [result] = await pool.query(
+        'CALL SP_ManagePurchaseRFQApproval(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
 
-      const result = await request.execute('SP_ManagePurchaseRFQApproval');
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 0) {
+        return {
+          success: false,
+          message: outParams.message || 'Failed to retrieve PurchaseRFQ approvals',
+          data: null,
+          purchaseRFQId: purchaseRFQID,
+          totalRecords: 0
+        };
+      }
+
+      let approvals = result[0] || [];
+      
+      // Apply pagination if no purchaseRFQID
+      if (!purchaseRFQID) {
+        const start = (pageNumber - 1) * pageSize;
+        const end = start + pageSize;
+        approvals = approvals.slice(start, end);
+      }
 
       return {
-        success: result.output.Result === 0,
-        message: result.output.Message || `${action} operation ${result.output.Result === 0 ? 'successful' : 'failed'}`,
-        data: action === 'SELECT' ? result.recordset || [] : null,
-        purchaseRFQId: approvalData.PurchaseRFQID
+        success: true,
+        message: outParams.message || 'PurchaseRFQ Approval records retrieved successfully.',
+        data: approvals,
+        purchaseRFQId: purchaseRFQID,
+        totalRecords: purchaseRFQID ? approvals.length : (result[0] ? result[0].length : 0)
       };
-    } catch (error) {
-      console.error(`Database error in ${action} operation:`, error);
-      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+    } catch (err) {
+      console.error('Database error in getPurchaseRFQApprovals:', err);
+      return {
+        success: false,
+        message: `Database error: ${err.message}`,
+        data: null,
+        purchaseRFQId: purchaseRFQID,
+        totalRecords: 0
+      };
     }
   }
 
-  static async #executeGetAllStoredProcedure(paginationData) {
+  // Get a specific Purchase RFQ approval by PurchaseRFQID and ApproverID
+  static async getPurchaseRFQApprovalById({ purchaseRFQID, approverID }) {
     try {
       const pool = await poolPromise;
-      const request = pool.request();
 
-      // Input parameters
-      request.input('PageNumber', sql.Int, parseInt(paginationData.PageNumber) || 1);
-      request.input('PageSize', sql.Int, parseInt(paginationData.PageSize) || 10);
-      request.input('SortColumn', sql.NVarChar(50), paginationData.SortColumn || 'PurchaseRFQID');
-      request.input('SortDirection', sql.NVarChar(4), paginationData.SortDirection || 'ASC');
-      if (paginationData.PurchaseRFQID) request.input('PurchaseRFQID', sql.Int, parseInt(paginationData.PurchaseRFQID));
-      if (paginationData.ApproverID) request.input('ApproverID', sql.Int, parseInt(paginationData.ApproverID));
-      if (paginationData.ApprovedYN != null) request.input('ApprovedYN', sql.Bit, paginationData.ApprovedYN);
+      if (!purchaseRFQID || !approverID) {
+        return {
+          success: false,
+          message: 'PurchaseRFQID and ApproverID are required',
+          data: null,
+          purchaseRFQId: purchaseRFQID,
+        };
+      }
 
-      // Output parameters
-      request.output('TotalRecords', sql.Int);
-      request.output('Result', sql.Bit);
-      request.output('Message', sql.NVarChar(500));
+      const queryParams = [
+        'SELECT',
+        parseInt(purchaseRFQID),
+        parseInt(approverID),
+        null, // ApprovedYN
+        null, // ApproverDateTime
+      ];
 
-      const result = await request.execute('SP_GetPurchaseRFQApprovals');
+      const [result] = await pool.query(
+        'CALL SP_ManagePurchaseRFQApproval(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
 
-      // Initialize pagination metadata
-      const totalRecords = result.output.TotalRecords || 0;
-      const totalPages = totalRecords > 0 ? Math.ceil(totalRecords / (parseInt(paginationData.PageSize) || 10)) : 0;
-      const currentPage = parseInt(paginationData.PageNumber) || 1;
-      const pageSize = parseInt(paginationData.PageSize) || 10;
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 0) {
+        return {
+          success: false,
+          message: outParams.message || 'Failed to retrieve PurchaseRFQ approval',
+          data: null,
+          purchaseRFQId: purchaseRFQID,
+        };
+      }
+
+      const approval = result[0] && result[0][0] ? result[0][0] : null;
 
       return {
-        success: result.output.Result === 1,
-        message: result.output.Message || 'No records found',
-        data: result.recordset || [],
-        totalRecords,
-        totalPages,
-        currentPage,
-        pageSize,
-        purchaseRFQId: paginationData.PurchaseRFQID
+        success: true,
+        message: approval ? (outParams.message || 'PurchaseRFQ approval retrieved successfully.') : 'No approval record found.',
+        data: approval,
+        purchaseRFQId: purchaseRFQID,
       };
-    } catch (error) {
-      console.error('Database error in SP_GetPurchaseRFQApprovals:', error);
-      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+    } catch (err) {
+      console.error('Database error in getPurchaseRFQApprovalById:', err);
+      return {
+        success: false,
+        message: `Database error: ${err.message}`,
+        data: null,
+        purchaseRFQId: purchaseRFQID,
+      };
     }
   }
 
-  static async #validateForeignKeys(approvalData, action) {
-    const pool = await poolPromise;
-    const errors = [];
-
-    if (action === 'INSERT' || action === 'UPDATE') {
-      if (approvalData.PurchaseRFQID) {
-        const rfqCheck = await pool.request()
-          .input('PurchaseRFQID', sql.Int, approvalData.PurchaseRFQID)
-          .query('SELECT 1 FROM [dbo].[tblPurchaseRFQ] WHERE PurchaseRFQID = @PurchaseRFQID AND (IsDeleted = 0 OR IsDeleted IS NULL)');
-        if (rfqCheck.recordset.length === 0) errors.push(`PurchaseRFQID ${approvalData.PurchaseRFQID} does not exist or is deleted`);
-      }
-      if (approvalData.ApproverID) {
-        const approverCheck = await pool.request()
-          .input('ApproverID', sql.Int, approvalData.ApproverID)
-          .query('SELECT 1 FROM [dbo].[tblPerson] WHERE PersonID = @ApproverID');
-        if (approverCheck.recordset.length === 0) errors.push(`ApproverID ${approvalData.ApproverID} does not exist`);
-      }
-    }
-
-    if (action === 'UPDATE' || action === 'DELETE') {
-      if (approvalData.PurchaseRFQID && approvalData.ApproverID) {
-        const approvalCheck = await pool.request()
-          .input('PurchaseRFQID', sql.Int, approvalData.PurchaseRFQID)
-          .input('ApproverID', sql.Int, approvalData.ApproverID)
-          .query('SELECT 1 FROM [dbo].[tblPurchaseRFQApproval] WHERE PurchaseRFQID = @PurchaseRFQID AND ApproverID = @ApproverID');
-        if (approvalCheck.recordset.length === 0) errors.push(`Approval record for PurchaseRFQID ${approvalData.PurchaseRFQID} and ApproverID ${approvalData.ApproverID} does not exist`);
-      }
-    }
-
-    return errors.length > 0 ? errors.join('; ') : null;
-  }
-
+  // Create a Purchase RFQ approval
   static async createPurchaseRFQApproval(approvalData) {
-    const requiredFields = ['PurchaseRFQID', 'ApproverID'];
-    const missingFields = requiredFields.filter(field => !approvalData[field]);
-    if (missingFields.length > 0) {
+    try {
+      const pool = await poolPromise;
+
+      const requiredFields = ['PurchaseRFQID', 'ApproverID'];
+      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `${missingFields.join(', ')} are required`,
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      const queryParams = [
+        'INSERT',
+        parseInt(approvalData.PurchaseRFQID),
+        parseInt(approvalData.ApproverID),
+        approvalData.ApprovedYN != null ? approvalData.ApprovedYN : 1,
+        approvalData.ApproverDateTime || null,
+      ];
+
+      await pool.query(
+        'CALL SP_ManagePurchaseRFQApproval(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 0) {
+        return {
+          success: false,
+          message: outParams.message || 'Failed to create PurchaseRFQ approval',
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      return {
+        success: true,
+        message: outParams.message || 'PurchaseRFQ approval created successfully.',
+        data: null,
+        purchaseRFQId: approvalData.PurchaseRFQID,
+      };
+    } catch (err) {
+      console.error('Database error in createPurchaseRFQApproval:', err);
       return {
         success: false,
-        message: `${missingFields.join(', ')} are required`,
+        message: `Database error: ${err.message}`,
         data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
+        purchaseRFQId: approvalData.PurchaseRFQID,
       };
     }
-
-    const fkErrors = await this.#validateForeignKeys(approvalData, 'INSERT');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
-      };
-    }
-
-    return await this.#executeManageStoredProcedure('INSERT', approvalData);
   }
 
-  static async getPurchaseRFQApproval(approvalData) {
-    const requiredFields = ['PurchaseRFQID', 'ApproverID'];
-    const missingFields = requiredFields.filter(field => !approvalData[field]);
-    if (missingFields.length > 0) {
-      return {
-        success: false,
-        message: `${missingFields.join(', ')} are required`,
-        data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
-      };
-    }
-
-    return await this.#executeManageStoredProcedure('SELECT', approvalData);
-  }
-
+  // Update a Purchase RFQ approval
   static async updatePurchaseRFQApproval(approvalData) {
-    const requiredFields = ['PurchaseRFQID', 'ApproverID', 'ApprovedYN'];
-    const missingFields = requiredFields.filter(field => !approvalData[field] && approvalData[field] !== false);
-    if (missingFields.length > 0) {
+    try {
+      const pool = await poolPromise;
+
+      const requiredFields = ['PurchaseRFQID', 'ApproverID'];
+      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `${missingFields.join(', ')} are required`,
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      const queryParams = [
+        'UPDATE',
+        parseInt(approvalData.PurchaseRFQID),
+        parseInt(approvalData.ApproverID),
+        approvalData.ApprovedYN != null ? approvalData.ApprovedYN : 1,
+        approvalData.ApproverDateTime || null,
+      ];
+
+      await pool.query(
+        'CALL SP_ManagePurchaseRFQApproval(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 0) {
+        return {
+          success: false,
+          message: outParams.message || 'Failed to update PurchaseRFQ approval',
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      return {
+        success: true,
+        message: outParams.message || 'PurchaseRFQ approval updated successfully.',
+        data: null,
+        purchaseRFQId: approvalData.PurchaseRFQID,
+      };
+    } catch (err) {
+      console.error('Database error in updatePurchaseRFQApproval:', err);
       return {
         success: false,
-        message: `${missingFields.join(', ')} are required`,
+        message: `Database error: ${err.message}`,
         data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
+        purchaseRFQId: approvalData.PurchaseRFQID,
       };
     }
-
-    const fkErrors = await this.#validateForeignKeys(approvalData, 'UPDATE');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
-      };
-    }
-
-    return await this.#executeManageStoredProcedure('UPDATE', approvalData);
   }
 
+  // Delete a Purchase RFQ approval
   static async deletePurchaseRFQApproval(approvalData) {
-    const requiredFields = ['PurchaseRFQID', 'ApproverID'];
-    const missingFields = requiredFields.filter(field => !approvalData[field]);
-    if (missingFields.length > 0) {
+    try {
+      const pool = await poolPromise;
+
+      const requiredFields = ['PurchaseRFQID', 'ApproverID'];
+      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `${missingFields.join(', ')} are required`,
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      const queryParams = [
+        'DELETE',
+        parseInt(approvalData.PurchaseRFQID),
+        parseInt(approvalData.ApproverID),
+        null, // ApprovedYN
+        null, // ApproverDateTime
+      ];
+
+      await pool.query(
+        'CALL SP_ManagePurchaseRFQApproval(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 0) {
+        return {
+          success: false,
+          message: outParams.message || 'Failed to delete PurchaseRFQ approval',
+          data: null,
+          purchaseRFQId: approvalData.PurchaseRFQID,
+        };
+      }
+
+      return {
+        success: true,
+        message: outParams.message || 'PurchaseRFQ approval deleted successfully.',
+        data: null,
+        purchaseRFQId: approvalData.PurchaseRFQID,
+      };
+    } catch (err) {
+      console.error('Database error in deletePurchaseRFQApproval:', err);
       return {
         success: false,
-        message: `${missingFields.join(', ')} are required`,
+        message: `Database error: ${err.message}`,
         data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
+        purchaseRFQId: approvalData.PurchaseRFQID,
       };
     }
-
-    const fkErrors = await this.#validateForeignKeys(approvalData, 'DELETE');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        purchaseRFQId: approvalData.PurchaseRFQID
-      };
-    }
-
-    return await this.#executeManageStoredProcedure('DELETE', approvalData);
-  }
-
-  static async getAllPurchaseRFQApprovals() {
-    return await this.#executeManageStoredProcedure('SELECT', {});
-  }
-
-  static async getPaginatedPurchaseRFQApprovals(paginationData) {
-    return await this.#executeGetAllStoredProcedure(paginationData);
   }
 }
 

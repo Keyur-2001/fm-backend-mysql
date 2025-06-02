@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ServiceTypeController = require('../controllers/serviceTypeController');
+const ServiceTypeController = require("../controllers/serviceTypeController");
 
 // Routes for Service Type management
 router.get('/', ServiceTypeController.getAllServiceTypes); // GET /api/service-types
