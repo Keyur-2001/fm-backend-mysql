@@ -10,8 +10,8 @@ class SubscriptionPlanModel {
         'SELECT ALL',
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate).toISOString().split('T')[0] : null,
-        toDate ? new Date(toDate).toISOString().split('T')[0] : null
+        fromDate ? new Date(fromDate) : null,
+        toDate ? new Date(toDate) : null
       ];
 
       console.log('getAllSubscriptionPlans params:', queryParams);
@@ -23,32 +23,12 @@ class SubscriptionPlanModel {
 
       console.log('getAllSubscriptionPlans results:', JSON.stringify(results, null, 2));
 
-      let dataResult = null;
-      let statusResult = null;
-      for (const resultSet of results) {
-        if (Array.isArray(resultSet)) {
-          if (resultSet[0] && 'SubscriptionPlanID' in resultSet[0]) {
-            dataResult = resultSet;
-          } else if (resultSet[0] && 'StatusCode' in resultSet[0]) {
-            statusResult = resultSet[0];
-          }
-        }
-      }
-
-      if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
-      }
-
-      if (statusResult.StatusCode !== 1) {
-        throw new Error(statusResult.Message || 'Failed to retrieve Subscription Plans');
-      }
-
       return {
-        data: dataResult || [],
-        totalRecords: null // Adjust if SP returns count
+        data: results[0] || [],
+        totalRecords: results[1] && results[1][0] ? results[1][0].TotalRecords : 0
       };
     } catch (err) {
-      console.error('getAllSubscriptionPlans error:', err.stack);
+      console.error('getAllSubscriptionPlans error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -64,48 +44,44 @@ class SubscriptionPlanModel {
 
       const queryParams = [
         'INSERT',
-        null,
-        data.SubscriptionPlanName,
-        data.Description,
-        data.Fees,
-        data.BillingFrequencyID,
-        data.CreatedByID
+        null, // p_SubscriptionPlanID
+        data.subscriptionPlanName,
+        data.description,
+        data.fees,
+        data.billingFrequencyId,
+        data.createdById,
+        null // p_DeletedByID
       ];
 
+      // Log query parameters
       console.log('createSubscriptionPlan params:', queryParams);
 
-      const [results] = await pool.query(
-        'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?)',
+      // Call SP_ManageSubscriptionPlan with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('createSubscriptionPlan results:', JSON.stringify(results, null, 2));
+      // Fetch output parameters, including p_SubscriptionPlanID
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_SubscriptionPlanID AS p_SubscriptionPlanID');
 
-      let statusResult = null;
-      for (const resultSet of results) {
-        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
-          statusResult = resultSet[0];
-          break;
-        }
+      // Log output
+      console.log('createSubscriptionPlan output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
         throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
       }
 
-      if (statusResult.StatusCode !== 1) {
-        throw new Error(statusResult.Message || 'Failed to create Subscription Plan');
-      }
-
-      const idMatch = statusResult.Message.match(/ID: (\d+)/);
-      const subscriptionPlanId = idMatch ? parseInt(idMatch[1]) : null;
-
       return {
-        subscriptionPlanId,
-        message: statusResult.Message
+        subscriptionPlanId: output[0].p_SubscriptionPlanID || null,
+        message: output[0].p_Message
       };
     } catch (err) {
-      console.error('createSubscriptionPlan error:', err.stack);
+      console.error('createSubscriptionPlan error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -117,38 +93,35 @@ class SubscriptionPlanModel {
 
       const queryParams = ['SELECT', parseInt(id), null, null, null, null, null];
 
+      // Log query parameters
       console.log('getSubscriptionPlanById params:', queryParams);
 
+      // Call SP_ManageSubscriptionPlan with session variables for OUT parameters
       const [results] = await pool.query(
         'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?)',
         queryParams
       );
 
+      // Log results
       console.log('getSubscriptionPlanById results:', JSON.stringify(results, null, 2));
 
-      let dataResult = null;
-      let statusResult = null;
-      for (const resultSet of results) {
-        if (Array.isArray(resultSet)) {
-          if (resultSet[0] && 'SubscriptionPlanID' in resultSet[0]) {
-            dataResult = resultSet[0];
-          } else if (resultSet[0] && 'StatusCode' in resultSet[0]) {
-            statusResult = resultSet[0];
-          }
-        }
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getSubscriptionPlanById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
-      if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
-      }
-
-      if (statusResult.StatusCode !== 1) {
-        throw new Error(statusResult.Message || 'Subscription Plan not found');
+      if (output[0].p_Result !== 0) {
+        throw new Error(output[0].p_Message || 'Subscription Plan not found');
       }
 
       return dataResult || null;
     } catch (err) {
-      console.error('getSubscriptionPlanById error:', err.stack);
+      console.error('getSubscriptionPlanById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -160,36 +133,31 @@ class SubscriptionPlanModel {
 
       const queryParams = [
         'UPDATE',
-        parseInt(id),
-        data.SubscriptionPlanName,
-        data.Description,
-        data.Fees,
-        data.BillingFrequencyID,
-        data.CreatedByID,
-        data.CreatedDateTime,
-        data.IsDeleted,
-        data.DeleteDateTime,
-        data.deletedById,
-        
-
-
+        id,
+        data.subscriptionPlanName,
+        data.description,
+        data.fees,
+        data.billingFrequencyId,
+        data.createdById,
+        null // p_DeletedByID
       ];
 
+      // Log query parameters
       console.log('updateSubscriptionPlan params:', queryParams);
 
-      const [results] = await pool.query(
-        'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?,?,?,?)',
+      // Call SP_ManageSubscriptionPlan with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
       console.log('updateSubscriptionPlan results:', JSON.stringify(results, null, 2));
 
-      let statusResult = null;
-      for (const resultSet of results) {
-        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
-          statusResult = resultSet[0];
-          break;
-        }
+      // Log output
+      console.log('updateSubscriptionPlan output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
@@ -204,7 +172,7 @@ class SubscriptionPlanModel {
         message: statusResult.Message
       };
     } catch (err) {
-      console.error('updateSubscriptionPlan error:', err.stack);
+      console.error('updateSubscriptionPlan error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -216,29 +184,31 @@ class SubscriptionPlanModel {
 
       const queryParams = [
         'DELETE',
-        parseInt(id),
-        null,
-        null,
-        null,
-        null,
-        parseInt(deletedById)
+        id,
+        null, // p_SubscriptionPlanName
+        null, // p_Description
+        null, // p_Fees
+        null, // p_BillingFrequencyID
+        null, // p_CreatedByID
+        deletedById
       ];
 
+      // Log query parameters
       console.log('deleteSubscriptionPlan params:', queryParams);
 
-      const [results] = await pool.query(
-        'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?)',
+      // Call SP_ManageSubscriptionPlan with session variables for OUT parameters
+      await pool.query(
+        'CALL SP_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
       console.log('deleteSubscriptionPlan results:', JSON.stringify(results, null, 2));
 
-      let statusResult = null;
-      for (const resultSet of results) {
-        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
-          statusResult = resultSet[0];
-          break;
-        }
+      // Log output
+      console.log('deleteSubscriptionPlan output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
@@ -253,7 +223,7 @@ class SubscriptionPlanModel {
         message: statusResult.Message
       };
     } catch (err) {
-      console.error('deleteSubscriptionPlan error:', err.stack);
+      console.error('deleteSubscriptionPlan error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

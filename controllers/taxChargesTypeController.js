@@ -1,7 +1,7 @@
 const TaxChargesTypeModel = require('../models/taxChargesTypeModel');
 
 class TaxChargesTypeController {
-  // Get all Tax Charges Types with pagination
+  // Get all Tax Charge Types with pagination
   static async getAllTaxChargesTypes(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -15,7 +15,7 @@ class TaxChargesTypeController {
 
       return res.status(200).json({
         success: true,
-        message: 'Tax Charges Types retrieved successfully',
+        message: 'Tax charge types retrieved successfully',
         data: taxChargesTypes.data,
         totalRecords: taxChargesTypes.totalRecords
       });
@@ -30,14 +30,10 @@ class TaxChargesTypeController {
     }
   }
 
-  // Create a new Tax Charges Type
+  // Create a new Tax Charge Type
   static async createTaxChargesType(req, res) {
     try {
-      const {
-        taxChargesType,
-        defaultCharges,
-        createdById
-      } = req.body;
+      const { taxChargesType, defaultCharges, createdById } = req.body;
 
       // Basic validation
       if (!taxChargesType || defaultCharges == null || !createdById) {
@@ -72,7 +68,7 @@ class TaxChargesTypeController {
     }
   }
 
-  // Get a single Tax Charges Type by ID
+  // Get a single Tax Charge Type by ID
   static async getTaxChargesTypeById(req, res) {
     try {
       const { id } = req.params;
@@ -91,7 +87,7 @@ class TaxChargesTypeController {
       if (!taxChargesType) {
         return res.status(404).json({
           success: false,
-          message: 'Tax Charges Type not found',
+          message: 'Tax charge type not found',
           data: null,
           taxChargesTypeId: id
         });
@@ -99,7 +95,7 @@ class TaxChargesTypeController {
 
       return res.status(200).json({
         success: true,
-        message: 'Tax Charges Type retrieved successfully',
+        message: 'Tax charge type retrieved successfully',
         data: taxChargesType,
         taxChargesTypeId: id
       });
@@ -114,15 +110,11 @@ class TaxChargesTypeController {
     }
   }
 
-  // Update a Tax Charges Type
+  // Update a Tax Charge Type
   static async updateTaxChargesType(req, res) {
     try {
       const { id } = req.params;
-      const {
-        taxChargesType,
-        defaultCharges,
-        createdById
-      } = req.body;
+      const { taxChargesType, defaultCharges, createdById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -165,7 +157,7 @@ class TaxChargesTypeController {
     }
   }
 
-  // Delete a Tax Charges Type
+  // Delete a Tax Charge Type
   static async deleteTaxChargesType(req, res) {
     try {
       const { id } = req.params;

@@ -1,6 +1,7 @@
 const VehicleModel = require('../models/vehicleModel');
 
 class VehicleController {
+  // Get all Vehicles with pagination
   static async getAllVehicles(req, res) {
     try {
       const { pageNumber, pageSize } = req.query;
@@ -27,25 +28,47 @@ class VehicleController {
     }
   }
 
+  // Create a new Vehicle
   static async createVehicle(req, res) {
     try {
       const {
-        truckNumberPlate, vin, companyId, maxWeight, maxVolume, length, width, height,
-        vehicleTypeId, numberOfWheels, numberOfAxels, createdById
+        truckNumberPlate,
+        vin,
+        companyId,
+        maxWeight,
+        maxVolume,
+        length,
+        width,
+        height,
+        vehicleTypeId,
+        numberOfWheels,
+        numberOfAxels,
+        createdById
       } = req.body;
 
-      if (!truckNumberPlate || !companyId || !vehicleTypeId || !createdById) {
+      // Basic validation
+      if (!truckNumberPlate || !vin || !companyId || !vehicleTypeId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'TruckNumberPlate, CompanyID, VehicleTypeID, and CreatedByID are required',
+          message: 'TruckNumberPlate, VIN, CompanyID, VehicleTypeID, and CreatedByID are required',
           data: null,
           vehicleId: null
         });
       }
 
       const result = await VehicleModel.createVehicle({
-        truckNumberPlate, vin, companyId, maxWeight, maxVolume, length, width, height,
-        vehicleTypeId, numberOfWheels, numberOfAxels, createdById
+        truckNumberPlate,
+        vin,
+        companyId,
+        maxWeight,
+        maxVolume,
+        length,
+        width,
+        height,
+        vehicleTypeId,
+        numberOfWheels,
+        numberOfAxels,
+        createdById
       });
 
       return res.status(201).json({
@@ -65,6 +88,7 @@ class VehicleController {
     }
   }
 
+  // Get a single Vehicle by ID
   static async getVehicleById(req, res) {
     try {
       const { id } = req.params;
@@ -106,12 +130,23 @@ class VehicleController {
     }
   }
 
+  // Update a Vehicle
   static async updateVehicle(req, res) {
     try {
       const { id } = req.params;
       const {
-        truckNumberPlate, vin, companyId, maxWeight, maxVolume, length, width, height,
-        vehicleTypeId, numberOfWheels, numberOfAxels, createdById
+        truckNumberPlate,
+        vin,
+        companyId,
+        maxWeight,
+        maxVolume,
+        length,
+        width,
+        height,
+        vehicleTypeId,
+        numberOfWheels,
+        numberOfAxels,
+        createdById
       } = req.body;
 
       if (!id || isNaN(id)) {
@@ -123,18 +158,28 @@ class VehicleController {
         });
       }
 
-      if (!truckNumberPlate || !companyId || !vehicleTypeId || !createdById) {
+      if (!truckNumberPlate || !vin || !companyId || !vehicleTypeId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'TruckNumberPlate, CompanyID, VehicleTypeID, and CreatedByID are required',
+          message: 'TruckNumberPlate, VIN, CompanyID, VehicleTypeID, and CreatedByID are required',
           data: null,
           vehicleId: id
         });
       }
 
       const result = await VehicleModel.updateVehicle(parseInt(id), {
-        truckNumberPlate, vin, companyId, maxWeight, maxVolume, length, width, height,
-        vehicleTypeId, numberOfWheels, numberOfAxels, createdById
+        truckNumberPlate,
+        vin,
+        companyId,
+        maxWeight,
+        maxVolume,
+        length,
+        width,
+        height,
+        vehicleTypeId,
+        numberOfWheels,
+        numberOfAxels,
+        createdById
       });
 
       return res.status(200).json({
@@ -154,10 +199,11 @@ class VehicleController {
     }
   }
 
+  // Delete a Vehicle
   static async deleteVehicle(req, res) {
     try {
       const { id } = req.params;
-      const { createdById } = req.body;
+      const { deletedById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -168,16 +214,16 @@ class VehicleController {
         });
       }
 
-      if (!createdById) {
+      if (!deletedById) {
         return res.status(400).json({
           success: false,
-          message: 'CreatedByID is required',
+          message: 'DeletedByID is required',
           data: null,
           vehicleId: id
         });
       }
 
-      const result = await VehicleModel.deleteVehicle(parseInt(id), createdById);
+      const result = await VehicleModel.deleteVehicle(parseInt(id), deletedById);
 
       return res.status(200).json({
         success: true,

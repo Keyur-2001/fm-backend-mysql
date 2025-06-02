@@ -1,10 +1,12 @@
 const poolPromise = require('../config/db.config');
 
 class CollectionRateModel {
+  // Get paginated Collection Rates
   static async getAllCollectionRates({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
@@ -12,45 +14,85 @@ class CollectionRateModel {
         toDate ? new Date(toDate) : null
       ];
 
-      console.log('getAllCollectionRates params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('getAllCollectionRates params:', queryParams);
 
+      // Call SP_GetAllCollectionRate
       const [results] = await pool.query(
-        'CALL SP_GetCollectionRate(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_GetAllCollectionRate(?, ?, ?, ?)',
         queryParams
       );
 
+      // Log results
       console.log('getAllCollectionRates results:', JSON.stringify(results, null, 2));
-
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
-      console.log('getAllCollectionRates output:', JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_GetCollectionRate: ${JSON.stringify(output)}`);
-      }
-
-      if (output[0].p_Result !== 0) {
-        throw new Error(output[0].p_Message || 'Failed to retrieve collection rates');
-      }
 
       return {
         data: results[0] || [],
-        totalRecords: results[1][0]?.TotalRecords || 0,
-        message: output[0].p_Message
+        totalRecords: null // SP does not return total count
       };
     } catch (err) {
-      console.error('getAllCollectionRates error:', err.stack);
+      console.error('getAllCollectionRates error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
+  // Get all Collection Rates without pagination (SELECT ALL)
+  static async getAllCollectionRatesNoPagination() {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'SELECT ALL',
+        null, // p_CollectionRateID
+        null, // p_WarehouseID
+        null, // p_DistanceRadiusMin
+        null, // p_DistanceRadiusMax
+        null, // p_Rate
+        null, // p_CurrencyID
+        null  // p_CreatedByID
+      ];
+
+      // Log query parameters
+      console.log('getAllCollectionRatesNoPagination params:', queryParams);
+
+      // Call SP_ManageCollectionRate with session variables for OUT parameters
+      const [results] = await pool.query(
+        'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      // Log results
+      console.log('getAllCollectionRatesNoPagination results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getAllCollectionRatesNoPagination output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageCollectionRate');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve all Collection Rates');
+      }
+
+      return results[0] || [];
+    } catch (err) {
+      console.error('getAllCollectionRatesNoPagination error:', err);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Create a new Collection Rate
   static async createCollectionRate(data) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'INSERT',
-        null,
+        null, // p_CollectionRateID
         data.warehouseId,
         data.distanceRadiusMin,
         data.distanceRadiusMax,
@@ -59,40 +101,40 @@ class CollectionRateModel {
         data.createdById
       ];
 
-      console.log('createCollectionRate params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('createCollectionRate params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManageCollectionRate with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('createCollectionRate results:', JSON.stringify(results, null, 2));
+      // Fetch output parameters, including p_CollectionRateID
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_CollectionRateID AS p_CollectionRateID');
 
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
-
+      // Log output
       console.log('createCollectionRate output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageCollectionRate: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageCollectionRate');
       }
 
-      if (output[0].p_Result !== 0) {
-        throw new Error(output[0].p_Message || 'Failed to create collection rate');
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to create Collection Rate');
       }
-
-      const collectionRateIdMatch = output[0].p_Message.match(/ID: (\d+)/);
-      const collectionRateId = collectionRateIdMatch ? parseInt(collectionRateIdMatch[1]) : null;
 
       return {
-        collectionRateId,
+        collectionRateId: output[0].p_CollectionRateID || null,
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('createCollectionRate error:', err.stack);
+      console.error('createCollectionRate error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
+  // Get a single Collection Rate by ID
   static async getCollectionRateById(id) {
     try {
       const pool = await poolPromise;
@@ -100,46 +142,48 @@ class CollectionRateModel {
       const queryParams = [
         'SELECT',
         id,
-        null,
-        null,
-        null,
-        null,
-        null,
-        null
+        null, // p_WarehouseID
+        null, // p_DistanceRadiusMin
+        null, // p_DistanceRadiusMax
+        null, // p_Rate
+        null, // p_CurrencyID
+        null  // p_CreatedByID
       ];
 
-      console.log('getCollectionRateById params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('getCollectionRateById params:', queryParams);
 
+      // Call SP_ManageCollectionRate with session variables for OUT parameters
       const [results] = await pool.query(
         'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
+      // Log results
       console.log('getCollectionRateById results:', JSON.stringify(results, null, 2));
 
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('getCollectionRateById output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageCollectionRate: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageCollectionRate');
       }
 
-      if (output[0].p_Result !== 0) {
-        throw new Error(output[0].p_Message || 'Failed to retrieve collection rate');
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Collection Rate not found');
       }
 
-      if (!results[0] || results[0].length === 0) {
-        throw new Error('Collection rate not found');
-      }
-
-      return results[0][0];
+      return results[0][0] || null;
     } catch (err) {
-      console.error('getCollectionRateById error:', err.stack);
+      console.error('getCollectionRateById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
+  // Update a Collection Rate
   static async updateCollectionRate(id, data) {
     try {
       const pool = await poolPromise;
@@ -155,36 +199,39 @@ class CollectionRateModel {
         data.createdById
       ];
 
-      console.log('updateCollectionRate params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('updateCollectionRate params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManageCollectionRate with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('updateCollectionRate results:', JSON.stringify(results, null, 2));
-
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('updateCollectionRate output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageCollectionRate: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageCollectionRate');
       }
 
-      if (output[0].p_Result !== 0) {
-        throw new Error(output[0].p_Message || 'Failed to update collection rate');
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to update Collection Rate');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('updateCollectionRate error:', err.stack);
+      console.error('updateCollectionRate error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
+  // Delete a Collection Rate
   static async deleteCollectionRate(id, createdById) {
     try {
       const pool = await poolPromise;
@@ -192,40 +239,42 @@ class CollectionRateModel {
       const queryParams = [
         'DELETE',
         id,
-        null,
-        null,
-        null,
-        null,
-        null,
+        null, // p_WarehouseID
+        null, // p_DistanceRadiusMin
+        null, // p_DistanceRadiusMax
+        null, // p_Rate
+        null, // p_CurrencyID
         createdById
       ];
 
-      console.log('deleteCollectionRate params:', JSON.stringify(queryParams, null, 2));
+      // Log query parameters
+      console.log('deleteCollectionRate params:', queryParams);
 
-      const [results] = await pool.query(
+      // Call SP_ManageCollectionRate with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      console.log('deleteCollectionRate results:', JSON.stringify(results, null, 2));
-
+      // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
+      // Log output
       console.log('deleteCollectionRate output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageCollectionRate: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageCollectionRate');
       }
 
-      if (output[0].p_Result !== 0) {
-        throw new Error(output[0].p_Message || 'Failed to delete collection rate');
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to delete Collection Rate');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('deleteCollectionRate error:', err.stack);
+      console.error('deleteCollectionRate error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

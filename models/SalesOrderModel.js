@@ -337,29 +337,29 @@ class SalesOrderModel {
       const queryParams = [
         parseInt(paginationData.PageNumber) || 1,
         parseInt(paginationData.PageSize) || 10,
+        paginationData.SortColumn || 'SalesOrderID',
+        paginationData.SortDirection || 'ASC',
         paginationData.FromDate ? new Date(paginationData.FromDate) : null,
         paginationData.ToDate ? new Date(paginationData.ToDate) : null,
-        
-
       ];
 
-      const [result] = await pool.query(
-        'CALL SP_GetAllSalesOrder(?, ?, ?, ?, @totalRecords)',
+      const [resultSets] = await pool.query(
+        'CALL SP_GetAllSalesOrder(?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      const [[{ totalRecords }]] = await pool.query('SELECT @totalRecords AS totalRecords');
+      const [[{ p_Result, p_Message }]] = await pool.query(
+        'SELECT @p_Result AS p_Result, @p_Message AS p_Message'
+      );
 
       return {
-        success: true,
-        message: 'SalesOrder records retrieved successfully.',
-        data: result[0] || [],
-        totalRecords: totalRecords || 0,
-        salesOrderId: null,
-        newSalesOrderId: null
+        success: p_Result === 1,
+        message: p_Message || 'Sales orders fetched.',
+        data: resultSets[0] || [],
+        totalRecords: resultSets[0]?.length || 0, // Adjust this if you return count separately
       };
     } catch (error) {
-      console.error('Database error in SP_GetAllSalesOrders:', error);
+      console.error('Database error in getAllSalesOrders:', error);
       throw new Error(`Database error: ${error.message || 'Unknown error'}`);
     }
   }

@@ -1,43 +1,46 @@
 const poolPromise = require('../config/db.config');
 
 class FormRoleModel {
-  // Get paginated FormRoles
-  static async getAllFormRoles({ pageNumber = 1, pageSize = 10, fromDate, toDate, formId, roleId, createdBy }) {
+  static async getAllFormRoles({ pageNumber = 1, pageSize = 10 }) {
     try {
       const pool = await poolPromise;
 
-      // Validate parameters
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate || null,
-        toDate || null,
-        formId || null,
-        roleId || null,
-        createdBy || null
+        pageSize > 0 ? pageSize : 10
       ];
 
-      // Call SP_GetAllFormRoles
-      const [result] = await pool.query(
-        'CALL SP_GetAllFormRoles(?, ?, ?, ?, ?, ?, ?, @p_TotalRecords)',
+      console.log('getAllFormRoles params:', queryParams);
+
+      const [results] = await pool.query(
+        'CALL SP_GetAllFormRoles(?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameter
-      const [[outParams]] = await pool.query('SELECT @p_TotalRecords AS totalRecords');
+      console.log('getAllFormRoles results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('getAllFormRoles output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllFormRoles');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve FormRoles');
+      }
 
       return {
-        success: outParams.totalRecords !== -1,
-        message: outParams.totalRecords !== -1 ? 'FormRoles fetched successfully.' : 'Error fetching FormRoles.',
-        data: result[0] || [],
-        totalRecords: outParams.totalRecords !== -1 ? outParams.totalRecords : 0
+        data: results[0] || [],
+        totalRecords: results[1] && results[1][0] ? results[1][0].TotalRecords : 0
       };
     } catch (err) {
+      console.error('getAllFormRoles error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Create a new FormRole
   static async createFormRole(data) {
     try {
       const pool = await poolPromise;
@@ -47,59 +50,82 @@ class FormRoleModel {
         null, // p_FormRoleID
         data.formId,
         data.roleId,
-        data.readOnly || 0,
-        data.writeOnly || 0, 
-        data.createdById
+        data.readOnly,
+        data.writes,
+        null // p_CreatedByID
       ];
 
-      // Call SP_ManageFormRole
-      const [result] = await pool.query(
+      console.log('createFormRole params:', queryParams);
+
+      await pool.query(
         'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters and new FormRoleID
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
-      const newFormRoleId = result[0] && result[0][0] ? result[0][0].FormRoleID : null;
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_FormRoleID AS p_FormRoleID');
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to create FormRole');
+      console.log('createFormRole output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageFormRole');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to create FormRole');
       }
 
       return {
-        newFormRoleId,
-        message: outParams.message
+        formRoleId: output[0].p_FormRoleID || null,
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('createFormRole error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Get a single FormRole by ID
   static async getFormRoleById(id) {
     try {
       const pool = await poolPromise;
 
-      // Call SP_ManageFormRole
-      const [result] = await pool.query(
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_FormID
+        null, // p_RoleID
+        null, // p_ReadOnly
+        null, // p_Writes
+        null // p_CreatedByID
+      ];
+
+      console.log('getFormRoleById params:', queryParams);
+
+      const [results] = await pool.query(
         'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
-        ['SELECT', id, null, null, null, null, null]
+        queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      console.log('getFormRoleById results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'FormRole not found');
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('getFormRoleById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageFormRole');
       }
 
-      return result[0][0] || null;
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'FormRole not found');
+      }
+
+      return results[0][0] || null;
     } catch (err) {
+      console.error('getFormRoleById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a FormRole
   static async updateFormRole(id, data) {
     try {
       const pool = await poolPromise;
@@ -109,33 +135,39 @@ class FormRoleModel {
         id,
         data.formId,
         data.roleId,
-        data.readOnly || 0,
-        data.writeOnly || 0,
+        data.readOnly,
+        data.writes,
         data.createdById
       ];
 
-      // Call SP_ManageFormRole
+      console.log('updateFormRole params:', queryParams);
+
       await pool.query(
         'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to update FormRole');
+      console.log('updateFormRole output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageFormRole');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to update FormRole');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('updateFormRole error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Delete a FormRole
   static async deleteFormRole(id, createdById) {
     try {
       const pool = await poolPromise;
@@ -143,30 +175,37 @@ class FormRoleModel {
       const queryParams = [
         'DELETE',
         id,
-        null,
-        null,
-        null,
-        null,
+        null, // p_FormID
+        null, // p_RoleID
+        null, // p_ReadOnly
+        null, // p_Writes
         createdById
       ];
 
-      // Call SP_ManageFormRole
+      console.log('deleteFormRole params:', queryParams);
+
       await pool.query(
         'CALL SP_ManageFormRole(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query('SELECT @p_Result AS result, @p_Message AS message');
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
-      if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to delete FormRole');
+      console.log('deleteFormRole output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_ManageFormRole');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to delete FormRole');
       }
 
       return {
-        message: outParams.message
+        message: output[0].p_Message
       };
     } catch (err) {
+      console.error('deleteFormRole error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

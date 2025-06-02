@@ -1,7 +1,7 @@
 const poolPromise = require('../config/db.config');
 
 class TaxChargesTypeModel {
-  // Get paginated Tax Charges Types
+  // Get paginated Tax Charge Types
   static async getAllTaxChargesTypes({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
@@ -15,9 +15,9 @@ class TaxChargesTypeModel {
       ];
 
       // Log query parameters
-      console.log('getAllTaxChargesTypes params:', JSON.stringify(queryParams, null, 2));
+      console.log('getAllTaxChargesTypes params:', queryParams);
 
-      // Call SP_GetAllTaxChargesTypes
+      // Call SP_GetAllTaxChargesTypes with session variables for OUT parameters
       const [results] = await pool.query(
         'CALL SP_GetAllTaxChargesTypes(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
@@ -33,24 +33,24 @@ class TaxChargesTypeModel {
       console.log('getAllTaxChargesTypes output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_GetAllTaxChargesTypes: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_GetAllTaxChargesTypes');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to retrieve Tax Charges Types');
+        throw new Error(output[0].p_Message || 'Failed to retrieve Tax Charge Types');
       }
 
       return {
         data: results[0] || [],
-        totalRecords: results[0]?.length || 0 // SP does not return separate count
+        totalRecords: null // SP does not return total count
       };
     } catch (err) {
-      console.error('getAllTaxChargesTypes error:', err.stack);
+      console.error('getAllTaxChargesTypes error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Create a new Tax Charges Type
+  // Create a new Tax Charge Type
   static async createTaxChargesType(data) {
     try {
       const pool = await poolPromise;
@@ -64,42 +64,39 @@ class TaxChargesTypeModel {
       ];
 
       // Log query parameters
-      console.log('createTaxChargesType params:', JSON.stringify(queryParams, null, 2));
+      console.log('createTaxChargesType params:', queryParams);
 
-      // Call SP_ManageTaxChargesType
-      const [results] = await pool.query(
+      // Call SP_ManageTaxChargesType with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageTaxChargesType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Log results
-      console.log('createTaxChargesType results:', JSON.stringify(results, null, 2));
-
-      // Fetch output parameters
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+      // Fetch output parameters, including p_TaxChargesTypeID
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_TaxChargesTypeID AS p_TaxChargesTypeID');
 
       // Log output
       console.log('createTaxChargesType output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageTaxChargesType: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageTaxChargesType');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to create Tax Charges Type');
+        throw new Error(output[0].p_Message || 'Failed to create Tax Charge Type');
       }
 
       return {
-        taxChargesTypeId: null, // SP does not return new ID explicitly
+        taxChargesTypeId: output[0].p_TaxChargesTypeID || null,
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('createTaxChargesType error:', err.stack);
+      console.error('createTaxChargesType error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Get a single Tax Charges Type by ID
+  // Get a single Tax Charge Type by ID
   static async getTaxChargesTypeById(id) {
     try {
       const pool = await poolPromise;
@@ -113,9 +110,9 @@ class TaxChargesTypeModel {
       ];
 
       // Log query parameters
-      console.log('getTaxChargesTypeById params:', JSON.stringify(queryParams, null, 2));
+      console.log('getTaxChargesTypeById params:', queryParams);
 
-      // Call SP_ManageTaxChargesType
+      // Call SP_ManageTaxChargesType with session variables for OUT parameters
       const [results] = await pool.query(
         'CALL SP_ManageTaxChargesType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
@@ -131,21 +128,21 @@ class TaxChargesTypeModel {
       console.log('getTaxChargesTypeById output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageTaxChargesType: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageTaxChargesType');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Tax Charges Type not found');
+        throw new Error(output[0].p_Message || 'Tax Charge Type not found');
       }
 
       return results[0][0] || null;
     } catch (err) {
-      console.error('getTaxChargesTypeById error:', err.stack);
+      console.error('getTaxChargesTypeById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a Tax Charges Type
+  // Update a Tax Charge Type
   static async updateTaxChargesType(id, data) {
     try {
       const pool = await poolPromise;
@@ -159,16 +156,13 @@ class TaxChargesTypeModel {
       ];
 
       // Log query parameters
-      console.log('updateTaxChargesType params:', JSON.stringify(queryParams, null, 2));
+      console.log('updateTaxChargesType params:', queryParams);
 
-      // Call SP_ManageTaxChargesType
-      const [results] = await pool.query(
+      // Call SP_ManageTaxChargesType with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageTaxChargesType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
-
-      // Log results
-      console.log('updateTaxChargesType results:', JSON.stringify(results, null, 2));
 
       // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
@@ -177,23 +171,23 @@ class TaxChargesTypeModel {
       console.log('updateTaxChargesType output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageTaxChargesType: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageTaxChargesType');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to update Tax Charges Type');
+        throw new Error(output[0].p_Message || 'Failed to update Tax Charge Type');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('updateTaxChargesType error:', err.stack);
+      console.error('updateTaxChargesType error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Delete a Tax Charges Type
+  // Delete a Tax Charge Type
   static async deleteTaxChargesType(id, createdById) {
     try {
       const pool = await poolPromise;
@@ -207,16 +201,13 @@ class TaxChargesTypeModel {
       ];
 
       // Log query parameters
-      console.log('deleteTaxChargesType params:', JSON.stringify(queryParams, null, 2));
+      console.log('deleteTaxChargesType params:', queryParams);
 
-      // Call SP_ManageTaxChargesType
-      const [results] = await pool.query(
+      // Call SP_ManageTaxChargesType with session variables for OUT parameters
+      await pool.query(
         'CALL SP_ManageTaxChargesType(?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
-
-      // Log results
-      console.log('deleteTaxChargesType results:', JSON.stringify(results, null, 2));
 
       // Fetch output parameters
       const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
@@ -225,18 +216,18 @@ class TaxChargesTypeModel {
       console.log('deleteTaxChargesType output:', JSON.stringify(output, null, 2));
 
       if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
-        throw new Error(`Output parameters missing from SP_ManageTaxChargesType: ${JSON.stringify(output)}`);
+        throw new Error('Output parameters missing from SP_ManageTaxChargesType');
       }
 
       if (output[0].p_Result !== 1) {
-        throw new Error(output[0].p_Message || 'Failed to delete Tax Charges Type');
+        throw new Error(output[0].p_Message || 'Failed to delete Tax Charge Type');
       }
 
       return {
         message: output[0].p_Message
       };
     } catch (err) {
-      console.error('deleteTaxChargesType error:', err.stack);
+      console.error('deleteTaxChargesType error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

@@ -89,7 +89,7 @@ async function startServer() {
       ['/api/mailing-priorities', mailingPriorityRoutes],
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
-      ['/api/person-types', personTypeRoutes],
+      // ['/api/person-types', personTypeRoutes],
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
        ['/api/auth', authRoutes],
