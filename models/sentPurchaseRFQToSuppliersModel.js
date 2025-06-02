@@ -23,8 +23,8 @@ async function getPurchaseRFQDetails(purchaseRFQID) {
 
     // Call stored procedure
     await pool.query(
-      `CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)`,
-      ['SELECT', purchaseRFQID, null, null, null]
+      `CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)`,
+      ['SELECT', purchaseRFQID, null, null, null, null]
     );
 
     // Retrieve output parameters
