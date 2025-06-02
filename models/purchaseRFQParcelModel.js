@@ -1,38 +1,41 @@
-const sql = require('mssql');
 const poolPromise = require('../config/db.config');
 
 class PurchaseRFQParcelModel {
-  static async #executeStoredProcedure(action, purchaseRFQParcelData) {
+  static async #executeManageStoredProcedure(action, purchaseRFQParcelData) {
     try {
       const pool = await poolPromise;
-      const request = pool.request();
 
-      // Input parameters
-      request.input('Action', sql.NVarChar(10), action);
-      if (purchaseRFQParcelData.PurchaseRFQParcelID) request.input('PurchaseRFQParcelID', sql.Int, parseInt(purchaseRFQParcelData.PurchaseRFQParcelID));
-      if (purchaseRFQParcelData.PurchaseRFQID) request.input('PurchaseRFQID', sql.Int, parseInt(purchaseRFQParcelData.PurchaseRFQID));
-      if (purchaseRFQParcelData.ParcelID) request.input('ParcelID', sql.Int, parseInt(purchaseRFQParcelData.ParcelID));
-      if (purchaseRFQParcelData.ItemID) request.input('ItemID', sql.Int, parseInt(purchaseRFQParcelData.ItemID));
-      if (purchaseRFQParcelData.LineItemNumber) request.input('LineItemNumber', sql.Int, parseInt(purchaseRFQParcelData.LineItemNumber));
-      if (purchaseRFQParcelData.ItemQuantity) request.input('ItemQuantity', sql.Decimal(14, 4), parseFloat(purchaseRFQParcelData.ItemQuantity));
-      if (purchaseRFQParcelData.UOMID) request.input('UOMID', sql.Int, parseInt(purchaseRFQParcelData.UOMID));
-      if (purchaseRFQParcelData.Rate) request.input('Rate', sql.Decimal(14, 4), parseFloat(purchaseRFQParcelData.Rate));
-      if (purchaseRFQParcelData.Amount) request.input('Amount', sql.Decimal(14, 4), parseFloat(purchaseRFQParcelData.Amount));
-      if (purchaseRFQParcelData.LineNumber) request.input('LineNumber', sql.Int, parseInt(purchaseRFQParcelData.LineNumber));
-      if (purchaseRFQParcelData.CreatedByID) request.input('CreatedByID', sql.Int, parseInt(purchaseRFQParcelData.CreatedByID));
-      if (purchaseRFQParcelData.DeletedByID) request.input('DeletedByID', sql.Int, parseInt(purchaseRFQParcelData.DeletedByID));
+      const queryParams = [
+        action,
+        purchaseRFQParcelData.PurchaseRFQParcelID ? parseInt(purchaseRFQParcelData.PurchaseRFQParcelID) : null,
+        purchaseRFQParcelData.PurchaseRFQID ? parseInt(purchaseRFQParcelData.PurchaseRFQID) : null,
+        purchaseRFQParcelData.ParcelID ? parseInt(purchaseRFQParcelData.ParcelID) : null,
+        purchaseRFQParcelData.ItemID ? parseInt(purchaseRFQParcelData.ItemID) : null,
+        purchaseRFQParcelData.LineItemNumber ? parseInt(purchaseRFQParcelData.LineItemNumber) : null,
+        purchaseRFQParcelData.ItemQuantity ? parseFloat(purchaseRFQParcelData.ItemQuantity) : null,
+        purchaseRFQParcelData.UOMID ? parseInt(purchaseRFQParcelData.UOMID) : null,
+        purchaseRFQParcelData.Rate ? parseFloat(purchaseRFQParcelData.Rate) : null,
+        purchaseRFQParcelData.Amount ? parseFloat(purchaseRFQParcelData.Amount) : null,
+        purchaseRFQParcelData.LineNumber ? parseInt(purchaseRFQParcelData.LineNumber) : null,
+        purchaseRFQParcelData.CreatedByID ? parseInt(purchaseRFQParcelData.CreatedByID) : null,
+        purchaseRFQParcelData.DeletedByID ? parseInt(purchaseRFQParcelData.DeletedByID) : null
+      ];
 
-      // Output parameters
-      request.output('Result', sql.Int);
-      request.output('Message', sql.NVarChar(500));
+      const [result] = await pool.query(
+        'CALL SP_ManagePurchaseRFQParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
 
-      const result = await request.execute('SP_ManagePurchaseRFQParcel');
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
 
       return {
-        success: result.output.Result === 0,
-        message: result.output.Message,
-        data: action === 'SELECT' ? (purchaseRFQParcelData.PurchaseRFQParcelID ? result.recordset?.[0] || null : result.recordset || []) : null,
-        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID
+        success: outParams.result === 0,
+        message: outParams.message || (outParams.result === 0 ? `${action} operation successful` : 'Operation failed'),
+        data: action === 'SELECT' ? result[0] || [] : null,
+        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID,
+        newPurchaseRFQParcelId: action === 'INSERT' ? result[0]?.insertId : null
       };
     } catch (error) {
       console.error(`Database error in ${action} operation:`, error);
@@ -46,50 +49,63 @@ class PurchaseRFQParcelModel {
 
     if (action === 'INSERT' || action === 'UPDATE') {
       if (purchaseRFQParcelData.PurchaseRFQID) {
-        const purchaseRFQCheck = await pool.request()
-          .input('PurchaseRFQID', sql.Int, purchaseRFQParcelData.PurchaseRFQID)
-          .query('SELECT 1 FROM [dbo].[tblPurchaseRFQ] WHERE PurchaseRFQID = @PurchaseRFQID AND IsDeleted = 0');
-        if (purchaseRFQCheck.recordset.length === 0) errors.push(`PurchaseRFQID ${purchaseRFQParcelData.PurchaseRFQID} does not exist or is deleted`);
+        const [purchaseRFQCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblpurchaserfq WHERE PurchaseRFQID = ? AND IsDeleted = 0',
+          [parseInt(purchaseRFQParcelData.PurchaseRFQID)]
+        );
+        if (purchaseRFQCheck.length === 0) errors.push(`PurchaseRFQID ${purchaseRFQParcelData.PurchaseRFQID} does not exist`);
+      }
+      if (purchaseRFQParcelData.ParcelID) {
+        const [parcelCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblparcel WHERE ParcelID = ? AND IsDeleted = 0',
+          [parseInt(purchaseRFQParcelData.ParcelID)]
+        );
+        if (parcelCheck.length === 0) errors.push(`ParcelID ${purchaseRFQParcelData.ParcelID} does not exist`);
       }
       if (purchaseRFQParcelData.ItemID) {
-        const itemCheck = await pool.request()
-          .input('ItemID', sql.Int, purchaseRFQParcelData.ItemID)
-          .query('SELECT 1 FROM [dbo].[tblItem] WHERE ItemID = @ItemID');
-        if (itemCheck.recordset.length === 0) errors.push(`ItemID ${purchaseRFQParcelData.ItemID} does not exist`);
+        const [itemCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblitem WHERE ItemID = ? AND IsDeleted = 0',
+          [parseInt(purchaseRFQParcelData.ItemID)]
+        );
+        if (itemCheck.length === 0) errors.push(`ItemID ${purchaseRFQParcelData.ItemID} does not exist`);
       }
       if (purchaseRFQParcelData.UOMID) {
-        const uomCheck = await pool.request()
-          .input('UOMID', sql.Int, purchaseRFQParcelData.UOMID)
-          .query('SELECT 1 FROM [dbo].[tblUOM] WHERE UOMID = @UOMID');
-        if (uomCheck.recordset.length === 0) errors.push(`UOMID ${purchaseRFQParcelData.UOMID} does not exist`);
+        const [uomCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tbluom WHERE UOMID = ? AND IsDeleted = 0',
+          [parseInt(purchaseRFQParcelData.UOMID)]
+        );
+        if (uomCheck.length === 0) errors.push(`UOMID ${purchaseRFQParcelData.UOMID} does not exist`);
       }
       if (purchaseRFQParcelData.CreatedByID) {
-        const createdByCheck = await pool.request()
-          .input('CreatedByID', sql.Int, purchaseRFQParcelData.CreatedByID)
-          .query('SELECT 1 FROM [dbo].[tblPerson] WHERE PersonID = @CreatedByID');
-        if (createdByCheck.recordset.length === 0) errors.push(`CreatedByID ${purchaseRFQParcelData.CreatedByID} does not exist`);
+        const [createdByCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
+          [parseInt(purchaseRFQParcelData.CreatedByID)]
+        );
+        if (createdByCheck.length === 0) errors.push(`CreatedByID ${purchaseRFQParcelData.CreatedByID} does not exist`);
       }
     }
 
     if (action === 'DELETE' && purchaseRFQParcelData.DeletedByID) {
-      const deletedByCheck = await pool.request()
-        .input('DeletedByID', sql.Int, purchaseRFQParcelData.DeletedByID)
-        .query('SELECT 1 FROM [dbo].[tblPerson] WHERE PersonID = @DeletedByID');
-      if (deletedByCheck.recordset.length === 0) errors.push(`DeletedByID ${purchaseRFQParcelData.DeletedByID} does not exist`);
+      const [deletedByCheck] = await pool.query(
+        'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
+        [parseInt(purchaseRFQParcelData.DeletedByID)]
+      );
+      if (deletedByCheck.length === 0) errors.push(`DeletedByID ${purchaseRFQParcelData.DeletedByID} does not exist`);
     }
 
     return errors.length > 0 ? errors.join('; ') : null;
   }
 
   static async createPurchaseRFQParcel(purchaseRFQParcelData) {
-    const requiredFields = ['PurchaseRFQID', 'ItemID', 'ItemQuantity', 'UOMID', 'CreatedByID'];
+    const requiredFields = ['PurchaseRFQID', 'ItemID', 'ItemQuantity', 'CreatedByID'];
     const missingFields = requiredFields.filter(field => !purchaseRFQParcelData[field]);
     if (missingFields.length > 0) {
       return {
         success: false,
         message: `${missingFields.join(', ')} are required`,
         data: null,
-        purchaseRFQParcelId: null
+        purchaseRFQParcelId: null,
+        newPurchaseRFQParcelId: null
       };
     }
 
@@ -99,12 +115,12 @@ class PurchaseRFQParcelModel {
         success: false,
         message: `Validation failed: ${fkErrors}`,
         data: null,
-        purchaseRFQParcelId: null
+        purchaseRFQParcelId: null,
+        newPurchaseRFQParcelId: null
       };
     }
 
-    // Note: INSERT is not implemented in the stored procedure
-    return await this.#executeStoredProcedure('INSERT', purchaseRFQParcelData);
+    return await this.#executeManageStoredProcedure('INSERT', purchaseRFQParcelData);
   }
 
   static async updatePurchaseRFQParcel(purchaseRFQParcelData) {
@@ -113,7 +129,8 @@ class PurchaseRFQParcelModel {
         success: false,
         message: 'PurchaseRFQParcelID is required for UPDATE',
         data: null,
-        purchaseRFQParcelId: null
+        purchaseRFQParcelId: null,
+        newPurchaseRFQParcelId: null
       };
     }
 
@@ -123,11 +140,12 @@ class PurchaseRFQParcelModel {
         success: false,
         message: `Validation failed: ${fkErrors}`,
         data: null,
-        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID
+        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID,
+        newPurchaseRFQParcelId: null
       };
     }
 
-    return await this.#executeStoredProcedure('UPDATE', purchaseRFQParcelData);
+    return await this.#executeManageStoredProcedure('UPDATE', purchaseRFQParcelData);
   }
 
   static async deletePurchaseRFQParcel(purchaseRFQParcelData) {
@@ -136,7 +154,8 @@ class PurchaseRFQParcelModel {
         success: false,
         message: 'PurchaseRFQParcelID is required for DELETE',
         data: null,
-        purchaseRFQParcelId: null
+        purchaseRFQParcelId: null,
+        newPurchaseRFQParcelId: null
       };
     }
 
@@ -146,15 +165,26 @@ class PurchaseRFQParcelModel {
         success: false,
         message: `Validation failed: ${fkErrors}`,
         data: null,
-        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID
+        purchaseRFQParcelId: purchaseRFQParcelData.PurchaseRFQParcelID,
+        newPurchaseRFQParcelId: null
       };
     }
 
-    return await this.#executeStoredProcedure('DELETE', purchaseRFQParcelData);
+    return await this.#executeManageStoredProcedure('DELETE', purchaseRFQParcelData);
   }
 
   static async getPurchaseRFQParcel(purchaseRFQParcelData) {
-    return await this.#executeStoredProcedure('SELECT', purchaseRFQParcelData);
+    if (!purchaseRFQParcelData.PurchaseRFQParcelID) {
+      return {
+        success: false,
+        message: 'PurchaseRFQParcelID is required for SELECT',
+        data: null,
+        purchaseRFQParcelId: null,
+        newPurchaseRFQParcelId: null
+      };
+    }
+
+    return await this.#executeManageStoredProcedure('SELECT', purchaseRFQParcelData);
   }
 }
 
