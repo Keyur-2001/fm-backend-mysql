@@ -1,7 +1,7 @@
 const poolPromise = require('../config/db.config');
 
 class SalesOrderModel {
-  static async #executeRUDStoredProcedure(action, salesOrderData) {
+  static async #executeManageStoredProcedure(action, salesOrderData) {
     try {
       const pool = await poolPromise;
 
@@ -18,30 +18,30 @@ class SalesOrderModel {
         salesOrderData.BillingAddressID ? parseInt(salesOrderData.BillingAddressID) : null,
         salesOrderData.CollectionAddressID ? parseInt(salesOrderData.CollectionAddressID) : null,
         salesOrderData.ShippingPriorityID ? parseInt(salesOrderData.ShippingPriorityID) : null,
-        salesOrderData.PackagingRequiredYN != null ? salesOrderData.PackagingRequiredYN : null,
-        salesOrderData.CollectFromSupplierYN != null ? salesOrderData.CollectFromSupplierYN : null,
+        salesOrderData.PackagingRequiredYN !== undefined ? (salesOrderData.PackagingRequiredYN ? 1 : 0) : null,
+        salesOrderData.CollectFromSupplierYN !== undefined ? (salesOrderData.CollectFromSupplierYN ? 1 : 0) : null,
         salesOrderData.Terms || null,
-        salesOrderData.PostingDate ? new Date(salesOrderData.PostingDate) : null,
-        salesOrderData.DeliveryDate ? new Date(salesOrderData.DeliveryDate) : null,
-        salesOrderData.RequiredByDate ? new Date(salesOrderData.RequiredByDate) : null,
-        salesOrderData.DateReceived ? new Date(salesOrderData.DateReceived) : null,
+        salesOrderData.PostingDate || null,
+        salesOrderData.DeliveryDate || null,
+        salesOrderData.RequiredByDate || null,
+        salesOrderData.DateReceived || null,
         salesOrderData.ServiceTypeID ? parseInt(salesOrderData.ServiceTypeID) : null,
         salesOrderData.ExternalRefNo || null,
         salesOrderData.ExternalSupplierID ? parseInt(salesOrderData.ExternalSupplierID) : null,
         salesOrderData.OrderStatusID ? parseInt(salesOrderData.OrderStatusID) : null,
-        salesOrderData.ApplyTaxWithholdingAmount != null ? salesOrderData.ApplyTaxWithholdingAmount : null,
+        salesOrderData.ApplyTaxWithholdingAmount !== undefined ? (salesOrderData.ApplyTaxWithholdingAmount ? 1 : 0) : null,
         salesOrderData.CurrencyID ? parseInt(salesOrderData.CurrencyID) : null,
         salesOrderData.SalesAmount ? parseFloat(salesOrderData.SalesAmount) : null,
         salesOrderData.TaxesAndOtherCharges ? parseFloat(salesOrderData.TaxesAndOtherCharges) : null,
         salesOrderData.Total ? parseFloat(salesOrderData.Total) : null,
-        salesOrderData.FormCompletedYN != null ? salesOrderData.FormCompletedYN : null,
+        salesOrderData.FormCompletedYN !== undefined ? (salesOrderData.FormCompletedYN ? 1 : 0) : null,
         salesOrderData.FileName || null,
-        salesOrderData.FileContent || null, // Added FileContent parameter
+        salesOrderData.FileContent || null,
         salesOrderData.ChangedByID ? parseInt(salesOrderData.ChangedByID) : null
       ];
 
       const [result] = await pool.query(
-        'CALL SP_SalesOrder_RUD(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrder_RUD(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -52,45 +52,11 @@ class SalesOrderModel {
       return {
         success: outParams.result === 1,
         message: outParams.message || (outParams.result === 1 ? `${action} operation successful` : 'Operation failed'),
-        data: action === 'SELECT' ? result[0]?.[0] || null : null,
-        salesOrderId: salesOrderData.SalesOrderID,
-        newSalesOrderId: null
+        data: action === 'SELECT' ? result[0] || [] : null,
+        salesOrderId: salesOrderData.SalesOrderID
       };
     } catch (error) {
       console.error(`Database error in ${action} operation:`, error);
-      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  static async #executeInsertStoredProcedure(salesOrderData) {
-    try {
-      const pool = await poolPromise;
-
-      const queryParams = [
-        salesOrderData.SalesQuotationID ? parseInt(salesOrderData.SalesQuotationID) : null,
-        salesOrderData.CreatedByID ? parseInt(salesOrderData.CreatedByID) : null,
-        salesOrderData.ShippingPriorityID ? parseInt(salesOrderData.ShippingPriorityID) : null,
-        salesOrderData.PostingDate ? new Date(salesOrderData.PostingDate) : null
-      ];
-
-      const [result] = await pool.query(
-        'CALL sp_InsertSalesOrderAndParcels(?, ?, ?, ?, @p_NewSalesOrderID, @p_Result, @p_Message)',
-        queryParams
-      );
-
-      const [[outParams]] = await pool.query(
-        'SELECT @p_NewSalesOrderID AS newSalesOrderId, @p_Result AS result, @p_Message AS message'
-      );
-
-      return {
-        success: outParams.result === 1,
-        message: outParams.message || (outParams.result === 1 ? 'Sales Order and Parcels inserted successfully' : 'Operation failed'),
-        data: null,
-        salesOrderId: null,
-        newSalesOrderId: outParams.newSalesOrderId
-      };
-    } catch (error) {
-      console.error('Database error in sp_InsertSalesOrderAndParcels:', error);
       throw new Error(`Database error: ${error.message || 'Unknown error'}`);
     }
   }
@@ -99,151 +65,178 @@ class SalesOrderModel {
     const pool = await poolPromise;
     const errors = [];
 
-    if (action === 'INSERT' || action === 'UPDATE') {
+    if (action === 'UPDATE') {
       if (salesOrderData.SalesQuotationID) {
-        const [quotationCheck] = await pool.query(
+        const [salesQuotationCheck] = await pool.query(
           'SELECT 1 FROM dbo_tblsalesquotation WHERE SalesQuotationID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.SalesQuotationID)]
         );
-        if (quotationCheck.length === 0) errors.push(`SalesQuotationID ${salesOrderData.SalesQuotationID} does not exist or is deleted`);
+        if (salesQuotationCheck.length === 0) errors.push(`SalesQuotationID ${salesOrderData.SalesQuotationID} does not exist`);
       }
       if (salesOrderData.SalesRFQID) {
-        const [rfqCheck] = await pool.query(
+        const [salesRFQCheck] = await pool.query(
           'SELECT 1 FROM dbo_tblsalesrfq WHERE SalesRFQID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.SalesRFQID)]
         );
-        if (rfqCheck.length === 0) errors.push(`SalesRFQID ${salesOrderData.SalesRFQID} does not exist or is deleted`);
+        if (salesRFQCheck.length === 0) errors.push(`SalesRFQID ${salesOrderData.SalesRFQID} does not exist`);
       }
       if (salesOrderData.CompanyID) {
         const [companyCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblcompany WHERE CompanyID = ?',
+          'SELECT 1 FROM dbo_tblcompany WHERE CompanyID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.CompanyID)]
         );
         if (companyCheck.length === 0) errors.push(`CompanyID ${salesOrderData.CompanyID} does not exist`);
       }
       if (salesOrderData.CustomerID) {
         const [customerCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblcustomer WHERE CustomerID = ?',
+          'SELECT 1 FROM dbo_tblcustomer WHERE CustomerID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.CustomerID)]
         );
         if (customerCheck.length === 0) errors.push(`CustomerID ${salesOrderData.CustomerID} does not exist`);
       }
       if (salesOrderData.SupplierID) {
         const [supplierCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblsupplier WHERE SupplierID = ?',
+          'SELECT 1 FROM dbo_tblsupplier WHERE SupplierID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.SupplierID)]
         );
         if (supplierCheck.length === 0) errors.push(`SupplierID ${salesOrderData.SupplierID} does not exist`);
       }
       if (salesOrderData.OriginAddressID) {
-        const [originAddressCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ?',
+        const [addressCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.OriginAddressID)]
         );
-        if (originAddressCheck.length === 0) errors.push(`OriginAddressID ${salesOrderData.OriginAddressID} does not exist`);
+        if (addressCheck.length === 0) errors.push(`OriginAddressID ${salesOrderData.OriginAddressID} does not exist`);
       }
       if (salesOrderData.DestinationAddressID) {
-        const [destinationAddressCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ?',
+        const [addressCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.DestinationAddressID)]
         );
-        if (destinationAddressCheck.length === 0) errors.push(`DestinationAddressID ${salesOrderData.DestinationAddressID} does not exist`);
+        if (addressCheck.length === 0) errors.push(`DestinationAddressID ${salesOrderData.DestinationAddressID} does not exist`);
       }
       if (salesOrderData.BillingAddressID) {
-        const [billingAddressCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ?',
+        const [addressCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.BillingAddressID)]
         );
-        if (billingAddressCheck.length === 0) errors.push(`BillingAddressID ${salesOrderData.BillingAddressID} does not exist`);
+        if (addressCheck.length === 0) errors.push(`BillingAddressID ${salesOrderData.BillingAddressID} does not exist`);
       }
       if (salesOrderData.CollectionAddressID) {
-        const [collectionAddressCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ?',
+        const [addressCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tbladdresses WHERE AddressID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.CollectionAddressID)]
         );
-        if (collectionAddressCheck.length === 0) errors.push(`CollectionAddressID ${salesOrderData.CollectionAddressID} does not exist`);
+        if (addressCheck.length === 0) errors.push(`CollectionAddressID ${salesOrderData.CollectionAddressID} does not exist`);
       }
       if (salesOrderData.ShippingPriorityID) {
-        const [shippingPriorityCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblmailingpriority WHERE MailingPriorityID = ?',
+        const [priorityCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblmailingpriority WHERE MailingPriorityID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.ShippingPriorityID)]
         );
-        if (shippingPriorityCheck.length === 0) errors.push(`ShippingPriorityID ${salesOrderData.ShippingPriorityID} does not exist`);
+        if (priorityCheck.length === 0) errors.push(`ShippingPriorityID ${salesOrderData.ShippingPriorityID} does not exist`);
       }
       if (salesOrderData.ServiceTypeID) {
         const [serviceTypeCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblservicetype WHERE ServiceTypeID = ?',
+          'SELECT 1 FROM dbo_tblservicetype WHERE ServiceTypeID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.ServiceTypeID)]
         );
         if (serviceTypeCheck.length === 0) errors.push(`ServiceTypeID ${salesOrderData.ServiceTypeID} does not exist`);
       }
       if (salesOrderData.ExternalSupplierID) {
-        const [extSupplierCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblsupplier WHERE SupplierID = ?',
+        const [externalSupplierCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblsupplier WHERE SupplierID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.ExternalSupplierID)]
         );
-        if (extSupplierCheck.length === 0) errors.push(`ExternalSupplierID ${salesOrderData.ExternalSupplierID} does not exist`);
+        if (externalSupplierCheck.length === 0) errors.push(`ExternalSupplierID ${salesOrderData.ExternalSupplierID} does not exist`);
       }
       if (salesOrderData.OrderStatusID) {
-        const [orderStatusCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblorderstatus WHERE OrderStatusID = ?',
+        const [statusCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblorderstatus WHERE OrderStatusID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.OrderStatusID)]
         );
-        if (orderStatusCheck.length === 0) errors.push(`OrderStatusID ${salesOrderData.OrderStatusID} does not exist`);
+        if (statusCheck.length === 0) errors.push(`OrderStatusID ${salesOrderData.OrderStatusID} does not exist`);
       }
       if (salesOrderData.CurrencyID) {
         const [currencyCheck] = await pool.query(
           'SELECT 1 FROM dbo_tblcurrency WHERE CurrencyID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.CurrencyID)]
         );
-        if (currencyCheck.length === 0) errors.push(`CurrencyID ${salesOrderData.CurrencyID} does not exist or is deleted`);
+        if (currencyCheck.length === 0) errors.push(`CurrencyID ${salesOrderData.CurrencyID} does not exist`);
       }
-      if (salesOrderData.ChangedByID || salesOrderData.CreatedByID) {
-        const personID = parseInt(salesOrderData.ChangedByID || salesOrderData.CreatedByID);
-        const [createdByCheck] = await pool.query(
+      if (salesOrderData.ChangedByID) {
+        const [changedByCheck] = await pool.query(
           'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
-          [personID]
+          [parseInt(salesOrderData.ChangedByID)]
         );
-        if (createdByCheck.length === 0) errors.push(`ChangedByID/CreatedByID ${personID} does not exist`);
+        if (changedByCheck.length === 0) errors.push(`ChangedByID ${salesOrderData.ChangedByID} does not exist`);
       }
     }
 
     if (action === 'DELETE' && salesOrderData.ChangedByID) {
-      const [createdByCheck] = await pool.query(
+      const [changedByCheck] = await pool.query(
         'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
         [parseInt(salesOrderData.ChangedByID)]
       );
-      if (createdByCheck.length === 0) errors.push(`ChangedByID ${salesOrderData.ChangedByID} does not exist`);
+      if (changedByCheck.length === 0) errors.push(`ChangedByID ${salesOrderData.ChangedByID} does not exist`);
+    }
+
+    if (action === 'INSERT') {
+      if (salesOrderData.SalesQuotationID) {
+        const [salesQuotationCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblsalesquotation WHERE SalesQuotationID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
+          [parseInt(salesOrderData.SalesQuotationID)]
+        );
+        if (salesQuotationCheck.length === 0) errors.push(`SalesQuotationID ${salesOrderData.SalesQuotationID} does not exist`);
+      }
+      if (salesOrderData.ShippingPriorityID) {
+        const [priorityCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblmailingpriority WHERE MailingPriorityID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
+          [parseInt(salesOrderData.ShippingPriorityID)]
+        );
+        if (priorityCheck.length === 0) errors.push(`ShippingPriorityID ${salesOrderData.ShippingPriorityID} does not exist`);
+      }
+      if (salesOrderData.CreatedByID) {
+        const [createdByCheck] = await pool.query(
+          'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
+          [parseInt(salesOrderData.CreatedByID)]
+        );
+        if (createdByCheck.length === 0) errors.push(`CreatedByID ${salesOrderData.CreatedByID} does not exist`);
+      }
     }
 
     return errors.length > 0 ? errors.join('; ') : null;
   }
 
-  static async createSalesOrder(salesOrderData) {
-    const requiredFields = ['SalesQuotationID', 'CreatedByID'];
-    const missingFields = requiredFields.filter(field => !salesOrderData[field]);
-    if (missingFields.length > 0) {
+  static async getSalesOrderById(salesOrderId) {
+    try {
+      if (!salesOrderId) {
+        return {
+          success: false,
+          message: 'SalesOrderID is required for SELECT',
+          data: null,
+          salesOrderId: null
+        };
+      }
+
+      const salesOrderData = { SalesOrderID: salesOrderId };
+      const result = await this.#executeManageStoredProcedure('SELECT', salesOrderData);
+
+      return {
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        salesOrderId: salesOrderId
+      };
+    } catch (error) {
+      console.error('Error in getSalesOrderById:', error);
       return {
         success: false,
-        message: `${missingFields.join(', ')} are required`,
+        message: `Server error: ${error.message}`,
         data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
+        salesOrderId: salesOrderId
       };
     }
-
-    const fkErrors = await this.#validateForeignKeys(salesOrderData, 'INSERT');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
-      };
-    }
-
-    return await this.#executeInsertStoredProcedure(salesOrderData);
   }
 
   static async updateSalesOrder(salesOrderData) {
@@ -252,18 +245,7 @@ class SalesOrderModel {
         success: false,
         message: 'SalesOrderID is required for UPDATE',
         data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
-      };
-    }
-
-    if (!salesOrderData.ChangedByID) {
-      return {
-        success: false,
-        message: 'ChangedByID is required for UPDATE',
-        data: null,
-        salesOrderId: salesOrderData.SalesOrderID,
-        newSalesOrderId: null
+        salesOrderId: null
       };
     }
 
@@ -273,12 +255,11 @@ class SalesOrderModel {
         success: false,
         message: `Validation failed: ${fkErrors}`,
         data: null,
-        salesOrderId: salesOrderData.SalesOrderID,
-        newSalesOrderId: null
+        salesOrderId: salesOrderData.SalesOrderID
       };
     }
 
-    return await this.#executeRUDStoredProcedure('UPDATE', salesOrderData);
+    return await this.#executeManageStoredProcedure('UPDATE', salesOrderData);
   }
 
   static async deleteSalesOrder(salesOrderData) {
@@ -287,18 +268,7 @@ class SalesOrderModel {
         success: false,
         message: 'SalesOrderID is required for DELETE',
         data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
-      };
-    }
-
-    if (!salesOrderData.ChangedByID) {
-      return {
-        success: false,
-        message: 'ChangedByID is required for DELETE',
-        data: null,
-        salesOrderId: salesOrderData.SalesOrderID,
-        newSalesOrderId: null
+        salesOrderId: null
       };
     }
 
@@ -308,59 +278,122 @@ class SalesOrderModel {
         success: false,
         message: `Validation failed: ${fkErrors}`,
         data: null,
-        salesOrderId: salesOrderData.SalesOrderID,
-        newSalesOrderId: null
+        salesOrderId: salesOrderData.SalesOrderID
       };
     }
 
-    return await this.#executeRUDStoredProcedure('DELETE', salesOrderData);
+    return await this.#executeManageStoredProcedure('DELETE', salesOrderData);
   }
 
-  static async getSalesOrder(salesOrderData) {
-    if (!salesOrderData.SalesOrderID) {
+  static async createSalesOrder(salesOrderData) {
+    try {
+      const pool = await poolPromise;
+
+      const requiredFields = ['SalesQuotationID', 'CreatedByID'];
+      const missingFields = requiredFields.filter(field => !salesOrderData[field]);
+      if (missingFields.length > 0) {
+        return {
+          success: false,
+          message: `${missingFields.join(', ')} are required`,
+          data: null,
+          salesOrderId: null,
+          newSalesOrderId: null
+        };
+      }
+
+      const fkErrors = await this.#validateForeignKeys(salesOrderData, 'INSERT');
+      if (fkErrors) {
+        return {
+          success: false,
+          message: `Validation failed: ${fkErrors}`,
+          data: null,
+          salesOrderId: null,
+          newSalesOrderId: null
+        };
+      }
+
+      const queryParams = [
+        salesOrderData.SalesQuotationID ? parseInt(salesOrderData.SalesQuotationID) : null,
+        salesOrderData.CreatedByID ? parseInt(salesOrderData.CreatedByID) : null,
+        salesOrderData.ShippingPriorityID ? parseInt(salesOrderData.ShippingPriorityID) : null,
+        salesOrderData.PostingDate || null
+      ];
+
+      const [result] = await pool.query(
+        'CALL SP_InsertSalesOrderAndParcels(?, ?, ?, ?, @p_NewSalesOrderID, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_NewSalesOrderID AS newSalesOrderId, @p_Result AS result, @p_Message AS message'
+      );
+
+      return {
+        success: outParams.result === 1,
+        message: outParams.message || (outParams.result === 1 ? 'Sales Order created successfully' : 'Operation failed'),
+        data: null,
+        salesOrderId: null,
+        newSalesOrderId: outParams.newSalesOrderId ? parseInt(outParams.newSalesOrderId) : null
+      };
+    } catch (error) {
+      console.error('Database error in createSalesOrder:', error);
       return {
         success: false,
-        message: 'SalesOrderID is required for SELECT',
+        message: `Database error: ${error.message || 'Unknown error'}`,
         data: null,
         salesOrderId: null,
         newSalesOrderId: null
       };
     }
-
-    return await this.#executeRUDStoredProcedure('SELECT', salesOrderData);
   }
 
-  static async getAllSalesOrders(paginationData) {
+  static async getAllSalesOrders({ pageNumber = 1, pageSize = 10, sortColumn = 'CreatedDateTime', sortDirection = 'DESC', fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
-        parseInt(paginationData.PageNumber) || 1,
-        parseInt(paginationData.PageSize) || 10,
-        paginationData.SortColumn || 'SalesOrderID',
-        paginationData.SortDirection || 'ASC',
-        paginationData.FromDate ? new Date(paginationData.FromDate) : null,
-        paginationData.ToDate ? new Date(paginationData.ToDate) : null,
+        pageNumber,
+        pageSize,
+        sortColumn,
+        sortDirection,
+        fromDate || null,
+        toDate || null
       ];
 
-      const [resultSets] = await pool.query(
+      const [result] = await pool.query(
         'CALL SP_GetAllSalesOrder(?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      const [[{ p_Result, p_Message }]] = await pool.query(
-        'SELECT @p_Result AS p_Result, @p_Message AS p_Message'
+      console.log('SP_GetAllSalesOrder result:', JSON.stringify(result, (key, value) =>
+        typeof value === 'bigint' ? value.toString() : value
+      ));
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      if (!Array.isArray(result) || result.length < 2) {
+        throw new Error('Unexpected result structure from SP_GetAllSalesOrder');
+      }
+
+      const salesOrders = result[0] || [];
+      const totalRecords = result[1][0]?.TotalRecords || 0;
+
       return {
-        success: p_Result === 1,
-        message: p_Message || 'Sales orders fetched.',
-        data: resultSets[0] || [],
-        totalRecords: resultSets[0]?.length || 0, // Adjust this if you return count separately
+        success: outParams.result === 1,
+        message: outParams.message || (outParams.result === 1 ? 'Sales orders retrieved successfully' : 'Operation failed'),
+        data: salesOrders,
+        totalRecords: totalRecords
       };
     } catch (error) {
-      console.error('Database error in getAllSalesOrders:', error);
-      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+      console.error('Error in getAllSalesOrders:', error);
+      return {
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: [],
+        totalRecords: 0
+      };
     }
   }
 }

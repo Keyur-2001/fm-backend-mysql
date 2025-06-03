@@ -3,19 +3,19 @@ const router = express.Router();
 const SalesOrderController = require('../controllers/salesOrderController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Get all SalesOrders
+// Get a single sales order by ID
+router.get('/:id',  SalesOrderController.getSalesOrderById);
+
+// Get all sales orders (paginated)
 router.get('/', SalesOrderController.getAllSalesOrders);
 
-// Get a single SalesOrder by ID
-router.get('/:id', SalesOrderController.getSalesOrder);
-
-// Create a new SalesOrder
+// Create a new sales order
 router.post('/', authMiddleware, SalesOrderController.createSalesOrder);
 
-// Update a SalesOrder
+// Update a sales order
 router.put('/:id', authMiddleware, SalesOrderController.updateSalesOrder);
 
-// Delete a SalesOrder (soft delete)
+// Delete a sales order
 router.delete('/:id', authMiddleware, SalesOrderController.deleteSalesOrder);
 
 module.exports = router;
