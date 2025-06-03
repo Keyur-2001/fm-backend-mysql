@@ -2,22 +2,22 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const poolPromise = require('./config/db.config');
-// const salesRFQRoutes = require('./routes/salesRFQRoutes');
+const salesRFQRoutes = require('./routes/salesRFQRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const companyRoutes = require('./routes/companyRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const serviceTypeRoutes = require('./routes/serviceTypeRoutes');
 const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
-// const addressRoutes = require('./routes/addressRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
 // const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
-const addressRoutes = require('./routes/addressRoutes');
+// const addressRoutes = require('./routes/addressRoutes');
 // const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
-// const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
+const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
-// const personTypeRoutes = require('./routes/personTypeRoutes');
-// const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
+const personTypeRoutes = require('./routes/personTypeRoutes');
+const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
 const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
 const authRoutes = require('./routes/authRoutes');
@@ -27,22 +27,22 @@ const addressTypeRoutes = require('./routes/addressTypeRoutes');
 const warehouseRoutes = require('./routes/warehouseRoutes');
 const vehicleRoutes = require('./routes/vehicleRoutes');
 const bankAccountRoutes = require('./routes/bankAccountRoutes');
-// const certificationRoutes = require('./routes/certificationRoutes');
+const certificationRoutes = require('./routes/certificationRoutes');
 const RolesRoutes = require('./routes/roleRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
-// const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
-// const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
-// const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
+const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
+const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
-// const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
+const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
 const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
-// const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
-// const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
-// const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
-// const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
-// const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
-// const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
+const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
+const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
+const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
+const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
+const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
+const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
@@ -85,10 +85,10 @@ async function startServer() {
       ['/api/suppliers', supplierRoutes],
       ['/api/service-types', serviceTypeRoutes],
       ['/api/addresses', addressRoutes],
-      // ['/api/mailing-priorities', mailingPriorityRoutes],
+      ['/api/mailing-priorities', mailingPriorityRoutes],
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
-      // ['/api/person-types', personTypeRoutes],
+      ['/api/person-types', personTypeRoutes],
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
        ['/api/auth', authRoutes],
@@ -98,27 +98,27 @@ async function startServer() {
       ['/api/warehouses', warehouseRoutes],
       ['/api/vehicles', vehicleRoutes],
       ['/api/bank-accounts', bankAccountRoutes],
-      // ['/api/certifications', certificationRoutes],
+      ['/api/certifications', certificationRoutes],
       ['/api/roles', RolesRoutes],
       ['/api/permissions', permissionRoutes],
-      // ['/api/rolepermissions', rolePermissionRoutes],
+      ['/api/rolepermissions', rolePermissionRoutes],
       ['/api/forms', formRoutes],
       ['/api/formRole', formRoleRoutes],
       ['/api/formRoleApprover', formRoleApproverRoutes],
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
-      // ['/api/sales-rfq', salesRFQRoutes],
-      // ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
-      // ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
-      // ['/api/purchase-rfq', purchaseRFQRoutes],
-      // ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
-      // ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
-      // ['/api/supplier-Quotation', supplierQuotationRoutes],
-      // ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
-      // ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
-      // ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
-      // ['/api/sales-Quotation', salesQuotationRoutes],
-      // ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
-      // ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      ['/api/sales-rfq', salesRFQRoutes],
+      ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
+      ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
+      ['/api/purchase-rfq', purchaseRFQRoutes],
+      ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
+      ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
+      ['/api/supplier-Quotation', supplierQuotationRoutes],
+      ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
+      ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      ['/api/sales-Quotation', salesQuotationRoutes],
+      ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
+      ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
       ['/api/collectionRate', collectionRateRoutes],
       ['/api/sales-Order', salesOrderRoutes],
@@ -144,7 +144,7 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7001;
+    const PORT = process.env.PORT || 7000;
     const server = app.listen(PORT, () => {
       console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
