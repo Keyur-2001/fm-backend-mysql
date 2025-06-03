@@ -34,9 +34,9 @@ const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
-const formRoleApprovalRoutes = require('./routes/formRoleApprovalRoutes');
+const formRoleApprovalRoutes = require('./routes/formRoleApproverRoutes');
 const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
-const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
+// const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes').default;
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
 const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
 // const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
@@ -115,7 +115,7 @@ async function startServer() {
       ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
       ['/api/supplier-Quotation', supplierQuotationRoutes],
       ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
-      ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      // ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
       // ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
       ['/api/sales-Quotation', salesQuotationRoutes],
       ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],

@@ -6,21 +6,24 @@ class SubscriptionPlanModel {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
       const queryParams = [
-        'SELECT ALL',
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
         fromDate ? new Date(fromDate) : null,
         toDate ? new Date(toDate) : null
       ];
 
+      // Log query parameters
       console.log('getAllSubscriptionPlans params:', queryParams);
 
+      // Call SP_GetAllSubscriptionPlans
       const [results] = await pool.query(
-        'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?)',
+        'CALL SP_GetAllSubscriptionPlans(?, ?, ?, ?)',
         queryParams
       );
 
+      // Log results
       console.log('getAllSubscriptionPlans results:', JSON.stringify(results, null, 2));
 
       return {
@@ -37,10 +40,6 @@ class SubscriptionPlanModel {
   static async createSubscriptionPlan(data) {
     try {
       const pool = await poolPromise;
-
-      if (!data.SubscriptionPlanName || data.Fees == null || !data.BillingFrequencyID || !data.CreatedByID) {
-        throw new Error('SubscriptionPlanName, Fees, BillingFrequencyID, and CreatedByID are required');
-      }
 
       const queryParams = [
         'INSERT',
@@ -72,8 +71,8 @@ class SubscriptionPlanModel {
         throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
-      if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
+      if (output[0].p_Result !== 0) {
+        throw new Error(output[0].p_Message || 'Failed to create Subscription Plan');
       }
 
       return {
@@ -91,14 +90,23 @@ class SubscriptionPlanModel {
     try {
       const pool = await poolPromise;
 
-      const queryParams = ['SELECT', parseInt(id), null, null, null, null, null];
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_SubscriptionPlanName
+        null, // p_Description
+        null, // p_Fees
+        null, // p_BillingFrequencyID
+        null, // p_CreatedByID
+        null  // p_DeletedByID
+      ];
 
       // Log query parameters
       console.log('getSubscriptionPlanById params:', queryParams);
 
       // Call SP_ManageSubscriptionPlan with session variables for OUT parameters
       const [results] = await pool.query(
-        'CALL sp_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManageSubscriptionPlan(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -119,7 +127,7 @@ class SubscriptionPlanModel {
         throw new Error(output[0].p_Message || 'Subscription Plan not found');
       }
 
-      return dataResult || null;
+      return results[0][0] || null;
     } catch (err) {
       console.error('getSubscriptionPlanById error:', err);
       throw new Error(`Database error: ${err.message}`);
@@ -151,7 +159,8 @@ class SubscriptionPlanModel {
         queryParams
       );
 
-      console.log('updateSubscriptionPlan results:', JSON.stringify(results, null, 2));
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
       // Log output
       console.log('updateSubscriptionPlan output:', JSON.stringify(output, null, 2));
@@ -160,16 +169,12 @@ class SubscriptionPlanModel {
         throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
-      if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
-      }
-
-      if (statusResult.StatusCode !== 1) {
-        throw new Error(statusResult.Message || 'Failed to update Subscription Plan');
+      if (output[0].p_Result !== 0) {
+        throw new Error(output[0].p_Message || 'Failed to update Subscription Plan');
       }
 
       return {
-        message: statusResult.Message
+        message: output[0].p_Message
       };
     } catch (err) {
       console.error('updateSubscriptionPlan error:', err);
@@ -202,7 +207,8 @@ class SubscriptionPlanModel {
         queryParams
       );
 
-      console.log('deleteSubscriptionPlan results:', JSON.stringify(results, null, 2));
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
 
       // Log output
       console.log('deleteSubscriptionPlan output:', JSON.stringify(output, null, 2));
@@ -211,20 +217,16 @@ class SubscriptionPlanModel {
         throw new Error('Output parameters missing from SP_ManageSubscriptionPlan');
       }
 
-      if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageSubscriptionPlan result: ${JSON.stringify(results)}`);
-      }
-
-      if (statusResult.StatusCode !== 1) {
-        throw new Error(statusResult.Message || 'Failed to delete Subscription Plan');
+      if (output[0].p_Result !== 0) {
+        throw new Error(output[0].p_Message || 'Failed to delete Subscription Plan');
       }
 
       return {
-        message: statusResult.Message
+        message: output[0].p_Message
       };
     } catch (err) {
       console.error('deleteSubscriptionPlan error:', err);
-      throw new Error(`Database error: ${err.message}`);
+      throw new Error( `Database error: ${err.message}  `);
     }
   }
 }
