@@ -1,11 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const SupplierQuotationApprovalController = require('../controllers/supplierQuotationApprovalController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/', SupplierQuotationApprovalController.createSupplierQuotationApproval);
-router.put('/:id', SupplierQuotationApprovalController.updateSupplierQuotationApproval);
-router.delete('/:id', SupplierQuotationApprovalController.deleteSupplierQuotationApproval);
-router.get('/:id', SupplierQuotationApprovalController.getSupplierQuotationApproval);
-router.get('/', SupplierQuotationApprovalController.getAllSupplierQuotationApprovals);
+router.get('/', authMiddleware, SupplierQuotationApprovalController.getSupplierQuotationApprovals);
+
+router.get('/:supplierQuotationID/:approverID', SupplierQuotationApprovalController.getSupplierQuotationApprovalById);
+
+router.post('/', authMiddleware, SupplierQuotationApprovalController.createSupplierQuotationApproval);
+
+router.put('/', authMiddleware, SupplierQuotationApprovalController.updateSupplierQuotationApproval);
+
+router.delete('/', authMiddleware, SupplierQuotationApprovalController.deleteSupplierQuotationApproval);
 
 module.exports = router;
