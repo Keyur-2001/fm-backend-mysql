@@ -49,6 +49,8 @@ const salesOrderParcelRoutes = require('./routes/salesOrderParcelRoutes');
 const salesOrderApprovalRoutes = require('./routes/salesOrderApprovalRoutes');
 const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
+const poParcelRoutes = require('./routes/poParcelRoutes');
+const poApprovalRoutes = require('./routes/poApprovalRoutes');
 const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
 const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
 
@@ -127,6 +129,8 @@ async function startServer() {
       ['/api/sales-Order-Parcel', salesOrderParcelRoutes],
       ['/api/sales-Order-Approval', salesOrderApprovalRoutes],
       ['/api/po', poRoutes],
+      ['/api/po-Parcel', poParcelRoutes],
+      ['/api/po-Approval', poApprovalRoutes],
       ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes]
       // ['/api/min-rate', minRateRoutes]
