@@ -1,42 +1,22 @@
-const POModel = require('../models/poModel');
+const PurchaseOrderModel = require('../models/poModel');
 
-class POController {
-  static async createPO(req, res) {
+class PurchaseOrderController {
+  static async getPurchaseOrderById(req, res) {
     try {
-      const { salesOrderId } = req.body;
-      const createdById = req.user ? req.user.personId : null;
-
-      if (!salesOrderId || isNaN(salesOrderId)) {
+      const poId = parseInt(req.params.id);
+      if (isNaN(poId)) {
         return res.status(400).json({
           success: false,
-          message: 'Valid SalesOrderID is required',
+          message: 'Invalid or missing POID',
           data: null,
           poId: null
         });
       }
 
-      if (!createdById) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-          data: null,
-          poId: null
-        });
-      }
-
-      const result = await POModel.createPO({
-        salesOrderId: parseInt(salesOrderId),
-        createdById
-      });
-
-      return res.status(result.success ? 201 : 400).json({
-        success: result.success,
-        message: result.message,
-        data: null,
-        poId: result.poId
-      });
+      const result = await PurchaseOrderModel.getPurchaseOrderById(poId);
+      return res.status(result.success ? 200 : 404).json(result);
     } catch (err) {
-      console.error('createPO error:', err);
+      console.error('Error in getPurchaseOrderById:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -46,26 +26,49 @@ class POController {
     }
   }
 
-  static async getAllPOs(req, res) {
+  static async getAllPurchaseOrders(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
-      const pos = await POModel.getAllPOs({
+      const result = await PurchaseOrderModel.getAllPurchaseOrders({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
-        fromDate,
-        toDate
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
 
-      return res.status(200).json({
-        success: true,
-        message: 'POs retrieved successfully',
-        data: pos.data,
-        totalRecords: pos.totalRecords,
-        poId: null
-      });
+      return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('getAllPOs error:', err);
+      console.error('Error in getAllPurchaseOrders:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: [],
+        totalRecords: 0
+      });
+    }
+  }
+
+  static async createPurchaseOrder(req, res) {
+    try {
+      if (!req.user || !req.user.personId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          poId: null
+        });
+      }
+
+      const purchaseOrderData = {
+        SalesOrderID: req.body.salesOrderID ? parseInt(req.body.salesOrderID) : null,
+        CreatedByID: req.user.personId
+      };
+
+      const result = await PurchaseOrderModel.createPurchaseOrder(purchaseOrderData);
+      return res.status(result.success ? 201 : 400).json(result);
+    } catch (err) {
+      console.error('Error in createPurchaseOrder:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
@@ -76,4 +79,4 @@ class POController {
   }
 }
 
-module.exports = POController;
+module.exports = PurchaseOrderController;
