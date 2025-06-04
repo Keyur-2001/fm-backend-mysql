@@ -47,9 +47,15 @@ const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
-const salesOrderRoutes = require('./routes/salesOrderRoutes');
+const salesOrderRoutes = require('./routes/SalesOrderRoutes');
+const salesOrderParcelRoutes = require('./routes/salesOrderParcelRoutes');
+const salesOrderApprovalRoutes = require('./routes/salesOrderApprovalRoutes');
 const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
+const poParcelRoutes = require('./routes/poParcelRoutes');
+const poApprovalRoutes = require('./routes/poApprovalRoutes');
+const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
+const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
 
 const app = express();
 
@@ -104,26 +110,32 @@ async function startServer() {
       // ['/api/rolepermissions', rolePermissionRoutes],
       ['/api/forms', formRoutes],
       ['/api/formRole', formRoleRoutes],
-      ['/api/formRoleApprover', formRoleApproverRoutes],
-      ['/api/subscriptionPlan', subscriptionPlanRoutes],
-      // ['/api/sales-rfq', salesRFQRoutes],
-      // ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
-      // ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
-      // ['/api/purchase-rfq', purchaseRFQRoutes],
-      // ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
-      // ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
-      // ['/api/supplier-Quotation', supplierQuotationRoutes],
-      // ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
-      // ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
-      // ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
-      // ['/api/sales-Quotation', salesQuotationRoutes],
-      // ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
-      // ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      ['/api/formRoleApproval', formRoleApprovalRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
       ['/api/collectionRate', collectionRateRoutes],
-      ['/api/sales-Order', salesOrderRoutes],
+      ['/api/subscriptionPlan', subscriptionPlanRoutes],
+      ['/api/sales-rfq', salesRFQRoutes],
+      ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
+      ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
+      ['/api/purchase-rfq', purchaseRFQRoutes],
+      ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
+      ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
+      ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      ['/api/supplier-Quotation', supplierQuotationRoutes],
+      ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
+      ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      ['/api/sales-Quotation', salesQuotationRoutes],
+      ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
       ['/api/send-sales-quotation', sendSalesQuotationRoutes],
-      ['/api/po', poRoutes]
+      ['/api/sales-Order', salesOrderRoutes],
+      ['/api/sales-Order-Parcel', salesOrderParcelRoutes],
+      ['/api/sales-Order-Approval', salesOrderApprovalRoutes],
+      ['/api/po', poRoutes],
+      ['/api/po-Parcel', poParcelRoutes],
+      ['/api/po-Approval', poApprovalRoutes],
+      ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
+      ['/api/lowestItemPrice', lowestItemPriceRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 

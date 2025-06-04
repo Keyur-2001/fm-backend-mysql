@@ -1,7 +1,6 @@
 const SupplierQuotationApprovalModel = require('../models/supplierQuotationApprovalModel');
 
 class SupplierQuotationApprovalController {
-  // Get Supplier Quotation approvals (all or filtered by SupplierQuotationID)
   static async getSupplierQuotationApprovals(req, res) {
     try {
       const { supplierQuotationID, pageNumber, pageSize } = req.query;
@@ -35,7 +34,6 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Get a specific Supplier Quotation approval by SupplierQuotationID and ApproverID
   static async getSupplierQuotationApprovalById(req, res) {
     try {
       const { supplierQuotationID, approverID } = req.params;
@@ -44,15 +42,6 @@ class SupplierQuotationApprovalController {
         return res.status(400).json({
           success: false,
           message: 'Invalid or missing SupplierQuotationID or ApproverID',
-          data: null,
-          supplierQuotationId: null,
-        });
-      }
-
-      if (!req.user) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
           data: null,
           supplierQuotationId: null,
         });
@@ -75,37 +64,36 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Create a Supplier Quotation approval
   static async createSupplierQuotationApproval(req, res) {
     try {
       const { supplierQuotationID, approvedYN, formName, roleName } = req.body;
-      const approverID = req.user?.personId;
+      const createdByID = req.user?.personId;
 
       if (!supplierQuotationID || !formName || !roleName) {
         return res.status(400).json({
           success: false,
-          message: 'supplierQuotationID, formName, and roleName are required',
+          message: 'SupplierQuotationID, FormName, and RoleName are required',
           data: null,
           supplierQuotationId: null,
         });
       }
 
-      if (!req.user || !approverID) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-          data: null,
-          supplierQuotationId: null,
-        });
-      }
+      // if (!req.user || !createdByID) {
+      //   return res.status(401).json({
+      //     success: false,
+      //     message: 'Authentication required',
+      //     data: null,
+      //     supplierQuotationId: null,
+      //   });
+      // }
 
       const approvalData = {
         SupplierQuotationID: parseInt(supplierQuotationID),
-        ApproverID: parseInt(approverID),
+        ApproverID: parseInt(createdByID),
         ApprovedYN: approvedYN != null ? Boolean(approvedYN) : null,
         FormName: formName,
         RoleName: roleName,
-        CreatedByID: parseInt(approverID)
+        CreatedByID: parseInt(createdByID)
       };
 
       const result = await SupplierQuotationApprovalModel.createSupplierQuotationApproval(approvalData);
@@ -121,22 +109,21 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Update a Supplier Quotation approval
   static async updateSupplierQuotationApproval(req, res) {
     try {
-      const { supplierQuotationID, approvedYN, formName, roleName } = req.body;
-      const approverID = req.user?.personId;
+      const { supplierQuotationID, approverID, approvedYN, formName, roleName } = req.body;
+      const userID = req.user?.personId;
 
-      if (!supplierQuotationID || !formName || !roleName) {
+      if (!supplierQuotationID || !approverID || !formName || !roleName) {
         return res.status(400).json({
           success: false,
-          message: 'supplierQuotationID, formName, and roleName are required',
+          message: 'SupplierQuotationID, ApproverID, FormName, and RoleName are required',
           data: null,
           supplierQuotationId: null,
         });
       }
 
-      if (!req.user || !approverID) {
+      if (!req.user || !userID) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -150,7 +137,8 @@ class SupplierQuotationApprovalController {
         ApproverID: parseInt(approverID),
         ApprovedYN: approvedYN != null ? Boolean(approvedYN) : null,
         FormName: formName,
-        RoleName: roleName
+        RoleName: roleName,
+        UserID: parseInt(userID)
       };
 
       const result = await SupplierQuotationApprovalModel.updateSupplierQuotationApproval(approvalData);
@@ -166,22 +154,21 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Delete a Supplier Quotation approval
   static async deleteSupplierQuotationApproval(req, res) {
     try {
-      const { supplierQuotationID } = req.body;
-      const approverID = req.user?.personId;
+      const { supplierQuotationID, approverID } = req.body;
+      const deletedByID = req.user?.personId;
 
-      if (!supplierQuotationID) {
+      if (!supplierQuotationID || !approverID) {
         return res.status(400).json({
           success: false,
-          message: 'supplierQuotationID is required',
+          message: 'SupplierQuotationID and ApproverID are required',
           data: null,
           supplierQuotationId: null,
         });
       }
 
-      if (!req.user || !approverID) {
+      if (!req.user || !deletedByID) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
@@ -193,7 +180,7 @@ class SupplierQuotationApprovalController {
       const approvalData = {
         SupplierQuotationID: parseInt(supplierQuotationID),
         ApproverID: parseInt(approverID),
-        DeletedByID: parseInt(approverID)
+        DeletedByID: parseInt(deletedByID)
       };
 
       const result = await SupplierQuotationApprovalModel.deleteSupplierQuotationApproval(approvalData);
