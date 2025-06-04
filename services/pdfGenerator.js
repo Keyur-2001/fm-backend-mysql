@@ -1,227 +1,298 @@
-const PDFDocument = require('pdfkit');
-const fs = require('fs');
-const fsPromises = require('fs').promises;
+const puppeteer = require('puppeteer');
+const fs = require('fs').promises;
 const path = require('path');
+const sanitizeHtml = require('sanitize-html');
+
+// Helper function to generate HTML content
+function generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
+  const mergedParcels = parcels.map(p => {
+    const matchingQuotation = quotationParcels.find(qp => qp.ItemID === p.ItemID);
+    return {
+      ...p,
+      Rate: matchingQuotation ? matchingQuotation.Rate : '',
+      Amount: matchingQuotation ? matchingQuotation.Amount : '',
+      CountryOfOrigin: matchingQuotation ? matchingQuotation.CountryOfOriginID : '',
+    };
+  });
+
+  // Sanitize inputs to prevent XSS
+  const sanitizedData = {
+    series: sanitizeHtml(rfqDetails.Series || 'N/A'),
+    requiredByDate: sanitizeHtml(rfqDetails.RequiredByDate || 'N/A'),
+    supplierQuoteSeries: sanitizeHtml(quotationDetails.Series || 'N/A'),
+    companyName: sanitizeHtml(rfqDetails.CompanyName || 'N/A'),
+    supplierName: sanitizeHtml(supplierDetails.SupplierName || 'N/A'),
+    supplierAddress: sanitizeHtml(`${supplierDetails.AddressTitle || ''}\n${supplierDetails.City || ''}\nBotswana`),
+    companyAddress: sanitizeHtml(`${rfqDetails.CompanyName || ''}\n${rfqDetails.City || ''}\nBotswana`),
+    terms: sanitizeHtml(rfqDetails.Terms || 'N/A'),
+  };
+
+  // HTML template with enhanced CSS
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8">
+      <title>Purchase RFQ</title>
+      <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+      <style>
+        * {
+          box-sizing: border-box;
+        }
+        body {
+          font-family: 'Roboto', sans-serif;
+          margin: 40px;
+          color: #2d3748;
+          background-color: #f7fafc;
+        }
+        .container {
+          max-width: 800px;
+          margin: 0 auto;
+          background: #fff;
+          padding: 30px;
+          border-radius: 10px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        .header {
+          text-align: center;
+          padding: 20px;
+          background: linear-gradient(90deg, #2b6cb0, #3182ce);
+          color: #fff;
+          border-radius: 8px 8px 0 0;
+          margin: -30px -30px 20px;
+        }
+        .header h1 {
+          font-size: 28px;
+          font-weight: 700;
+          margin: 0;
+        }
+        .header .date {
+          font-size: 12px;
+          opacity: 0.9;
+        }
+        .info-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+        .info-section .field {
+          display: flex;
+          align-items: center;
+          margin-bottom: 15px;
+        }
+        .info-section .label {
+          font-weight: 700;
+          width: 130px;
+          color: #2b6cb0;
+        }
+        .info-section .value {
+          flex: 1;
+          padding: 8px;
+          border: 1px solid #e2e8f0;
+          border-radius: 5px;
+          background: #edf2f7;
+        }
+        .address-section {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 20px;
+          margin-bottom: 30px;
+        }
+        .address-section .address-box {
+          min-width: 200px;
+        }
+        .address-section .label {
+          font-weight: 700;
+          color: #2b6cb0;
+          margin-bottom: 5px;
+        }
+        .address-section .address {
+          padding: 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 5px;
+          background: #edf2f7;
+          min-height: 80px;
+          white-space: pre-line;
+        }
+        .terms-section {
+          text-align: center;
+          margin-bottom: 30px;
+        }
+        .terms-section .label {
+          font-weight: 700;
+          color: #2b6cb0;
+          margin-bottom: 5px;
+        }
+        .terms-section .terms {
+          padding: 10px;
+          border: 1px solid #e2e8f0;
+          border-radius: 5px;
+          background: #edf2f7;
+          width: 200px;
+          margin: 0 auto;
+        }
+        .items-section h2 {
+          font-size: 18px;
+          font-weight: 700;
+          color: #2b6cb0;
+          text-decoration: underline;
+          margin-bottom: 15px;
+        }
+        .items-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 20px;
+        }
+        .items-table th, .items-table td {
+          border: 1px solid #e2e8f0;
+          padding: 10px;
+          text-align: left;
+        }
+        .items-table th {
+          background: #2b6cb0;
+          color: #fff;
+          font-weight: 700;
+        }
+        .items-table tr:nth-child(even) {
+          background: #f7fafc;
+        }
+        .items-table tr:hover {
+          background: #e2e8f0;
+        }
+        .footer {
+          text-align: center;
+          font-size: 11px;
+          color: #718096;
+          font-style: italic;
+          margin-top: 20px;
+          padding-top: 10px;
+          border-top: 1px solid #e2e8f0;
+        }
+        .footer span {
+          color: #2b6cb0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>Purchase RFQ</h1>
+          <div class="date">Date: ${new Date().toLocaleDateString()}</div>
+        </div>
+        <div class="info-section">
+          <div>
+            <div class="field">
+              <span class="label">Purchase RFQ Series:</span>
+              <span class="value">${sanitizedData.series}</span>
+            </div>
+            <div class="field">
+              <span class="label">Supplier Quote Series:</span>
+              <span class="value">${sanitizedData.supplierQuoteSeries}</span>
+            </div>
+            <div class="field">
+              <span class="label">To Supplier:</span>
+              <span class="value">${sanitizedData.supplierName}</span>
+            </div>
+          </div>
+          <div>
+            <div class="field">
+              <span class="label">Required By Date:</span>
+              <span class="value">${sanitizedData.requiredByDate}</span>
+            </div>
+            <div class="field">
+              <span class="label">From Company:</span>
+              <span class="value">${sanitizedData.companyName}</span>
+            </div>
+          </div>
+        </div>
+        <div class="address-section">
+          <div class="address-box">
+            <div class="label">Supplier Address:</div>
+            <div class="address">${sanitizedData.supplierAddress}</div>
+          </div>
+          <div class="address-box">
+            <div class="label">Company Address:</div>
+            <div class="address">${sanitizedData.companyAddress}</div>
+          </div>
+        </div>
+        <div class="terms-section">
+          <div class="label">Terms:</div>
+          <div class="terms">${sanitizedData.terms}</div>
+        </div>
+        <div class="items-section">
+          <h2>Items</h2>
+          <table class="items-table">
+            <thead>
+              <tr>
+                <th style="width: 25%;">Item Name</th>
+                <th style="width: 15%;">Quantity</th>
+                <th style="width: 15%;">UOM</th>
+                <th style="width: 20%;">Country of Origin</th>
+                <th style="width: 15%;">Rate</th>
+                <th style="width: 15%;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${mergedParcels
+                .map(
+                  parcel => `
+                    <tr>
+                      <td>${sanitizeHtml(parcel.ItemName || 'N/A')}</td>
+                      <td>${sanitizeHtml(parcel.ItemQuantity?.toString() || 'N/A')}</td>
+                      <td>${sanitizeHtml(parcel.UOMName || 'N/A')}</td>
+                      <td>${sanitizeHtml(parcel.CountryOfOrigin || '')}</td>
+                      <td>${sanitizeHtml(parcel.Rate?.toString() || '')}</td>
+                      <td>${sanitizeHtml(parcel.Amount?.toString() || '')}</td>
+                    </tr>
+                  `
+                )
+                .join('')}
+            </tbody>
+          </table>
+        </div>
+        <div class="footer">
+          Please review and submit your quotation at your earliest convenience.<br>
+          <span>Contact: Fleet Monkey Team | Email: support@fleetmonkey.com</span>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return htmlContent;
+}
 
 async function generateRFQPDF(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels, outputPath) {
   try {
     // Ensure the output directory exists
-    const tempDir = path.dirname(outputPath);
-    await fsPromises.mkdir(tempDir, { recursive: true });
+    await fs.mkdir(path.dirname(outputPath), { recursive: true });
 
-    const doc = new PDFDocument({ size: 'A4', margin: 40 });
-    const stream = fs.createWriteStream(outputPath);
+    // Generate HTML content
+    const htmlContent = generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels);
 
-    return new Promise((resolve, reject) => {
-      doc.pipe(stream);
-
-      // ----------------------------------------------------------------
-      // Header Section
-      // ----------------------------------------------------------------
-      doc
-        .font('Helvetica-Bold')
-        .fontSize(24)
-        .text('Purchase RFQ', { align: 'center' });
-      doc.moveDown(0.5);
-      doc
-        .font('Helvetica')
-        .fontSize(10)
-        .text(`Date: ${new Date().toLocaleDateString()}`, { align: 'right' });
-      doc.moveDown();
-
-      // ----------------------------------------------------------------
-      // RFQ Information Section (Two Columns)
-      // ----------------------------------------------------------------
-      const leftColumnX = 40;
-      const rightColumnX = 300;
-      const rowHeight = 20;
-      let currentY = doc.y;
-
-      doc.fontSize(12).font('Helvetica-Bold');
-
-      // First Row: Purchase RFQ Series & Required By Date
-      // Left Column: Purchase RFQ Series
-      doc.text('Purchase RFQ Series:', leftColumnX, currentY);
-      doc.rect(leftColumnX + 120, currentY - 5, 120, 20).stroke();
-      doc.font('Helvetica').text(rfqDetails.Series || 'N/A', leftColumnX + 125, currentY);
-
-      // Right Column: Required By Date
-      doc.font('Helvetica-Bold').text('Required By Date:', rightColumnX, currentY);
-      doc.rect(rightColumnX + 120, currentY - 5, 120, 20).stroke();
-      doc.font('Helvetica').text(rfqDetails.RequiredByDate || 'N/A', rightColumnX + 125, currentY);
-
-      currentY += rowHeight;
-      // Second Row: Supplier Quote Series & From Company
-      doc.font('Helvetica-Bold').text('Supplier Quote Series:', leftColumnX, currentY);
-      doc.rect(leftColumnX + 120, currentY - 5, 120, 20).stroke();
-      doc.font('Helvetica').text(quotationDetails.Series || 'N/A', leftColumnX + 125, currentY);
-
-      doc.font('Helvetica-Bold').text('From Company:', rightColumnX, currentY);
-      doc.rect(rightColumnX + 120, currentY - 5, 120, 20).stroke();
-      doc.font('Helvetica').text(rfqDetails.CompanyName || 'N/A', rightColumnX + 125, currentY);
-
-      currentY += rowHeight;
-      // Third Row: To Supplier (left only; add a right field if required)
-      doc.font('Helvetica-Bold').text('To Supplier:', leftColumnX, currentY);
-      doc.rect(leftColumnX + 120, currentY - 5, 120, 20).stroke();
-      doc.font('Helvetica').text(supplierDetails.SupplierName || 'N/A', leftColumnX + 125, currentY);
-
-      doc.moveDown(2);
-
-      // ----------------------------------------------------------------
-      // Address and Terms Section
-      // ----------------------------------------------------------------
-      currentY = doc.y;
-      const addressBoxWidth = 150;
-      const addressBoxHeight = 60;
-
-      // Supplier Address (Left)
-      doc.font('Helvetica-Bold').text('Supplier Address:', leftColumnX, currentY);
-      const supplierAddress = `${supplierDetails.AddressTitle || ''}\n${supplierDetails.City || ''}\nBotswana`;
-      doc.rect(leftColumnX + 120, currentY - 5, addressBoxWidth, addressBoxHeight).stroke();
-      doc.font('Helvetica').text(supplierAddress, leftColumnX + 125, currentY, { height: addressBoxHeight });
-
-      // Company Address (Right)
-      doc.font('Helvetica-Bold').text('Company Address:', rightColumnX, currentY);
-      const companyAddress = `${rfqDetails.CompanyName || ''}\n${rfqDetails.City || ''}\nBotswana`;
-      doc.rect(rightColumnX + 120, currentY - 5, addressBoxWidth, addressBoxHeight).stroke();
-      doc.font('Helvetica').text(companyAddress, rightColumnX + 125, currentY, { height: addressBoxHeight });
-
-      // Centered Terms Section below addresses
-      const termsBoxWidth = 150;
-      const termsBoxHeight = 30;
-      const termsX = (doc.page.width - termsBoxWidth) / 2;
-      doc.font('Helvetica-Bold').text('Terms:', termsX, currentY + addressBoxHeight + 10, { align: 'center' });
-      doc.rect(termsX, currentY + addressBoxHeight + 20, termsBoxWidth, termsBoxHeight).stroke();
-      doc.font('Helvetica').text(rfqDetails.Terms || 'N/A', termsX + 5, currentY + addressBoxHeight + 25, {
-        width: termsBoxWidth - 10,
-        align: 'center'
-      });
-
-      doc.moveDown(3);
-
-      // ----------------------------------------------------------------
-      // Items Table Section
-      // ----------------------------------------------------------------
-      doc.font('Helvetica-Bold').fontSize(14).text('Items', { underline: true });
-      doc.moveDown(0.5);
-
-      // Table header settings
-      doc.fontSize(10).font('Helvetica-Bold');
-      const tableTop = doc.y;
-      const tableLeft = 40;
-      const colWidths = {
-        itemName: 120,
-        quantity: 60,
-        uom: 60,
-        country: 100,
-        rate: 60,
-        amount: 60,
-      };
-
-      // Draw Header Row with background fill
-      doc.rect(tableLeft, tableTop, colWidths.itemName, 25).fill('#d3d3d3').stroke();
-      doc.fillColor('black').text('Item Name', tableLeft + 5, tableTop + 8);
-
-      doc.rect(tableLeft + colWidths.itemName, tableTop, colWidths.quantity, 25).fill('#d3d3d3').stroke();
-      doc.text('Quantity', tableLeft + colWidths.itemName + 5, tableTop + 8);
-
-      doc.rect(tableLeft + colWidths.itemName + colWidths.quantity, tableTop, colWidths.uom, 25).fill('#d3d3d3').stroke();
-      doc.text('UOM ID', tableLeft + colWidths.itemName + colWidths.quantity + 5, tableTop + 8);
-
-      doc.rect(tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom, tableTop, colWidths.country, 25).fill('#d3d3d3').stroke();
-      doc.text('Country of Origin', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + 5, tableTop + 8);
-
-      doc.rect(
-        tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country,
-        tableTop,
-        colWidths.rate,
-        25
-      ).fill('#d3d3d3').stroke();
-      doc.text('Rate', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + 5, tableTop + 8);
-
-      doc.rect(
-        tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + colWidths.rate,
-        tableTop,
-        colWidths.amount,
-        25
-      ).fill('#d3d3d3').stroke();
-      doc.text('Amount', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + colWidths.rate + 5, tableTop + 8);
-
-      // ----------------------------------------------------------------
-      // Table Rows: Merging RFQ and Quotation Parcels
-      // ----------------------------------------------------------------
-      let currentTableY = tableTop + 25;
-      doc.font('Helvetica').fontSize(10);
-
-      // Merge parcels from the Purchase RFQ and supplier quotation
-      const mergedParcels = parcels.map(p => {
-        const matchingQuotation = quotationParcels.find(qp => qp.ItemID === p.ItemID);
-        return {
-          ...p,
-          Rate: matchingQuotation ? matchingQuotation.Rate : '',
-          Amount: matchingQuotation ? matchingQuotation.Amount : '',
-          CountryOfOrigin: matchingQuotation ? matchingQuotation.CountryOfOriginID : '',
-        };
-      });
-
-      mergedParcels.forEach(parcel => {
-        // Check for page overflow and add a new page if necessary
-        if (currentTableY + 20 > doc.page.height - doc.page.margins.bottom) {
-          doc.addPage();
-          currentTableY = doc.page.margins.top;
-        }
-
-        // Draw each cell of the row
-        doc.rect(tableLeft, currentTableY, colWidths.itemName, 20).stroke();
-        doc.text(parcel.ItemName || 'N/A', tableLeft + 5, currentTableY + 5, { width: colWidths.itemName - 10 });
-
-        doc.rect(tableLeft + colWidths.itemName, currentTableY, colWidths.quantity, 20).stroke();
-        doc.text(parcel.ItemQuantity || 'N/A', tableLeft + colWidths.itemName + 5, currentTableY + 5);
-
-        doc.rect(tableLeft + colWidths.itemName + colWidths.quantity, currentTableY, colWidths.uom, 20).stroke();
-        doc.text(parcel.UOMName || 'N/A', tableLeft + colWidths.itemName + colWidths.quantity + 5, currentTableY + 5);
-
-        doc.rect(
-          tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom,
-          currentTableY,
-          colWidths.country,
-          20
-        ).stroke();
-        doc.text(parcel.CountryOfOrigin || '', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + 5, currentTableY + 5);
-
-        doc.rect(
-          tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country,
-          currentTableY,
-          colWidths.rate,
-          20
-        ).stroke();
-        doc.text(parcel.Rate || '', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + 5, currentTableY + 5);
-
-        doc.rect(
-          tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + colWidths.rate,
-          currentTableY,
-          colWidths.amount,
-          20
-        ).stroke();
-        doc.text(parcel.Amount || '', tableLeft + colWidths.itemName + colWidths.quantity + colWidths.uom + colWidths.country + colWidths.rate + 5, currentTableY + 5);
-
-        currentTableY += 20;
-      });
-
-      // ----------------------------------------------------------------
-      // Footer Section
-      // ----------------------------------------------------------------
-      doc.moveDown(2);
-      doc
-        .font('Helvetica-Oblique')
-        .fontSize(10)
-        .text('Please review and submit your quotation at your earliest convenience.', { align: 'center' });
-
-      doc.end();
-      stream.on('finish', () => resolve(outputPath));
-      stream.on('error', reject);
+    // Launch Puppeteer
+    const browser = await puppeteer.launch({
+      headless: true,
+      args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+    const page = await browser.newPage();
+
+    // Set HTML content
+    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
+
+    // Generate PDF
+    await page.pdf({
+      path: outputPath,
+      format: 'A4',
+      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
+      printBackground: true,
+    });
+
+    // Close browser
+    await browser.close();
+
+    return outputPath;
   } catch (error) {
     throw new Error(`Failed to generate PDF: ${error.message}`);
   }
