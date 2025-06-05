@@ -50,7 +50,8 @@ const collectionRateRoutes = require('./routes/collectionRateRoutes');
 const salesOrderRoutes = require('./routes/salesOrderRoutes');
 const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
-
+const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
+const pInvoiceParcelRoutes = require('./routes/PInvoiceParcelRoutes');
 const app = express();
 
 // Middleware
@@ -123,8 +124,10 @@ async function startServer() {
       ['/api/collectionRate', collectionRateRoutes],
       ['/api/sales-Order', salesOrderRoutes],
       ['/api/send-sales-quotation', sendSalesQuotationRoutes],
-      ['/api/po', poRoutes]
-      // ['/api/min-rate', minRateRoutes]
+      ['/api/po', poRoutes],
+      // ['/api/min-rate', minRateRoutes],
+       ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
     ];
 
     routes.forEach(([path, route]) => {
