@@ -48,7 +48,7 @@ const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/PInvoiceParcelRoutes');
-// const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
+const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 
 
 const app = express();
@@ -124,7 +124,7 @@ async function startServer() {
       // ['/api/min-rate', minRateRoutes],
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
-      // ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
+      ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
     ];
 
     routes.forEach(([path, route]) => {

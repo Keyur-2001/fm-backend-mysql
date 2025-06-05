@@ -2,30 +2,50 @@ const poolPromise = require('../config/db.config');
 
 class PInvoiceModel {
   // Get paginated Purchase Invoices
-  static async getAllPInvoices({ pageNumber = 1, pageSize = 10 }) {
+  static async getAllPInvoices({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10
+        pageSize > 0 ? pageSize : 10,
+        fromDate ? new Date(fromDate) : null,
+        toDate ? new Date(toDate) : null
       ];
 
-      // Call SP_GetAllPInvoices (assuming this exists)
-      const [result] = await pool.query(
-        'CALL SP_GetAllPInvoices(?, ?, @totalRecords)',
+      // Log query parameters
+      console.log('getAllPInvoices params:', queryParams);
+
+      // Call SP_GetAllPInvoice with session variables for OUT parameters
+      const [results] = await pool.query(
+        'CALL SP_GetAllPInvoice(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameter
-      const [[{ totalRecords }]] = await pool.query('SELECT @totalRecords AS totalRecords');
+      // Log results
+      console.log('getAllPInvoices results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      // Log output
+      console.log('getAllPInvoices output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllPInvoice');
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve Purchase Invoices');
+      }
 
       return {
-        data: result[0],
-        totalRecords: totalRecords || 0
+        data: results[0] || [],
+        totalRecords: null // SP does not return total count
       };
     } catch (err) {
+      console.error('getAllPInvoices error:', JSON.stringify(err, null, 2));
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -430,6 +450,53 @@ class PInvoiceModel {
       if (connection) {
         connection.release();
       }
+    }
+  }
+
+  // Get all approvals for a Purchase Invoice
+  static async getAllPInvoiceApprovals(pInvoiceId) {
+    try {
+      const pool = await poolPromise;
+
+      if (!pInvoiceId || isNaN(parseInt(pInvoiceId))) {
+        throw new Error('Valid PInvoiceID is required');
+      }
+
+      const query = `
+        SELECT 
+          pia.PInvoiceID,
+          pia.ApproverID,
+          p.FirstName AS ApproverName,
+          pia.ApprovedYN,
+          pia.ApproverDateTime,
+          pia.CreatedByID,
+          pia.CreatedDateTime,
+          pia.IsDeleted
+        FROM dbo_tblpinvoiceapproval pia
+        JOIN dbo_tblperson p ON pia.ApproverID = p.PersonID
+        WHERE pia.PInvoiceID = ? AND pia.IsDeleted = 0;
+      `;
+
+      const [result] = await pool.query(query, [parseInt(pInvoiceId)]);
+
+      if (result.length === 0) {
+        return {
+          success: true,
+          message: 'No approval records found for this PInvoice',
+          data: [],
+          pInvoiceId: pInvoiceId.toString()
+        };
+      }
+
+      return {
+        success: true,
+        message: 'Approval records retrieved successfully',
+        data: result,
+        pInvoiceId: pInvoiceId.toString()
+      };
+    } catch (err) {
+      console.error('getAllPInvoiceApprovals error:', JSON.stringify(err, null, 2));
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 }
