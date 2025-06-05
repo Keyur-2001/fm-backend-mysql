@@ -47,6 +47,10 @@ const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
+const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
+const pInvoiceParcelRoutes = require('./routes/PInvoiceParcelRoutes');
+// const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
+
 
 const app = express();
 
@@ -117,8 +121,11 @@ async function startServer() {
       // ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
       // ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
-      ['/api/collectionRate', collectionRateRoutes]
-      // ['/api/min-rate', minRateRoutes]
+      ['/api/collectionRate', collectionRateRoutes],
+      // ['/api/min-rate', minRateRoutes],
+      ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
+      // ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
     ];
 
     routes.forEach(([path, route]) => {
