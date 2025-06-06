@@ -4,12 +4,11 @@ class SalesQuotationParcelController {
   // Get all Sales Quotation Parcels
   static async getAllSalesQuotationParcels(req, res) {
     try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+      const { pageNumber, pageSize, salesQuotationId } = req.query;
       const result = await SalesQuotationParcelModel.getAllSalesQuotationParcels({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
-        fromDate: fromDate || null,
-        toDate: toDate || null
+        salesQuotationId: parseInt(salesQuotationId) || null
       });
       res.status(200).json({
         success: true,
