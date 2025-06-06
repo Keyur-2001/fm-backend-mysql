@@ -109,7 +109,6 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Update a Supplier Quotation approval
   static async updateSupplierQuotationApproval(req, res) {
     try {
       const { supplierQuotationID, approverID, approvedYN, formName, roleName } = req.body;
@@ -155,7 +154,6 @@ class SupplierQuotationApprovalController {
     }
   }
 
-  // Delete a Supplier Quotation approval
   static async deleteSupplierQuotationApproval(req, res) {
     try {
       const { supplierQuotationID, approverID } = req.body;

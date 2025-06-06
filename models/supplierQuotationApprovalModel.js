@@ -125,7 +125,6 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Create a Supplier Quotation approval
   static async createSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;
@@ -188,7 +187,6 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Update a Supplier Quotation approval
   static async updateSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;
@@ -252,7 +250,6 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Delete a Supplier Quotation approval
   static async deleteSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;

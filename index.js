@@ -9,9 +9,13 @@ const supplierRoutes = require('./routes/supplierRoutes');
 const serviceTypeRoutes = require('./routes/serviceTypeRoutes');
 const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
 const addressRoutes = require('./routes/addressRoutes');
+<<<<<<< HEAD
 const MailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
 // const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
 // const addressRoutes = require('./routes/addressRoutes');
+=======
+const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
 const currencyRoutes = require('./routes/currencyRoutes');
 const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
@@ -35,7 +39,11 @@ const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
+<<<<<<< HEAD
 const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
+=======
+const formRoleApprovalRoutes = require('./routes/formRoleApprovalRoutes');
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
 const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
 const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
@@ -46,10 +54,22 @@ const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSupp
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
+<<<<<<< HEAD
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/PInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 
+=======
+const salesOrderRoutes = require('./routes/SalesOrderRoutes');
+const salesOrderParcelRoutes = require('./routes/salesOrderParcelRoutes');
+const salesOrderApprovalRoutes = require('./routes/salesOrderApprovalRoutes');
+const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
+const poRoutes = require('./routes/poRoutes');
+const poParcelRoutes = require('./routes/poParcelRoutes');
+const poApprovalRoutes = require('./routes/poApprovalRoutes');
+// const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
+const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
 
 const app = express();
 
@@ -87,13 +107,17 @@ async function startServer() {
       ['/api/suppliers', supplierRoutes],
       ['/api/service-types', serviceTypeRoutes],
       ['/api/addresses', addressRoutes],
+<<<<<<< HEAD
       ['/api/Mailing-priorities', MailingPriorityRoutes],
+=======
+      ['/api/mailing-priorities', mailingPriorityRoutes],
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
       ['/api/person-types', personTypeRoutes],
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
-       ['/api/auth', authRoutes],
+      ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],
       ['/api/country-of-origin', countryOfOriginRoutes],
       ['/api/address-types', addressTypeRoutes],
@@ -106,7 +130,13 @@ async function startServer() {
       ['/api/rolepermissions', rolePermissionRoutes],
       ['/api/forms', formRoutes],
       ['/api/formRole', formRoleRoutes],
+<<<<<<< HEAD
       ['/api/formRoleApprover', formRoleApproverRoutes],
+=======
+      ['/api/formRoleApproval', formRoleApprovalRoutes],
+      ['/api/taxChargesType', taxChargesTypeRoutes],
+      ['/api/collectionRate', collectionRateRoutes],
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
       ['/api/sales-rfq', salesRFQRoutes],
       ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
@@ -120,6 +150,7 @@ async function startServer() {
       ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
       ['/api/sales-Quotation', salesQuotationRoutes],
       ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
+<<<<<<< HEAD
       ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
       ['/api/collectionRate', collectionRateRoutes],
@@ -127,6 +158,19 @@ async function startServer() {
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
+=======
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      ['/api/send-sales-quotation', sendSalesQuotationRoutes],
+      ['/api/sales-Order', salesOrderRoutes],
+      ['/api/sales-Order-Parcel', salesOrderParcelRoutes],
+      ['/api/sales-Order-Approval', salesOrderApprovalRoutes],
+      ['/api/po', poRoutes],
+      ['/api/po-Parcel', poParcelRoutes],
+      ['/api/po-Approval', poApprovalRoutes],
+      // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
+      ['/api/lowestItemPrice', lowestItemPriceRoutes]
+      // ['/api/min-rate', minRateRoutes]
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
     ];
 
     routes.forEach(([path, route]) => {
@@ -161,7 +205,11 @@ async function startServer() {
       console.log(`Received ${signal}. Shutting down...`);
       try {
         server.close(() => {
+<<<<<<< HEAD
           console.log("HTTP server closedbcrypt");
+=======
+          console.log('HTTP server closed');
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
         });
 
         if (pool) {
@@ -215,5 +263,10 @@ module.exports = {
     } catch (err) {
       throw new Error(`Failed to get database pool: ${err.message}`);
     }
+<<<<<<< HEAD
   },
 };
+=======
+  }
+};
+>>>>>>> 9af43d709a6d25bdd320b4657d47ba9d27ddad82
