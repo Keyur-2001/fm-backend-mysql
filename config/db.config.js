@@ -7,15 +7,15 @@ console.log('mysql.createPool:', mysql.createPool);
 
 const dbConfig = {
   host: '13.235.109.5',
-  user:'mnv',
+  user: 'mnv',
   password: 'Manav@21',
-  database: 'fleet_monkey',
+  database:'fleet_monkey',
   port: 3306,
-  connectionLimit:  10,
+  connectionLimit: 10,
   queueLimit:  0,
   connectTimeout: 30000,
   waitForConnections: true,
-  multipleStatements: true // Enable multiple statements
+  multipleStatements: true  //// Enable multiple statements
 };
 
 console.log('dbConfig:', dbConfig);
