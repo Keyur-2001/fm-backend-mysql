@@ -25,7 +25,7 @@ class SalesOrderParcelModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
