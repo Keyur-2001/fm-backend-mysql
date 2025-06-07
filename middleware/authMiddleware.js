@@ -2,8 +2,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
 require('dotenv').config();
 
-// const SECRET_KEY = process.env.JWT_SECRET || 'your-default-secret-key';
-const SECRET_KEY = 'your-default-secret-key';
+const SECRET_KEY = process.env.JWT_SECRET || 'your-default-secret-key';
 
 module.exports = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
