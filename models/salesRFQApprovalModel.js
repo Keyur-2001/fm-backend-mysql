@@ -12,13 +12,11 @@ class SalesRFQApprovalModel {
         pageSize > 0 ? parseInt(pageSize) : 10
       ];
 
-      // Call SP_GetAllSalesRFQApprovals
       const [result] = await pool.query(
         'CALL SP_GetAllSalesRFQApprovals(?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
@@ -34,7 +32,6 @@ class SalesRFQApprovalModel {
         };
       }
 
-      // If salesRFQID is provided, result is not paginated
       if (salesRFQID) {
         return {
           success: true,
@@ -46,7 +43,6 @@ class SalesRFQApprovalModel {
         };
       }
 
-      // For paginated results, extract totalRecords from the result set
       const totalRecords = result[0].length > 0 ? result[0][0].TotalRecords || 0 : 0;
 
       return {
@@ -96,13 +92,11 @@ class SalesRFQApprovalModel {
         null // UserID
       ];
 
-      // Call SP_ManageSalesRFQApproval
       const [result] = await pool.query(
         'CALL SP_ManageSalesRFQApproval(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
@@ -117,7 +111,7 @@ class SalesRFQApprovalModel {
         };
       }
 
-      const approval = result[0] && result[0][0] ? result[0][0] : null;
+      const approval = result[0] && result[0][0] && result[0][0].ApproverID == approverID ? result[0][0] : null;
 
       return {
         success: true,
@@ -166,13 +160,11 @@ class SalesRFQApprovalModel {
         parseInt(approvalData.ApproverID) // UserID
       ];
 
-      // Call SP_ManageSalesRFQApproval
       await pool.query(
         'CALL SP_ManageSalesRFQApproval(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
@@ -234,13 +226,11 @@ class SalesRFQApprovalModel {
         parseInt(approvalData.ApproverID) // UserID
       ];
 
-      // Call SP_ManageSalesRFQApproval
       await pool.query(
         'CALL SP_ManageSalesRFQApproval(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
@@ -302,13 +292,11 @@ class SalesRFQApprovalModel {
         null // UserID
       ];
 
-      // Call SP_ManageSalesRFQApproval
       await pool.query(
         'CALL SP_ManageSalesRFQApproval(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );

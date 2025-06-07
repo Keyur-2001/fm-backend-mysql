@@ -1,4 +1,4 @@
-const CityModel = require('../models/CityModel');
+const CityModel = require('../models/cityModel');
 
 class CityController {
   // Get all Cities

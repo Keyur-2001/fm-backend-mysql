@@ -23,4 +23,4 @@ router.delete('/:id', authMiddleware, tableAccessMiddleware, permissionMiddlewar
 // Approve a SalesRFQ (requires write permission on SalesRFQ table, as approval involves creating/updating records)
 router.post('/approve', authMiddleware, SalesRFQController.approveSalesRFQ);
 
-module.exports = router;
+module.exports = router; 

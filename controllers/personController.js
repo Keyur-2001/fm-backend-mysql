@@ -3,6 +3,7 @@ const fs = require('fs');
 const path = require('path');
 
 class PersonController {
+  // Get all persons with pagination
   static async getAllPersons(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
@@ -32,6 +33,7 @@ class PersonController {
     }
   }
 
+  // Create a new person
   static async createPerson(req, res) {
     try {
       const {
@@ -55,10 +57,11 @@ class PersonController {
         profileImage
       } = req.body;
 
+      // Basic validation
       if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: null
         });
@@ -102,6 +105,7 @@ class PersonController {
     }
   }
 
+  // Get a single person by ID
   static async getPersonById(req, res) {
     try {
       const { id } = req.params;
@@ -143,6 +147,7 @@ class PersonController {
     }
   }
 
+  // Update a person
   static async updatePerson(req, res) {
     try {
       const { id } = req.params;
@@ -176,10 +181,10 @@ class PersonController {
         });
       }
 
-      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
+      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: id
         });
@@ -223,6 +228,7 @@ class PersonController {
     }
   }
 
+  // Delete a person
   static async deletePerson(req, res) {
     try {
       const { id } = req.params;

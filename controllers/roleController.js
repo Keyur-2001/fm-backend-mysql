@@ -1,47 +1,55 @@
-const FormModel = require('../models/formModel');
+const RoleModel = require('../models/roleModel');
 
-class FormController {
-  static async getAllForms(req, res) {
+class RoleController {
+  // Get all Roles with pagination and filtering
+  static async getAllRoles(req, res) {
     try {
-      const { pageNumber, pageSize } = req.query;
+      const { pageNumber, pageSize, fromDate, toDate, roleName, createdById } = req.query;
 
-      const forms = await FormModel.getAllForms({
+      const roles = await RoleModel.getAllRoles({
         pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize)
+        pageSize: parseInt(pageSize),
+        fromDate,
+        toDate,
+        roleName,
+        createdById: parseInt(createdById)
       });
 
       return res.status(200).json({
         success: true,
-        message: 'Forms retrieved successfully',
-        data: forms.data,
-        totalRecords: forms.totalRecords
+        message: 'Roles retrieved successfully',
+        data: roles.data,
+        totalRecords: roles.totalRecords
       });
     } catch (err) {
-      console.error('getAllForms error:', err);
+      console.error('getAllRoles error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        formId: null
+        roleId: null
       });
     }
   }
 
-  static async createForm(req, res) {
+  // Create a new Role
+  static async createRole(req, res) {
     try {
-      const { formName, createdById } = req.body;
+      const { roleName, description, createdById } = req.body;
 
-      if (!formName || !createdById) {
+      // Basic validation
+      if (!roleName || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FormName and CreatedByID are required',
+          message: 'RoleName and CreatedByID are required',
           data: null,
-          formId: null
+          roleId: null
         });
       }
 
-      const result = await FormModel.createForm({
-        formName,
+      const result = await RoleModel.createRole({
+        roleName,
+        description,
         createdById
       });
 
@@ -49,117 +57,110 @@ class FormController {
         success: true,
         message: result.message,
         data: null,
-        formId: result.formId
+        roleId: result.roleId
       });
     } catch (err) {
-      console.error('createForm error:', err);
+      console.error('createRole error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        formId: null
+        roleId: null
       });
     }
   }
 
-  static async getFormById(req, res) {
+  // Get a single Role by ID
+  static async getRoleById(req, res) {
     try {
       const { id } = req.params;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Valid FormID is required',
+          message: 'Valid RoleID is required',
           data: null,
-          formId: null
+          roleId: null
         });
       }
 
-      const form = await FormModel.getFormById(parseInt(id));
+      const role = await RoleModel.getRoleById(parseInt(id));
 
-      if (!form) {
+      if (!role) {
         return res.status(404).json({
           success: false,
-          message: 'Form not found',
+          message: 'Role not found',
           data: null,
-          formId: id
+          roleId: id
         });
       }
 
       return res.status(200).json({
         success: true,
-        message: 'Form retrieved successfully',
-        data: form,
-        formId: id
+        message: 'Role retrieved successfully',
+        data: role,
+        roleId: id
       });
     } catch (err) {
-      console.error('getFormById error:', err);
+      console.error('getRoleById error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        formId: null
+        roleId: null
       });
     }
   }
 
-  static async updateForm(req, res) {
+  // Update a Role
+  static async updateRole(req, res) {
     try {
       const { id } = req.params;
-      const { formName, isDeleted, createdById, deletedById } = req.body;
+      const { roleName, description, createdById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Valid FormID is required',
+          message: 'Valid RoleID is required',
           data: null,
-          formId: null
+          roleId: null
         });
       }
 
-      if (!formName || !createdById) {
+      if (!createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FormName and CreatedByID are required',
+          message: 'CreatedByID is required',
           data: null,
-          formId: id
+          roleId: id
         });
       }
 
-      if (isDeleted && !deletedById) {
-        return res.status(400).json({
-          success: false,
-          message: 'DeletedByID is required when IsDeleted is true',
-          data: null,
-          formId: id
-        });
-      }
-
-      const result = await FormModel.updateForm(parseInt(id), {
-        formName,
-        isDeleted,
-        createdById,
-        deletedById
+      const result = await RoleModel.updateRole(parseInt(id), {
+        roleName,
+        description,
+        createdById
       });
 
       return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        formId: id
+        roleId: id
       });
     } catch (err) {
-      console.error('updateForm error:', err);
+      console.error('updateRole error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        formId: null
+        roleId: null
       });
     }
   }
 
-  static async deleteForm(req, res) {
+  // Delete a Role
+  static async deleteRole(req, res) {
     try {
       const { id } = req.params;
       const { deletedById } = req.body;
@@ -167,9 +168,9 @@ class FormController {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Valid FormID is required',
+          message: 'Valid RoleID is required',
           data: null,
-          formId: null
+          roleId: null
         });
       }
 
@@ -178,28 +179,28 @@ class FormController {
           success: false,
           message: 'DeletedByID is required',
           data: null,
-          formId: id
+          roleId: id
         });
       }
 
-      const result = await FormModel.deleteForm(parseInt(id), deletedById);
+      const result = await RoleModel.deleteRole(parseInt(id), deletedById);
 
       return res.status(200).json({
         success: true,
         message: result.message,
         data: null,
-        formId: id
+        roleId: id
       });
     } catch (err) {
-      console.error('deleteForm error:', err);
+      console.error('deleteRole error:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        formId: null
+        roleId: null
       });
     }
   }
 }
 
-module.exports = FormController;
+module.exports = RoleController;

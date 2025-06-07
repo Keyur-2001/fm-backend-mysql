@@ -1,36 +1,88 @@
-// controllers/itemController.js
 const ItemModel = require('../models/itemModel');
-// No need for sql or dbConfig since the model handles the connection
 
 class ItemController {
+  // Get all Items with pagination
   static async getAllItems(req, res) {
     try {
-      const items = await ItemModel.getAllItems();
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
-      if (!items || items.length === 0) {
-        return res.status(200).json({
-          success: true,
-          message: 'No items found',
-          data: [],
-          count: 0
-        });
-      }
+      const items = await ItemModel.getAllItems({
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize),
+        fromDate,
+        toDate
+      });
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        data: items,
-        count: items.length
+        message: 'Items retrieved successfully',
+        data: items.data,
+        totalRecords: items.totalRecords
       });
     } catch (err) {
-      console.error('Error in getAllItems:', err);
-      res.status(500).json({
+      console.error('getAllItems error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
       });
     }
   }
 
+  // Create a new Item
+  static async createItem(req, res) {
+    try {
+      const {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      } = req.body;
+
+      // Basic validation
+      if (!itemCode || !itemName || !createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'ItemCode, ItemName, and CreatedByID are required',
+          data: null,
+          itemId: null
+        });
+      }
+
+      const result = await ItemModel.createItem({
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: result.message,
+        data: null,
+        itemId: result.itemId
+      });
+    } catch (err) {
+      console.error('createItem error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
+      });
+    }
+  }
+
+  // Get a single Item by ID
   static async getItemById(req, res) {
     try {
       const { id } = req.params;
@@ -38,167 +90,140 @@ class ItemController {
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid Item ID'
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
         });
       }
 
-      const item = await ItemModel.getItemById(id);
+      const item = await ItemModel.getItemById(parseInt(id));
 
       if (!item) {
         return res.status(404).json({
           success: false,
-          message: `Item with ID ${id} not found or has been deleted`
+          message: 'Item not found',
+          data: null,
+          itemId: id
         });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        data: item
+        message: 'Item retrieved successfully',
+        data: item,
+        itemId: id
       });
     } catch (err) {
-      console.error(`Error in getItemById for ID ${req.params.id}:`, err);
-      res.status(500).json({
+      console.error('getItemById error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
       });
     }
   }
 
-  static async createItem(req, res) {
-    try {
-      const data = req.body;
-
-      if (!data || !data.ItemName) {
-        return res.status(400).json({
-          success: false,
-          message: 'ItemName is required'
-        });
-      }
-
-      const newItem = await ItemModel.createItem(data);
-
-      res.status(201).json({
-        success: true,
-        message: 'Item created successfully',
-        data: newItem
-      });
-    } catch (err) {
-      console.error('Error in createItem:', err);
-      if (err.message.includes('ItemName')) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
-      }
-      res.status(500).json({
-        success: false,
-        error: 'Internal Server Error',
-        message: err.message
-      });
-    }
-  }
-
+  // Update an Item
   static async updateItem(req, res) {
     try {
       const { id } = req.params;
-      const data = req.body;
+      const {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid Item ID'
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
         });
       }
 
-      if (!data || Object.keys(data).length === 0) {
+      if (!itemCode || !itemName || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'Update data is required'
+          message: 'ItemCode, ItemName, and CreatedByID are required',
+          data: null,
+          itemId: id
         });
       }
 
-      if (data.ItemName === '') {
-        return res.status(400).json({
-          success: false,
-          message: 'ItemName cannot be empty'
-        });
-      }
+      const result = await ItemModel.updateItem(parseInt(id), {
+        itemCode,
+        itemName,
+        certificationId,
+        itemImage,
+        itemImageFileName,
+        itemGroupId,
+        defaultUomId,
+        createdById
+      });
 
-      const updatedItem = await ItemModel.updateItem(id, data);
-
-      if (!updatedItem) {
-        return res.status(404).json({
-          success: false,
-          message: `Item with ID ${id} not found or has been deleted`
-        });
-      }
-
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        message: 'Item updated successfully',
-        data: updatedItem
+        message: result.message,
+        data: null,
+        itemId: id
       });
     } catch (err) {
-      console.error(`Error in updateItem for ID ${req.params.id}:`, err);
-      if (err.message.includes('ItemName') || err.message.includes('valid fields')) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
-      }
-      res.status(500).json({
+      console.error('updateItem error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
       });
     }
   }
 
+  // Delete an Item
   static async deleteItem(req, res) {
     try {
       const { id } = req.params;
-      const deletedByID = req.user?.id || req.body.DeletedByID;
+      const { createdById } = req.body;
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid Item ID'
+          message: 'Valid ItemID is required',
+          data: null,
+          itemId: null
         });
       }
 
-      if (!deletedByID || isNaN(deletedByID)) {
+      if (!createdById) {
         return res.status(400).json({
           success: false,
-          message: 'DeletedByID is required and must be a valid number'
+          message: 'CreatedByID is required',
+          data: null,
+          itemId: id
         });
       }
 
-      const deleted = await ItemModel.deleteItem(id, deletedByID);
+      const result = await ItemModel.deleteItem(parseInt(id), createdById);
 
-      if (!deleted) {
-        return res.status(404).json({
-          success: false,
-          message: `Item with ID ${id} not found or has been deleted`
-        });
-      }
-
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        message: 'Item deleted successfully'
+        message: result.message,
+        data: null,
+        itemId: id
       });
     } catch (err) {
-      console.error(`Error in deleteItem for ID ${req.params.id}:`, err);
-      if (err.message.includes('DeletedByID')) {
-        return res.status(400).json({
-          success: false,
-          message: err.message
-        });
-      }
-      res.status(500).json({
+      console.error('deleteItem error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        itemId: null
       });
     }
   }
