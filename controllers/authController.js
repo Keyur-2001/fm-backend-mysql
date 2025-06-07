@@ -34,9 +34,16 @@ class AuthController {
         0
       );
 
+      // Fetch the RoleID for 'Administrator' (already 2, but let's be consistent)
+      const adminRole = await User.getRoleById(2); // RoleID 2 is 'Administrator'
+      if (!adminRole) {
+        return res.status(500).json({ message: 'Administrator role not found in database' });
+      }
+
       const token = jwt.sign(
         { personId, role: 'Administrator' },
-        process.env.JWT_SECRET,
+        // process.env.JWT_SECRET,
+        'your-secure-jwt-secret',
         { expiresIn: '24h' }
       );
 
@@ -89,12 +96,19 @@ class AuthController {
         req.user.personId
       );
 
+      // Fetch the RoleID for 'Administrator' (already 2, but let's be consistent)
+      const adminRole = await User.getRoleById(2); // RoleID 2 is 'Administrator'
+      if (!adminRole) {
+        return res.status(500).json({ message: 'Administrator role not found in database' });
+      }
+
       const token = jwt.sign(
         { personId, role: 'Administrator' },
-        process.env.JWT_SECRET,
+       'your-secure-jwt-secret',
+        // process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
-
+ 
       console.log('Sending welcome email with:', { email: EmailID, loginID: LoginID, password: Password });
       if (!EmailID || !LoginID) {
         console.warn('EmailID or LoginID is undefined, email will fail');
@@ -190,7 +204,8 @@ class AuthController {
 
       const token = jwt.sign(
         { personId: user.PersonID, role: user.RoleName },
-        process.env.JWT_SECRET,
+        // process.env.JWT_SECRET,
+        'your-secure-jwt-secret',
         { expiresIn: '24h' }
       );
 
@@ -200,7 +215,8 @@ class AuthController {
         user: {
           personId: user.PersonID,
           loginID: user.LoginID,
-          role: user.RoleName
+          roleId: user.RoleID,
+           roleName: user.RoleName // Add roleName to the response
         }
       });
     } catch (error) {
@@ -289,7 +305,7 @@ class AuthController {
         isAdmin: user.RoleName === 'Administrator' || user.RoleName === 'Admin',
         user: {
           personId: user.PersonID,
-          role: user.RoleName
+          roleId: user.RoleID
         }
       });
     } catch (error) {

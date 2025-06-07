@@ -2,7 +2,8 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
 require('dotenv').config();
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-default-secret-key';
+// const SECRET_KEY = process.env.JWT_SECRET || 'your-default-secret-key';
+const SECRET_KEY = 'your-default-secret-key';
 
 module.exports = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -34,9 +35,20 @@ module.exports = async (req, res, next) => {
     }
 
     const decoded = jwt.verify(token, SECRET_KEY);
+    
+    // Fetch the role name using the RoleID from the token
+    const role = await User.getRoleById(decoded.role);
+    if (!role) {
+      return res.status(401).json({
+        message: 'Role not found for the user',
+        solution: 'Ensure the user’s role exists in the database'
+      });
+    }
+
     req.user = { 
       personId: decoded.personId, 
-      role: decoded.role 
+      roleId: decoded.role, // This is the RoleID
+      role: role.RoleName // This is the role name (e.g., 'Administrator')
     };
     
     next();
