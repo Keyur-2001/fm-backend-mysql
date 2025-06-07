@@ -19,7 +19,7 @@ const tableAccessMiddleware = async (req, res, next) => {
 
     // Fetch permissions based on RoleID and PersonID (user-specific permissions only)
     const [rolePermissions] = await pool.query(
-      `SELECT p.PermissionName, rp.AllowRead, rp.AllowWrite, rp.AllowUpdate, rp.AllowDelete
+      `SELECT p.TablePermission, rp.AllowRead, rp.AllowWrite, rp.AllowUpdate, rp.AllowDelete
        FROM dbo_tblrolepermission rp
        JOIN dbo_tblpermission p ON rp.PermissionID = p.PermissionID
        WHERE rp.RoleID = ?
@@ -30,7 +30,7 @@ const tableAccessMiddleware = async (req, res, next) => {
 
     // Map the permissions to a list of accessible tables with allowed actions
     req.user.accessibleTables = rolePermissions.map(permission => ({
-      tableName: permission.PermissionName,
+      tableName: permission.TablePermission,
       permissions: {
         read: permission.AllowRead === 1,
         write: permission.AllowWrite === 1,
