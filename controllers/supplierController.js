@@ -4,28 +4,24 @@ class SupplierController {
   // Get all Suppliers with pagination
   static async getAllSuppliers(req, res) {
     try {
-      // Check if req.query exists
       if (!req.query) {
         return res.status(400).json({
           success: false,
-          message: 'Query parameters are missing',
-          data: null,
+          message: 'Query parameters are required',
+          data: [],
           totalRecords: 0
         });
       }
 
-      // Extract and validate query parameters
       const { pageNumber = '1', pageSize = '10', fromDate, toDate } = req.query;
-
       const pageNum = parseInt(pageNumber, 10);
       const pageSz = parseInt(pageSize, 10);
 
-      // Validate pagination parameters
       if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
         return res.status(400).json({
           success: false,
           message: 'Invalid pageNumber or pageSize',
-          data: null,
+          data: [],
           totalRecords: 0
         });
       }
@@ -48,7 +44,7 @@ class SupplierController {
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
+        data: [],
         totalRecords: 0
       });
     }
@@ -63,20 +59,27 @@ class SupplierController {
         supplierTypeId,
         supplierAddressId,
         supplierExportCode,
+        supplierEmail,
         saPartner,
         saPartnerExportCode,
-        supplierEmail,
         billingCurrencyId,
         companyId,
-        externalSupplierYn,
+        externalSupplier,
         userId
       } = req.body;
 
-      // Basic validation
-      if (!supplierName || !companyId || !userId) {
+      console.log('createSupplier req.body:', JSON.stringify(req.body, null, 2));
+
+      const missingFields = [];
+      if (!supplierName) missingFields.push('SupplierName');
+      if (!companyId) missingFields.push('CompanyId');
+      if (!userId) missingFields.push('UserId');
+      if (!supplierEmail) missingFields.push('SupplierEmail');
+
+      if (missingFields.length > 0) {
         return res.status(400).json({
           success: false,
-          message: 'SupplierName, CompanyId, and UserId are required',
+          message: `Missing required fields: ${missingFields.join(', ')}`,
           data: null,
           supplierId: null
         });
@@ -88,12 +91,12 @@ class SupplierController {
         supplierTypeId,
         supplierAddressId,
         supplierExportCode,
+        supplierEmail,
         saPartner,
         saPartnerExportCode,
-        supplierEmail,
         billingCurrencyId,
         companyId,
-        externalSupplierYn,
+        externalSupplier,
         userId
       });
 
@@ -118,6 +121,8 @@ class SupplierController {
   static async getSupplierById(req, res) {
     try {
       const { id } = req.params;
+
+      console.log('getSupplierById id:', id);
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -166,14 +171,16 @@ class SupplierController {
         supplierTypeId,
         supplierAddressId,
         supplierExportCode,
+        supplierEmail,
         saPartner,
         saPartnerExportCode,
-        supplierEmail,
         billingCurrencyId,
         companyId,
-        externalSupplierYn,
+        externalSupplier,
         userId
       } = req.body;
+
+      console.log('updateSupplier req.body:', JSON.stringify(req.body, null, 2));
 
       if (!id || isNaN(id)) {
         return res.status(400).json({
@@ -184,10 +191,16 @@ class SupplierController {
         });
       }
 
-      if (!supplierName || !companyId || !userId) {
+      const missingFields = [];
+      if (!supplierName) missingFields.push('SupplierName');
+      if (!companyId) missingFields.push('CompanyId');
+      if (!userId) missingFields.push('UserId');
+      if (!supplierEmail) missingFields.push('SupplierEmail');
+
+      if (missingFields.length > 0) {
         return res.status(400).json({
           success: false,
-          message: 'SupplierName, CompanyId, and UserId are required',
+          message: `Missing required fields: ${missingFields.join(', ')}`,
           data: null,
           supplierId: id
         });
@@ -199,12 +212,12 @@ class SupplierController {
         supplierTypeId,
         supplierAddressId,
         supplierExportCode,
+        supplierEmail,
         saPartner,
         saPartnerExportCode,
-        supplierEmail,
         billingCurrencyId,
         companyId,
-        externalSupplierYn,
+        externalSupplier,
         userId
       });
 
@@ -230,6 +243,8 @@ class SupplierController {
     try {
       const { id } = req.params;
       const { userId } = req.body;
+
+      console.log('deleteSupplier req.body:', JSON.stringify(req.body, null, 2));
 
       if (!id || isNaN(id)) {
         return res.status(400).json({

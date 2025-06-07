@@ -8,30 +8,28 @@ class CertificationModel {
 
       // Validate parameters
       const queryParams = [
+        'SELECT ALL',
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        fromDate ? new Date(fromDate).toISOString().split('T')[0] : null,
+        toDate ? new Date(toDate).toISOString().split('T')[0] : null
       ];
 
-      // Log query parameters
       console.log('getAllCertifications params:', queryParams);
 
-      // Call SP_GetCertification
       const [results] = await pool.query(
-        'CALL SP_GetCertification(?, ?, ?, ?)',
+        'CALL sp_ManageCertification(?, ?, ?, ?)',
         queryParams
       );
 
-      // Log results
       console.log('getAllCertifications results:', JSON.stringify(results, null, 2));
 
       return {
         data: results[0] || [],
-        totalRecords: null // SP does not return total count
+        totalRecords: null
       };
     } catch (err) {
-      console.error('getAllCertifications error:', err);
+      console.error('getAllCertifications error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -41,63 +39,54 @@ class CertificationModel {
     try {
       const pool = await poolPromise;
 
+      // Validate input
+      if (!data.certificationName || !data.createdById) {
+        throw new Error('CertificationName and CreatedByID are required');
+      }
+
       const queryParams = [
         'INSERT',
-        null, // p_CertificationID
+        null,
         data.certificationName,
-        data.createdById
+        parseInt(data.createdById)
       ];
 
-      // Log query parameters
       console.log('createCertification params:', queryParams);
 
-      // Call sp_ManageCertification
       const [results] = await pool.query(
         'CALL sp_ManageCertification(?, ?, ?, ?)',
         queryParams
       );
 
-      // Log results
       console.log('createCertification results:', JSON.stringify(results, null, 2));
 
-      // Handle result sets
-      let statusResult;
-      if (!results || results.length === 0) {
-        throw new Error('No result returned from sp_ManageCertification');
-      } else if (results.length === 1) {
-        if (results[0].length === 0) {
-          throw new Error('Empty result set from sp_ManageCertification');
+      // Find status result set
+      let statusResult = null;
+      for (const resultSet of results) {
+        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
+          statusResult = resultSet[0];
+          break;
         }
-        if (!results[0][0]) {
-          throw new Error(`First row of result set is undefined: ${JSON.stringify(results[0])}`);
-        }
-        statusResult = results[0][0];
-      } else if (results.length > 1) {
-        if (results[1].length === 0) {
-          throw new Error('Empty status result set from sp_ManageCertification');
-        }
-        if (!results[1][0]) {
-          throw new Error(`First row of status result set is undefined: ${JSON.stringify(results[1])}`);
-        }
-        statusResult = results[1][0];
-      } else {
-        throw new Error(`Unexpected result format from sp_ManageCertification: ${JSON.stringify(results)}`);
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(statusResult)}`);
+        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(results)}`);
       }
 
       if (statusResult.StatusCode !== 1) {
         throw new Error(statusResult.Message || 'Failed to create Certification');
       }
 
+      // Extract CertificationID from Message (e.g., "Certification created successfully. ID: 1")
+      const idMatch = statusResult.Message.match(/ID: (\d+)/);
+      const certificationId = idMatch ? parseInt(idMatch[1]) : null;
+
       return {
-        certificationId: null, // SP does not return new ID
+        certificationId,
         message: statusResult.Message
       };
     } catch (err) {
-      console.error('createCertification error:', err);
+      console.error('createCertification error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -107,55 +96,41 @@ class CertificationModel {
     try {
       const pool = await poolPromise;
 
-      const queryParams = ['SELECT', id, null, null];
+      const queryParams = ['SELECT', parseInt(id), null, null];
 
-      // Log query parameters
       console.log('getCertificationById params:', queryParams);
 
-      // Call sp_ManageCertification
       const [results] = await pool.query(
         'CALL sp_ManageCertification(?, ?, ?, ?)',
         queryParams
       );
 
-      // Log results
       console.log('getCertificationById results:', JSON.stringify(results, null, 2));
 
-      // Handle result sets
-      let statusResult;
-      if (!results || results.length === 0) {
-        throw new Error('No result returned from sp_ManageCertification');
-      } else if (results.length === 1) {
-        if (results[0].length === 0) {
-          throw new Error('Empty result set from sp_ManageCertification');
+      // Find data and status result sets
+      let dataResult = null;
+      let statusResult = null;
+      for (const resultSet of results) {
+        if (Array.isArray(resultSet)) {
+          if (resultSet[0] && 'CertificationID' in resultSet[0]) {
+            dataResult = resultSet[0];
+          } else if (resultSet[0] && 'StatusCode' in resultSet[0]) {
+            statusResult = resultSet[0];
+          }
         }
-        if (!results[0][0]) {
-          throw new Error(`First row of result set is undefined: ${JSON.stringify(results[0])}`);
-        }
-        statusResult = results[0][0];
-      } else if (results.length > 1) {
-        if (results[1].length === 0) {
-          throw new Error('Empty status result set from sp_ManageCertification');
-        }
-        if (!results[1][0]) {
-          throw new Error(`First row of status result set is undefined: ${JSON.stringify(results[1])}`);
-        }
-        statusResult = results[1][0];
-      } else {
-        throw new Error(`Unexpected result format from sp_ManageCertification: ${JSON.stringify(results)}`);
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(statusResult)}`);
+        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(results)}`);
       }
 
       if (statusResult.StatusCode !== 1) {
         throw new Error(statusResult.Message || 'Certification not found');
       }
 
-      return results[0][0] || null;
+      return dataResult || null;
     } catch (err) {
-      console.error('getCertificationById error:', err);
+      console.error('getCertificationById error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -167,49 +142,30 @@ class CertificationModel {
 
       const queryParams = [
         'UPDATE',
-        id,
+        parseInt(id),
         data.certificationName || null,
-        data.createdById
+        parseInt(data.createdById)
       ];
 
-      // Log query parameters
       console.log('updateCertification params:', queryParams);
 
-      // Call sp_ManageCertification
       const [results] = await pool.query(
         'CALL sp_ManageCertification(?, ?, ?, ?)',
         queryParams
       );
 
-      // Log results
       console.log('updateCertification results:', JSON.stringify(results, null, 2));
 
-      // Handle result sets
-      let statusResult;
-      if (!results || results.length === 0) {
-        throw new Error('No result returned from sp_ManageCertification');
-      } else if (results.length === 1) {
-        if (results[0].length === 0) {
-          throw new Error('Empty result set from sp_ManageCertification');
+      let statusResult = null;
+      for (const resultSet of results) {
+        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
+          statusResult = resultSet[0];
+          break;
         }
-        if (!results[0][0]) {
-          throw new Error(`First row of result set is undefined: ${JSON.stringify(results[0])}`);
-        }
-        statusResult = results[0][0];
-      } else if (results.length > 1) {
-        if (results[1].length === 0) {
-          throw new Error('Empty status result set from sp_ManageCertification');
-        }
-        if (!results[1][0]) {
-          throw new Error(`First row of status result set is undefined: ${JSON.stringify(results[1])}`);
-        }
-        statusResult = results[1][0];
-      } else {
-        throw new Error(`Unexpected result format from sp_ManageCertification: ${JSON.stringify(results)}`);
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(statusResult)}`);
+        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(results)}`);
       }
 
       if (statusResult.StatusCode !== 1) {
@@ -220,7 +176,7 @@ class CertificationModel {
         message: statusResult.Message
       };
     } catch (err) {
-      console.error('updateCertification error:', err);
+      console.error('updateCertification error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
@@ -232,49 +188,30 @@ class CertificationModel {
 
       const queryParams = [
         'DELETE',
-        id,
-        null, // p_CertificationName
-        createdById
+        parseInt(id),
+        null,
+        parseInt(createdById)
       ];
 
-      // Log query parameters
       console.log('deleteCertification params:', queryParams);
 
-      // Call sp_ManageCertification
       const [results] = await pool.query(
         'CALL sp_ManageCertification(?, ?, ?, ?)',
         queryParams
       );
 
-      // Log results
       console.log('deleteCertification results:', JSON.stringify(results, null, 2));
 
-      // Handle result sets
-      let statusResult;
-      if (!results || results.length === 0) {
-        throw new Error('No result returned from sp_ManageCertification');
-      } else if (results.length === 1) {
-        if (results[0].length === 0) {
-          throw new Error('Empty result set from sp_ManageCertification');
+      let statusResult = null;
+      for (const resultSet of results) {
+        if (Array.isArray(resultSet) && resultSet[0] && 'StatusCode' in resultSet[0]) {
+          statusResult = resultSet[0];
+          break;
         }
-        if (!results[0][0]) {
-          throw new Error(`First row of result set is undefined: ${JSON.stringify(results[0])}`);
-        }
-        statusResult = results[0][0];
-      } else if (results.length > 1) {
-        if (results[1].length === 0) {
-          throw new Error('Empty status result set from sp_ManageCertification');
-        }
-        if (!results[1][0]) {
-          throw new Error(`First row of status result set is undefined: ${JSON.stringify(results[1])}`);
-        }
-        statusResult = results[1][0];
-      } else {
-        throw new Error(`Unexpected result format from sp_ManageCertification: ${JSON.stringify(results)}`);
       }
 
       if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
-        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(statusResult)}`);
+        throw new Error(`StatusCode missing in sp_ManageCertification result: ${JSON.stringify(results)}`);
       }
 
       if (statusResult.StatusCode !== 1) {
@@ -285,7 +222,7 @@ class CertificationModel {
         message: statusResult.Message
       };
     } catch (err) {
-      console.error('deleteCertification error:', err);
+      console.error('deleteCertification error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
