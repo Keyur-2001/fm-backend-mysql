@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
 const PasswordReset = require('../models/passwordResetModel');
@@ -41,9 +41,8 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
-        // process.env.JWT_SECRET,
-        'your-secure-jwt-secret',
+        { personId, role: adminRole.RoleID }, // Use RoleID
+        process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -103,12 +102,11 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
-       'your-secure-jwt-secret',
-        // process.env.JWT_SECRET,
+        { personId, role: adminRole.RoleID }, // Use RoleID
+        process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
- 
+
       console.log('Sending welcome email with:', { email: EmailID, loginID: LoginID, password: Password });
       if (!EmailID || !LoginID) {
         console.warn('EmailID or LoginID is undefined, email will fail');
@@ -203,9 +201,8 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId: user.PersonID, role: user.RoleName },
-        // process.env.JWT_SECRET,
-        'your-secure-jwt-secret',
+        { personId: user.PersonID, role: user.RoleID },
+        process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
