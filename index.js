@@ -51,8 +51,9 @@ const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
 const poParcelRoutes = require('./routes/poParcelRoutes');
 const poApprovalRoutes = require('./routes/poApprovalRoutes');
-const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
+// const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
 const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
+const tableAccessRoutes = require('./routes/tableAccessRoutes');
 
 const app = express();
 
@@ -131,8 +132,9 @@ async function startServer() {
       ['/api/po', poRoutes],
       ['/api/po-Parcel', poParcelRoutes],
       ['/api/po-Approval', poApprovalRoutes],
-      ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
-      ['/api/lowestItemPrice', lowestItemPriceRoutes]
+      // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
+      ['/api/lowestItemPrice', lowestItemPriceRoutes],
+      ['/api/tableAccess', tableAccessRoutes]
       // ['/api/min-rate', minRateRoutes]
     ];
 

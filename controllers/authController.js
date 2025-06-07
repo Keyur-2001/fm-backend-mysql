@@ -34,8 +34,14 @@ class AuthController {
         0
       );
 
+      // Fetch the RoleID for 'Administrator' (already 2, but let's be consistent)
+      const adminRole = await User.getRoleById(2); // RoleID 2 is 'Administrator'
+      if (!adminRole) {
+        return res.status(500).json({ message: 'Administrator role not found in database' });
+      }
+
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
+        { personId, role: adminRole.RoleID }, // Use RoleID
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -89,8 +95,14 @@ class AuthController {
         req.user.personId
       );
 
+      // Fetch the RoleID for 'Administrator' (already 2, but let's be consistent)
+      const adminRole = await User.getRoleById(2); // RoleID 2 is 'Administrator'
+      if (!adminRole) {
+        return res.status(500).json({ message: 'Administrator role not found in database' });
+      }
+
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
+        { personId, role: adminRole.RoleID }, // Use RoleID
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -189,7 +201,7 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId: user.PersonID, role: user.RoleName },
+        { personId: user.PersonID, role: user.RoleID },
         process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
@@ -200,7 +212,8 @@ class AuthController {
         user: {
           personId: user.PersonID,
           loginID: user.LoginID,
-          role: user.RoleName
+          roleId: user.RoleID,
+           roleName: user.RoleName // Add roleName to the response
         }
       });
     } catch (error) {
@@ -289,7 +302,7 @@ class AuthController {
         isAdmin: user.RoleName === 'Administrator' || user.RoleName === 'Admin',
         user: {
           personId: user.PersonID,
-          role: user.RoleName
+          roleId: user.RoleID
         }
       });
     } catch (error) {

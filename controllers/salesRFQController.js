@@ -3,17 +3,6 @@ const SalesRFQModel = require('../models/salesRFQModel');
 class SalesRFQController {
   static async createSalesRFQ(req, res) {
     try {
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Only Administrators or Customer Order Coordinators can create SalesRFQ',
-          data: null,
-          salesRFQId: null,
-          newSalesRFQId: null
-        });
-      }
-
       const salesRFQData = {
         Series: req.body.Series,
         CompanyID: parseInt(req.body.CompanyID),
@@ -75,8 +64,8 @@ class SalesRFQController {
         SupplierID: req.body.SupplierID ? parseInt(req.body.SupplierID) : null,
         ExternalRefNo: req.body.ExternalRefNo,
         ExternalSupplierID: req.body.ExternalSupplierID ? parseInt(req.body.ExternalSupplierID) : null,
-        DeliveryDateTime: req.body.DeliveryDateTime,
-        PostingDateTime: req.body.PostingDateTime,
+        DeliveryDate: req.body.DeliveryDate,
+        PostingDate: req.body.PostingDate,
         RequiredByDate: req.body.RequiredByDate,
         DateReceived: req.body.DateReceived,
         ServiceTypeID: req.body.ServiceTypeID ? parseInt(req.body.ServiceTypeID) : null,
