@@ -39,13 +39,14 @@ class PurchaseRFQModel {
         'INSERT',
         null, // p_PurchaseRFQID
         data.SalesRFQID,
+         data.Status || 'Pending',
         data.CreatedByID,
         null // p_DeletedByID
       ];
 
       // Call SP_ManagePurchaseRFQ
       const [result] = await pool.query(
-        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
+        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
         queryParams
       );
 
@@ -76,12 +77,13 @@ class PurchaseRFQModel {
         'SELECT',
         id,
         null, // p_SalesRFQID
+        null,
         null, // p_CreatedByID
         null // p_DeletedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
+        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
         queryParams
       );
 

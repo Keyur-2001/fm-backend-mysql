@@ -1,12 +1,11 @@
 const poolPromise = require('../config/db.config');
 
 class SupplierQuotationApprovalModel {
-  // Get Supplier Quotation approvals (all or filtered by SupplierQuotationID)
   static async getSupplierQuotationApprovals({ supplierQuotationID = null, pageNumber = 1, pageSize = 10 }) {
     try {
       const pool = await poolPromise;
 
-      const queryParams = [
+      let queryParams = [
         'SELECT',
         supplierQuotationID ? parseInt(supplierQuotationID) : null,
         null, // ApproverID
@@ -15,7 +14,7 @@ class SupplierQuotationApprovalModel {
         null, // RoleName
         null, // UserID
         null, // CreatedByID
-        null, // DeletedByID
+        null  // DeletedByID
       ];
 
       const [result] = await pool.query(
@@ -30,7 +29,7 @@ class SupplierQuotationApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to retrieve Supplier Quotation approvals',
+          message: outParams.message || 'Failed to retrieve SupplierQuotation approvals',
           data: null,
           supplierQuotationId: supplierQuotationID,
           totalRecords: 0
@@ -39,7 +38,6 @@ class SupplierQuotationApprovalModel {
 
       let approvals = result[0] || [];
 
-      // Apply pagination if no supplierQuotationID
       if (!supplierQuotationID) {
         const start = (pageNumber - 1) * pageSize;
         const end = start + pageSize;
@@ -48,7 +46,7 @@ class SupplierQuotationApprovalModel {
 
       return {
         success: true,
-        message: outParams.message || 'Supplier Quotation Approval records retrieved successfully.',
+        message: outParams.message || 'SupplierQuotation Approval records retrieved successfully.',
         data: approvals,
         supplierQuotationId: supplierQuotationID,
         totalRecords: supplierQuotationID ? approvals.length : (result[0] ? result[0].length : 0)
@@ -65,7 +63,6 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Get a specific Supplier Quotation approval by SupplierQuotationID and ApproverID
   static async getSupplierQuotationApprovalById({ supplierQuotationID, approverID }) {
     try {
       const pool = await poolPromise;
@@ -88,7 +85,7 @@ class SupplierQuotationApprovalModel {
         null, // RoleName
         null, // UserID
         null, // CreatedByID
-        null, // DeletedByID
+        null  // DeletedByID
       ];
 
       const [result] = await pool.query(
@@ -103,7 +100,7 @@ class SupplierQuotationApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to retrieve Supplier Quotation approval',
+          message: outParams.message || 'Failed to retrieve SupplierQuotation approval',
           data: null,
           supplierQuotationId: supplierQuotationID,
         };
@@ -113,7 +110,7 @@ class SupplierQuotationApprovalModel {
 
       return {
         success: true,
-        message: approval ? (outParams.message || 'Supplier Quotation approval retrieved successfully.') : 'No approval record found.',
+        message: approval ? (outParams.message || 'SupplierQuotation approval retrieved successfully.') : 'No approval record found.',
         data: approval,
         supplierQuotationId: supplierQuotationID,
       };
@@ -128,12 +125,11 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Create a Supplier Quotation approval
   static async createSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;
 
-      const requiredFields = ['SupplierQuotationID', 'ApproverID', 'FormName', 'RoleName', 'CreatedByID'];
+      const requiredFields = ['SupplierQuotationID', 'ApproverID', 'ApprovedYN', 'FormName', 'RoleName', 'CreatedByID'];
       const missingFields = requiredFields.filter(field => !approvalData[field]);
       if (missingFields.length > 0) {
         return {
@@ -148,12 +144,12 @@ class SupplierQuotationApprovalModel {
         'INSERT',
         parseInt(approvalData.SupplierQuotationID),
         parseInt(approvalData.ApproverID),
-        approvalData.ApprovedYN != null ? approvalData.ApprovedYN : 1,
+        approvalData.ApprovedYN != null ? Boolean(approvalData.ApprovedYN) : null,
         approvalData.FormName,
         approvalData.RoleName,
-        parseInt(approvalData.ApproverID), // UserID
+        null, // UserID
         parseInt(approvalData.CreatedByID),
-        null, // DeletedByID
+        null  // DeletedByID
       ];
 
       await pool.query(
@@ -168,7 +164,7 @@ class SupplierQuotationApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to create Supplier Quotation approval',
+          message: outParams.message || 'Failed to create SupplierQuotation approval',
           data: null,
           supplierQuotationId: approvalData.SupplierQuotationID,
         };
@@ -176,7 +172,7 @@ class SupplierQuotationApprovalModel {
 
       return {
         success: true,
-        message: outParams.message || 'Supplier Quotation approval created successfully.',
+        message: outParams.message || 'SupplierQuotation approval created successfully.',
         data: null,
         supplierQuotationId: approvalData.SupplierQuotationID,
       };
@@ -191,12 +187,11 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Update a Supplier Quotation approval
   static async updateSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;
 
-      const requiredFields = ['SupplierQuotationID', 'ApproverID', 'FormName', 'RoleName'];
+      const requiredFields = ['SupplierQuotationID', 'ApproverID', 'ApprovedYN', 'FormName', 'RoleName', 'UserID'];
       const missingFields = requiredFields.filter(field => !approvalData[field]);
       if (missingFields.length > 0) {
         return {
@@ -211,12 +206,12 @@ class SupplierQuotationApprovalModel {
         'UPDATE',
         parseInt(approvalData.SupplierQuotationID),
         parseInt(approvalData.ApproverID),
-        approvalData.ApprovedYN != null ? approvalData.ApprovedYN : 1,
+        approvalData.ApprovedYN != null ? Boolean(approvalData.ApprovedYN) : null,
         approvalData.FormName,
         approvalData.RoleName,
-        parseInt(approvalData.ApproverID), // UserID
+        parseInt(approvalData.UserID),
         null, // CreatedByID
-        null, // DeletedByID
+        null  // DeletedByID
       ];
 
       await pool.query(
@@ -224,14 +219,15 @@ class SupplierQuotationApprovalModel {
         queryParams
       );
 
-      const [[outParams]] = await pool.query(
+      const [[outParams]] = await pool
+.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to update Supplier Quotation approval',
+          message: outParams.message || 'Failed to update SupplierQuotation approval',
           data: null,
           supplierQuotationId: approvalData.SupplierQuotationID,
         };
@@ -239,7 +235,7 @@ class SupplierQuotationApprovalModel {
 
       return {
         success: true,
-        message: outParams.message || 'Supplier Quotation approval updated successfully.',
+        message: outParams.message || 'SupplierQuotation approval updated successfully.',
         data: null,
         supplierQuotationId: approvalData.SupplierQuotationID,
       };
@@ -254,7 +250,6 @@ class SupplierQuotationApprovalModel {
     }
   }
 
-  // Delete a Supplier Quotation approval
   static async deleteSupplierQuotationApproval(approvalData) {
     try {
       const pool = await poolPromise;
@@ -279,7 +274,7 @@ class SupplierQuotationApprovalModel {
         null, // RoleName
         null, // UserID
         null, // CreatedByID
-        parseInt(approvalData.DeletedByID),
+        parseInt(approvalData.DeletedByID)
       ];
 
       await pool.query(
@@ -294,7 +289,7 @@ class SupplierQuotationApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to delete Supplier Quotation approval',
+          message: outParams.message || 'Failed to delete SupplierQuotation approval',
           data: null,
           supplierQuotationId: approvalData.SupplierQuotationID,
         };
@@ -302,7 +297,7 @@ class SupplierQuotationApprovalModel {
 
       return {
         success: true,
-        message: outParams.message || 'Supplier Quotation approval deleted successfully.',
+        message: outParams.message || 'SupplierQuotation approval deleted successfully.',
         data: null,
         supplierQuotationId: approvalData.SupplierQuotationID,
       };

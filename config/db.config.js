@@ -6,14 +6,14 @@ console.log('mysql2/promise module:', mysql);
 console.log('mysql.createPool:', mysql.createPool);
 
 const dbConfig = {
-  host: process.env.DB_SERVER || '13.126.113.104',
-  user: process.env.DB_USER || 'mnv',
-  password: process.env.DB_PASSWORD || 'Manav@21',
-  database: process.env.DB_NAME || 'fleet_monkey',
-  port: parseInt(process.env.DB_PORT) || 3306,
-  connectionLimit: parseInt(process.env.DB_POOL_MAX) || 10,
-  queueLimit: parseInt(process.env.DB_POOL_MIN) || 0,
-  connectTimeout: parseInt(process.env.DB_POOL_ACQUIRE) || 30000,
+  host: '13.235.109.5',
+  user: 'mnv',
+  password: 'Manav@21',
+  database:'fleet_monkey',
+  port: 3306,
+  connectionLimit: 10,
+  queueLimit:  0,
+  connectTimeout: 30000,
   waitForConnections: true,
   multipleStatements: true // Enable multiple statements
 };
