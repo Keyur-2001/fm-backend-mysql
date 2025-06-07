@@ -15,7 +15,7 @@ const dbConfig = {
   queueLimit:  0,
   connectTimeout: 30000,
   waitForConnections: true,
-  multipleStatements: true // Enable multiple statements
+  multipleStatements: true  //// Enable multiple statements
 };
 
 console.log('dbConfig:', dbConfig);
