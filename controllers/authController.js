@@ -41,8 +41,9 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: adminRole.RoleID }, // Use RoleID
-        process.env.JWT_SECRET,
+        { personId, role: 'Administrator' },
+        // process.env.JWT_SECRET,
+        'fleet_monkey_2025',
         { expiresIn: '24h' }
       );
 
@@ -102,8 +103,9 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: adminRole.RoleID }, // Use RoleID
-        process.env.JWT_SECRET,
+        { personId, role: 'Administrator' },
+       'fleet_monkey_2025',
+        // process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -201,8 +203,9 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId: user.PersonID, role: user.RoleID },
-        process.env.JWT_SECRET,
+        { personId: user.PersonID, role: user.RoleName },
+        // process.env.JWT_SECRET,
+        'fleet_monkey_2025',
         { expiresIn: '24h' }
       );
 
