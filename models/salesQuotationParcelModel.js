@@ -75,8 +75,8 @@ class SalesQuotationParcelModel {
 
       const queryParams = [
         'SELECT',
-        null,
-        id, // p_SalesQuotationID
+        id,
+        null, // p_SalesQuotationID
         null, // p_SupplierQuotationParcelID
         null, // p_ItemID
         null, // p_CertificationID
