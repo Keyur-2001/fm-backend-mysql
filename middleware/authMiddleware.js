@@ -1,8 +1,8 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
-require('dotenv').config();
 
-const SECRET_KEY = process.env.JWT_SECRET || 'your-default-secret-key';
+// Hardcoded JWT secret (not recommended for production)
+const JWT_SECRET = '8d9f7e2b4c5a1d3f9e7b2a4c8d5e1f3g9h2j4k6m8n1p3q5r7t9v';
 
 module.exports = async (req, res, next) => {
   const authHeader = req.headers['authorization'];
@@ -33,7 +33,7 @@ module.exports = async (req, res, next) => {
       });
     }
 
-    const decoded = jwt.verify(token, SECRET_KEY);
+    const decoded = jwt.verify(token, JWT_SECRET);
     
     // Fetch the role name using the RoleID from the token
     const role = await User.getRoleById(decoded.role);
@@ -46,8 +46,8 @@ module.exports = async (req, res, next) => {
 
     req.user = { 
       personId: decoded.personId, 
-      roleId: decoded.role, // This is the RoleID
-      role: role.RoleName // This is the role name (e.g., 'Administrator')
+      roleId: decoded.role,
+      role: role.RoleName
     };
     
     next();
