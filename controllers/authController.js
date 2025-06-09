@@ -3,7 +3,9 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
 const PasswordReset = require('../models/passwordResetModel');
 const EmailService = require('../utils/emailService');
-require('dotenv').config();
+
+// Hardcoded JWT secret (not recommended for production)
+const JWT_SECRET = '8d9f7e2b4c5a1d3f9e7b2a4c8d5e1f3g9h2j4k6m8n1p3q5r7t9v';
 
 class AuthController {
   static async initialAdminSignup(req, res) {
@@ -41,9 +43,8 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
-        // process.env.JWT_SECRET,
-        'fleet_monkey_2025',
+        { personId, role: adminRole.RoleID },
+        JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -103,9 +104,8 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId, role: 'Administrator' },
-       'fleet_monkey_2025',
-        // process.env.JWT_SECRET,
+        { personId, role: adminRole.RoleID },
+        JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -203,9 +203,8 @@ class AuthController {
       }
 
       const token = jwt.sign(
-        { personId: user.PersonID, role: user.RoleName },
-        // process.env.JWT_SECRET,
-        'fleet_monkey_2025',
+        { personId: user.PersonID, role: user.RoleID },
+        JWT_SECRET,
         { expiresIn: '24h' }
       );
 
@@ -216,7 +215,7 @@ class AuthController {
           personId: user.PersonID,
           loginID: user.LoginID,
           roleId: user.RoleID,
-           roleName: user.RoleName // Add roleName to the response
+          roleName: user.RoleName
         }
       });
     } catch (error) {
@@ -293,8 +292,6 @@ class AuthController {
 
   static async verifyToken(req, res) {
     try {
-      // Since authMiddleware has already verified the token and attached req.user,
-      // we can directly use req.user instead of re-verifying
       const user = await User.getUserByPersonID(req.user.personId);
       if (!user) {
         return res.status(401).json({ message: 'User not found' });
