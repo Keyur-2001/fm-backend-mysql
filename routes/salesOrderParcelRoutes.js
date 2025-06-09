@@ -7,7 +7,7 @@ const authMiddleware = require('../middleware/authMiddleware');
 router.get('/:id', authMiddleware, SalesOrderParcelController.getSalesOrderParcelById);
 
 // Get sales order parcels (by SalesOrderID or paginated list)
-// router.get('/', authMiddleware, SalesOrderParcelController.getSalesOrderParcels);
+router.get('/', authMiddleware, SalesOrderParcelController.getSalesOrderParcels);
 
 // Update a sales order parcel
 router.put('/:id', authMiddleware, SalesOrderParcelController.updateSalesOrderParcel);

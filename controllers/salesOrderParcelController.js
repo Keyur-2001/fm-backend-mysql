@@ -38,7 +38,7 @@ class SalesOrderParcelController {
 
   static async getSalesOrderParcels(req, res) {
     try {
-      const { salesOrderID, pageNumber, pageSize } = req.query;
+      const { salesOrderID, pageNumber, pageSize, fromDate, toDate } = req.query;
 
       if (salesOrderID && isNaN(parseInt(salesOrderID))) {
         return res.status(400).json({
@@ -51,11 +51,36 @@ class SalesOrderParcelController {
         });
       }
 
+      // Validate date formats
+      if (fromDate && isNaN(Date.parse(fromDate))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid FromDate format',
+          data: null,
+          salesOrderParcelId: null,
+          salesOrderId: null,
+          totalRecords: 0
+        });
+      }
+
+      if (toDate && isNaN(Date.parse(toDate))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid ToDate format',
+          data: null,
+          salesOrderParcelId: null,
+          salesOrderId: null,
+          totalRecords: 0
+        });
+      }
+
       const result = await SalesOrderParcelModel.getSalesOrderParcels({
-        salesOrderParcelID: null, // Not using salesOrderParcelID for this route
+        salesOrderParcelID: null,
         salesOrderID: salesOrderID ? parseInt(salesOrderID) : null,
         pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10
+        pageSize: parseInt(pageSize) || 10,
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
 
       return res.status(result.success ? 200 : 400).json(result);
