@@ -1,4 +1,4 @@
-const bcrypt = require('bcryptjs');
+const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const User = require('../models/authModel');
 const PasswordReset = require('../models/passwordResetModel');
@@ -108,7 +108,7 @@ class AuthController {
         // process.env.JWT_SECRET,
         { expiresIn: '24h' }
       );
- 
+
       console.log('Sending welcome email with:', { email: EmailID, loginID: LoginID, password: Password });
       if (!EmailID || !LoginID) {
         console.warn('EmailID or LoginID is undefined, email will fail');
