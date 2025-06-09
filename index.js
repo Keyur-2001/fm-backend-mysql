@@ -59,18 +59,16 @@ const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: [
-      process.env.CORS_ORIGIN,
-      "http://localhost:3000",
-      "http://localhost:5173",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: [
+    process.env.CORS_ORIGIN,
+    "http://65.0.131.65",
+    "http://localhost:5173"
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
+}));
 
 // Health check endpoint
 app.get("/health", (req, res) => {
