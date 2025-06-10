@@ -18,4 +18,7 @@ router.put('/:id', authMiddleware, SalesOrderController.updateSalesOrder);
 // Delete a sales order
 router.delete('/:id', authMiddleware, SalesOrderController.deleteSalesOrder);
 
+router.post('/approve', authMiddleware, SalesOrderController.approveSalesOrder);
+
+
 module.exports = router;

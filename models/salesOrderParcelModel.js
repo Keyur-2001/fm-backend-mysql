@@ -1,11 +1,11 @@
 const poolPromise = require('../config/db.config');
 
-class SalesQuotationParcelModel {
-  // Get all Sales Quotation Parcels
-  static async getAllSalesQuotationParcels({
+class SalesOrderParcelModel {
+  // Get all Sales Order Parcels
+  static async getAllSalesOrderParcels({
     pageNumber = 1,
     pageSize = 10,
-    salesQuotationId = null
+    salesOrderId = null
   }) {
     try {
       const pool = await poolPromise;
@@ -17,30 +17,31 @@ class SalesQuotationParcelModel {
       if (!Number.isInteger(pageSize) || pageSize <= 0) {
         throw new Error('Invalid pageSize: must be a positive integer');
       }
-      if (salesQuotationId && !Number.isInteger(salesQuotationId)) {
-        throw new Error('Invalid salesQuotationId: must be an integer');
+      if (salesOrderId && !Number.isInteger(salesOrderId)) {
+        throw new Error('Invalid salesOrderId: must be an integer');
       }
 
       const queryParams = [
         'SELECT',
+        null, // p_SalesOrderParcelID
+        salesOrderId || null, // p_SalesOrderID
         null, // p_SalesQuotationParcelID
-        salesQuotationId || null, // p_SalesQuotationID
         null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
         null, // p_ItemID
         null, // p_CertificationID
         null, // p_LineItemNumber
+        null, // p_RequiredByDate
         null, // p_ItemQuantity
         null, // p_UOMID
-        null, // p_CountryOfOriginID
         null, // p_SalesRate
-        null, // p_CreatedByID
-        null // p_DeletedByID
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        null // p_ChangedByID
       ];
 
-      console.log('Executing SP_ManageSalesQuotationParcel with params:', queryParams);
-
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotationParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -48,15 +49,12 @@ class SalesQuotationParcelModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
-      console.log('Stored procedure output:', outParams);
-
       if (outParams.result !== 1) {
-        // Increase delay to ensure error log is written
-        await new Promise(resolve => setTimeout(resolve, 500)); // Increased to 500ms
+        // Check error log for more details
+        await new Promise(resolve => setTimeout(resolve, 100));
         const [[errorLog]] = await pool.query(
-          'SELECT TOP 1 ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC'
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
         );
-        console.log('Error log entry:', errorLog);
         throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
       }
 
@@ -72,29 +70,32 @@ class SalesQuotationParcelModel {
     }
   }
 
-  // Get a single Sales Quotation Parcel by ID
-  static async getSalesQuotationParcelById(id) {
+  // Get a single Sales Order Parcel by ID
+  static async getSalesOrderParcelById(id) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'SELECT',
         id,
-        null, // p_SalesQuotationID
+        null, // p_SalesOrderID
+        null, // p_SalesQuotationParcelID
         null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
         null, // p_ItemID
         null, // p_CertificationID
         null, // p_LineItemNumber
+        null, // p_RequiredByDate
         null, // p_ItemQuantity
         null, // p_UOMID
-        null, // p_CountryOfOriginID
         null, // p_SalesRate
-        null, // p_CreatedByID
-        null // p_DeletedByID
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        null // p_ChangedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotationParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -103,7 +104,7 @@ class SalesQuotationParcelModel {
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Sales Quotation Parcel not found or deleted');
+        throw new Error(outParams.message || 'Sales Order Parcel not found or deleted');
       }
 
       return result[0][0] || null;
@@ -112,29 +113,32 @@ class SalesQuotationParcelModel {
     }
   }
 
-  // Update a Sales Quotation Parcel
-  static async updateSalesQuotationParcel(id, data) {
+  // Update a Sales Order Parcel
+  static async updateSalesOrderParcel(id, data) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'UPDATE',
         id,
-        data.salesQuotationId || null,
+        data.salesOrderId || null,
+        data.salesQuotationParcelId || null,
         data.supplierQuotationParcelId || null,
+        data.parcelId || null,
         data.itemId || null,
         data.certificationId || null,
         data.lineItemNumber || null,
+        data.requiredByDate || null,
         data.itemQuantity || null,
         data.uomId || null,
-        data.countryOfOriginId || null,
         data.salesRate || null,
-        data.createdById || null,
-        null // p_DeletedByID
+        data.salesAmount || null,
+        data.countryOfOriginId || null,
+        data.changedById || null
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotationParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -143,7 +147,7 @@ class SalesQuotationParcelModel {
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to update Sales Quotation Parcel');
+        throw new Error(outParams.message || 'Failed to update Sales Order Parcel');
       }
 
       return {
@@ -154,29 +158,32 @@ class SalesQuotationParcelModel {
     }
   }
 
-  // Delete a Sales Quotation Parcel
-  static async deleteSalesQuotationParcel(id, deletedById) {
+  // Delete a Sales Order Parcel
+  static async deleteSalesOrderParcel(id, changedById) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'DELETE',
         id,
-        null, // p_SalesQuotationID
+        null, // p_SalesOrderID
+        null, // p_SalesQuotationParcelID
         null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
         null, // p_ItemID
         null, // p_CertificationID
         null, // p_LineItemNumber
+        null, // p_RequiredByDate
         null, // p_ItemQuantity
         null, // p_UOMID
-        null, // p_CountryOfOriginID
         null, // p_SalesRate
-        null, // p_CreatedByID
-        deletedById // p_DeletedByID
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        changedById // p_ChangedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotationParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -185,7 +192,7 @@ class SalesQuotationParcelModel {
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to delete Sales Quotation Parcel');
+        throw new Error(outParams.message || 'Failed to delete Sales Order Parcel');
       }
 
       return {
@@ -197,4 +204,4 @@ class SalesQuotationParcelModel {
   }
 }
 
-module.exports = SalesQuotationParcelModel;
+module.exports = SalesOrderParcelModel;
