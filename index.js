@@ -55,6 +55,9 @@ const sendPurchaseOrderRoutes = require('./routes/sendPurchaseOrderRoutes');
 const pendingApprovalsRoutes = require('./routes/pendingApprovalsRoutes');
 const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
 const tableAccessRoutes = require('./routes/tableAccessRoutes');
+const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
+const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
+const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 
 const app = express();
 
@@ -135,6 +138,9 @@ async function startServer() {
       ['/api/po-Approval', poApprovalRoutes],
       ['/api/sendPurchaseOrder', sendPurchaseOrderRoutes],
       ['/api/pendingApprovals', pendingApprovalsRoutes],
+      ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
+      ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
       ['/api/tableAccess', tableAccessRoutes]
       // ['/api/min-rate', minRateRoutes]
