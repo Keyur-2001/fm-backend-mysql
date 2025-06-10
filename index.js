@@ -58,6 +58,7 @@ const tableAccessRoutes = require('./routes/tableAccessRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
+const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 
 const app = express();
 
@@ -141,6 +142,7 @@ async function startServer() {
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
+      ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
       ['/api/tableAccess', tableAccessRoutes]
       // ['/api/min-rate', minRateRoutes]
