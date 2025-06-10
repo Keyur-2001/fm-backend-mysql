@@ -4,10 +4,12 @@ class PInvoiceController {
   // Get all Purchase Invoices
   static async getAllPInvoices(req, res) {
     try {
-      const { pageNumber, pageSize } = req.query;
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
       const result = await PInvoiceModel.getAllPInvoices({
         pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10
+        pageSize: parseInt(pageSize) || 10,
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
       res.status(200).json({
         success: true,
@@ -46,7 +48,24 @@ class PInvoiceController {
       const data = {
         POID: req.body.POID,
         Series: req.body.Series,
-        UserID: req.user.personId
+        UserID: req.user.personId,
+        PostingDate: req.body.PostingDate,
+        RequiredByDate: req.body.RequiredByDate,
+        DeliveryDate: req.body.DeliveryDate,
+        DateReceived: req.body.DateReceived,
+        Terms: req.body.Terms,
+        PackagingRequiredYN: req.body.PackagingRequiredYN,
+        CollectFromSupplierYN: req.body.CollectFromSupplierYN,
+        ExternalRefNo: req.body.ExternalRefNo,
+        ExternalSupplierID: req.body.ExternalSupplierID,
+        IsPaid: req.body.IsPaid,
+        FormCompletedYN: req.body.FormCompletedYN,
+        FileName: req.body.FileName,
+        FileContent: req.body.FileContent,
+        CopyTaxesFromPO: req.body.CopyTaxesFromPO,
+        TaxChargesTypeID: req.body.TaxChargesTypeID,
+        TaxRate: req.body.TaxRate,
+        TaxTotal: req.body.TaxTotal
       };
 
       if (!data.POID) {
@@ -117,8 +136,20 @@ class PInvoiceController {
     try {
       const { id } = req.params;
       const data = {
-        ...req.body,
-        UserID: req.user.personId
+        UserID: req.user.personId,
+        PostingDate: req.body.PostingDate,
+        RequiredByDate: req.body.RequiredByDate,
+        DeliveryDate: req.body.DeliveryDate,
+        DateReceived: req.body.DateReceived,
+        Terms: req.body.Terms,
+        PackagingRequiredYN: req.body.PackagingRequiredYN,
+        CollectFromSupplierYN: req.body.CollectFromSupplierYN,
+        ExternalRefNo: req.body.ExternalRefNo,
+        ExternalSupplierID: req.body.ExternalSupplierID,
+        IsPaid: req.body.IsPaid,
+        FormCompletedYN: req.body.FormCompletedYN,
+        FileName: req.body.FileName,
+        FileContent: req.body.FileContent
       };
 
       const result = await PInvoiceModel.updatePInvoice(parseInt(id), data);
@@ -180,7 +211,7 @@ class PInvoiceController {
   static async uploadInvoiceFile(req, res) {
     try {
       const { id } = req.params;
-      
+
       if (!req.file) {
         return res.status(400).json({
           success: false,
@@ -216,7 +247,6 @@ class PInvoiceController {
       });
     }
   }
-
 
   static async approvePInvoice(req, res) {
     try {
@@ -261,7 +291,6 @@ class PInvoiceController {
       });
     }
   }
-
 }
 
 module.exports = PInvoiceController;

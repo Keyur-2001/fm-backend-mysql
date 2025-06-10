@@ -73,19 +73,26 @@ class PInvoiceModel {
         null, // p_IsPaid
         null, // p_FormCompletedYN
         null, // p_FileName
-        null  // p_FileContent
+        null, // p_FileContent
+        data.CopyTaxesFromPO !== undefined ? data.CopyTaxesFromPO : null,
+        data.TaxChargesTypeID || null,
+        data.TaxRate || null,
+        data.TaxTotal || null
       ];
 
-      // Call SP_ManagePInvoice
+      // Call SP_ManagePInvoice with session variables for OUT parameter
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
+
+      // Fetch output parameter
+      const [output] = await pool.query('SELECT @p_ErrorMessage AS p_ErrorMessage');
 
       const response = result[0][0];
       
       if (response.Status !== 'SUCCESS') {
-        throw new Error(response.Message || 'Failed to create Purchase Invoice');
+        throw new Error(response.Message || output[0]?.p_ErrorMessage || 'Failed to create Purchase Invoice');
       }
 
       return {
@@ -120,11 +127,15 @@ class PInvoiceModel {
         null, // p_IsPaid
         null, // p_FormCompletedYN
         null, // p_FileName
-        null  // p_FileContent
+        null, // p_FileContent
+        null, // p_CopyTaxesFromPO
+        null, // p_TaxChargesTypeID
+        null, // p_TaxRate
+        null  // p_TaxTotal
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
 
@@ -157,18 +168,25 @@ class PInvoiceModel {
         data.IsPaid !== undefined ? data.IsPaid : null,
         data.FormCompletedYN !== undefined ? data.FormCompletedYN : null,
         data.FileName || null,
-        data.FileContent || null
+        data.FileContent || null,
+        null, // p_CopyTaxesFromPO (not applicable for updates)
+        null, // p_TaxChargesTypeID (not applicable for updates)
+        null, // p_TaxRate (not applicable for updates)
+        null  // p_TaxTotal (not applicable for updates)
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
+
+      // Fetch output parameter
+      const [output] = await pool.query('SELECT @p_ErrorMessage AS p_ErrorMessage');
 
       const response = result[0][0];
       
       if (response.Status !== 'SUCCESS') {
-        throw new Error(response.Message || 'Failed to update Purchase Invoice');
+        throw new Error(response.Message || output[0]?.p_ErrorMessage || 'Failed to update Purchase Invoice');
       }
 
       return {
@@ -202,18 +220,25 @@ class PInvoiceModel {
         null, // p_IsPaid
         null, // p_FormCompletedYN
         null, // p_FileName
-        null  // p_FileContent
+        null, // p_FileContent
+        null, // p_CopyTaxesFromPO
+        null, // p_TaxChargesTypeID
+        null, // p_TaxRate
+        null  // p_TaxTotal
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
+
+      // Fetch output parameter
+      const [output] = await pool.query('SELECT @p_ErrorMessage AS p_ErrorMessage');
 
       const response = result[0][0];
       
       if (response.Status !== 'SUCCESS') {
-        throw new Error(response.Message || 'Failed to delete Purchase Invoice');
+        throw new Error(response.Message || output[0]?.p_ErrorMessage || 'Failed to delete Purchase Invoice');
       }
 
       return {

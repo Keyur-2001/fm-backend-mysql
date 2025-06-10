@@ -11,7 +11,6 @@ const upload = multer({
     fileSize: 16 * 1024 * 1024 // 16MB limit for MEDIUMBLOB
   },
   fileFilter: (req, file, cb) => {
-    // Allow common document types
     const allowedTypes = [
       'application/pdf',
       'image/jpeg',
@@ -22,7 +21,7 @@ const upload = multer({
       'application/vnd.ms-excel',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     ];
-    
+
     if (allowedTypes.includes(file.mimetype)) {
       cb(null, true);
     } else {
@@ -49,7 +48,7 @@ router.delete('/:id', authMiddleware, PInvoiceController.deletePInvoice);
 // Upload invoice file
 router.post('/:id/upload', authMiddleware, upload.single('invoiceFile'), PInvoiceController.uploadInvoiceFile);
 
-// Approve a SalesRFQ
+// Approve a Purchase Invoice
 router.post('/approve', authMiddleware, PInvoiceController.approvePInvoice);
 
 // Mark invoice as paid
@@ -57,7 +56,7 @@ router.patch('/:id/mark-paid', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user?.personId;
-    
+
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -70,7 +69,7 @@ router.patch('/:id/mark-paid', authMiddleware, async (req, res) => {
 
     const PInvoiceModel = require('../models/pInvoiceModel');
     const result = await PInvoiceModel.markAsPaid(parseInt(id), userId);
-    
+
     res.status(200).json({
       success: true,
       message: 'Invoice marked as paid successfully.',
@@ -95,7 +94,7 @@ router.patch('/:id/mark-completed', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const userId = req.user?.personId;
-    
+
     if (!userId) {
       return res.status(401).json({
         success: false,
@@ -108,7 +107,7 @@ router.patch('/:id/mark-completed', authMiddleware, async (req, res) => {
 
     const PInvoiceModel = require('../models/pInvoiceModel');
     const result = await PInvoiceModel.markFormCompleted(parseInt(id), userId);
-    
+
     res.status(200).json({
       success: true,
       message: 'Form marked as completed successfully.',
@@ -118,6 +117,25 @@ router.patch('/:id/mark-completed', authMiddleware, async (req, res) => {
     });
   } catch (err) {
     console.error('Error in mark-completed:', err);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${err.message}`,
+      data: null,
+      pInvoiceId: null,
+      newPInvoiceId: null
+    });
+  }
+});
+
+// Get all approvals for a Purchase Invoice
+router.get('/:id/approvals', authMiddleware, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const PInvoiceModel = require('../models/pInvoiceModel');
+    const result = await PInvoiceModel.getAllPInvoiceApprovals(parseInt(id));
+    res.status(200).json(result);
+  } catch (err) {
+    console.error('Error in get approvals:', err);
     res.status(500).json({
       success: false,
       message: `Server error: ${err.message}`,
