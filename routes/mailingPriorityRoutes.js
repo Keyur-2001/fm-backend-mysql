@@ -1,5 +1,5 @@
 const express = require('express');
-const MailingPriorityController = require('../controllers/mailingPriorityController');
+// const MailingPriorityController = require('../controllers/mailingPriorityController');
 
 const router = express.Router();
 // const MailingPriorityController = require('../controllers/MailingPriorityController');
