@@ -1,15 +1,26 @@
 const poolPromise = require('../config/db.config');
 
 class PInvoiceParcelModel {
-  // Get a single Purchase Invoice Parcel by ID
-  static async getPInvoiceParcelById(id) {
+  // Get Purchase Invoice Parcels by PInvoiceParcelID or PInvoiceID
+  static async getPInvoiceParcels({
+    pInvoiceParcelId = null,
+    pInvoiceId = null
+  }) {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
+      if (pInvoiceParcelId && !Number.isInteger(pInvoiceParcelId)) {
+        throw new Error('Invalid pInvoiceParcelId: must be an integer');
+      }
+      if (pInvoiceId && !Number.isInteger(pInvoiceId)) {
+        throw new Error('Invalid pInvoiceId: must be an integer');
+      }
+
       const queryParams = [
         'SELECT',
-        id,
-        null, // p_PInvoiceID
+        pInvoiceParcelId || null,
+        pInvoiceId || null,
         null, // p_ItemID
         null, // p_ItemQuantity
         null, // p_UOMID
@@ -20,7 +31,7 @@ class PInvoiceParcelModel {
         null, // p_LineItemNumber
         null, // p_FileName
         null, // p_FileContent
-        null  // p_UserID
+        null // p_UserID
       ];
 
       const [result] = await pool.query(
@@ -28,32 +39,46 @@ class PInvoiceParcelModel {
         queryParams
       );
 
-      return result[0][0] || null;
+      return {
+        data: result[0],
+        totalRecords: result[0].length
+      };
     } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+      const errorMessage = err.sqlState ? 
+        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
+        `Database error: ${err.message}`;
+      throw new Error(errorMessage);
     }
   }
 
   // Update a Purchase Invoice Parcel
-  static async updatePInvoiceParcel(id, data) {
+  static async updatePInvoiceParcel(id, data, userId) {
     try {
       const pool = await poolPromise;
+
+      // Validate parameters
+      if (!Number.isInteger(id)) {
+        throw new Error('Invalid pInvoiceParcelId: must be an integer');
+      }
+      if (!userId || !Number.isInteger(userId)) {
+        throw new Error('Invalid userId: must be an integer');
+      }
 
       const queryParams = [
         'UPDATE',
         id,
-        data.PInvoiceID || null,
-        data.ItemID || null,
-        data.ItemQuantity || null,
-        data.UOMID || null,
-        data.Rate || null,
-        data.Amount || null,
-        data.CertificationID || null,
-        data.CountryOfOriginID || null,
-        data.LineItemNumber || null,
-        data.FileName || null,
-        data.FileContent || null,
-        data.UserID
+        data.pInvoiceId || null,
+        data.itemId || null,
+        data.itemQuantity || null,
+        data.uomId || null,
+        data.rate || null,
+        data.amount || null,
+        data.certificationId || null,
+        data.countryOfOriginId || null,
+        data.lineItemNumber || null,
+        data.fileName || null,
+        data.fileContent || null,
+        userId
       ];
 
       const [result] = await pool.query(
@@ -61,14 +86,12 @@ class PInvoiceParcelModel {
         queryParams
       );
 
-      const response = result[0][0];
-      
-      if (response.Status !== 'SUCCESS') {
-        throw new Error(response.Message || 'Failed to update Purchase Invoice Parcel');
+      if (result[0][0]?.Status !== 'SUCCESS') {
+        throw new Error(result[0][0]?.Message || 'Failed to update Purchase Invoice Parcel');
       }
 
       return {
-        message: response.Message
+        message: result[0][0]?.Message || 'Purchase Invoice Parcel updated successfully'
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -76,9 +99,17 @@ class PInvoiceParcelModel {
   }
 
   // Delete a Purchase Invoice Parcel
-  static async deletePInvoiceParcel(id, deletedById) {
+  static async deletePInvoiceParcel(id, userId) {
     try {
       const pool = await poolPromise;
+
+      // Validate parameters
+      if (!Number.isInteger(id)) {
+        throw new Error('Invalid pInvoiceParcelId: must be an integer');
+      }
+      if (!userId || !Number.isInteger(userId)) {
+        throw new Error('Invalid userId: must be an integer');
+      }
 
       const queryParams = [
         'DELETE',
@@ -94,7 +125,7 @@ class PInvoiceParcelModel {
         null, // p_LineItemNumber
         null, // p_FileName
         null, // p_FileContent
-        deletedById
+        userId
       ];
 
       const [result] = await pool.query(
@@ -102,95 +133,13 @@ class PInvoiceParcelModel {
         queryParams
       );
 
-      const response = result[0][0];
-      
-      if (response.Status !== 'SUCCESS') {
-        throw new Error(response.Message || 'Failed to delete Purchase Invoice Parcel');
+      if (result[0][0]?.Status !== 'SUCCESS') {
+        throw new Error(result[0][0]?.Message || 'Failed to delete Purchase Invoice Parcel');
       }
 
       return {
-        message: response.Message
+        message: result[0][0]?.Message || 'Purchase Invoice Parcel deleted successfully'
       };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Get all parcels for a specific Purchase Invoice (custom query)
-  static async getParcelsByPInvoiceId(pInvoiceId) {
-    try {
-      const pool = await poolPromise;
-
-      // Since your SP doesn't have a specific action for getting by PInvoiceID,
-      // you might need a separate query or modify the SP to handle this
-      const [result] = await pool.query(
-        'SELECT * FROM dbo_tblpinvoiceparcel WHERE PInvoiceID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-        [pInvoiceId]
-      );
-
-      return result;
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Update parcel item quantity and recalculate amount
-  static async updateParcelQuantity(id, itemQuantity, rate, userId) {
-    try {
-      const amount = itemQuantity * rate;
-      
-      const updateData = {
-        ItemQuantity: itemQuantity,
-        Amount: amount,
-        UserID: userId
-      };
-
-      return await this.updatePInvoiceParcel(id, updateData);
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Update parcel rate and recalculate amount
-  static async updateParcelRate(id, rate, itemQuantity, userId) {
-    try {
-      const amount = itemQuantity * rate;
-      
-      const updateData = {
-        Rate: rate,
-        Amount: amount,
-        UserID: userId
-      };
-
-      return await this.updatePInvoiceParcel(id, updateData);
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Update parcel certification
-  static async updateParcelCertification(id, certificationId, userId) {
-    try {
-      const updateData = {
-        CertificationID: certificationId,
-        UserID: userId
-      };
-
-      return await this.updatePInvoiceParcel(id, updateData);
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Update parcel country of origin
-  static async updateParcelCountryOfOrigin(id, countryOfOriginId, userId) {
-    try {
-      const updateData = {
-        CountryOfOriginID: countryOfOriginId,
-        UserID: userId
-      };
-
-      return await this.updatePInvoiceParcel(id, updateData);
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
     }

@@ -8,6 +8,7 @@ class POParcelModel {
       const queryParams = [
         action,
         poParcelData.POParcelID ? parseInt(poParcelData.POParcelID) : null,
+        poParcelData.POID ? parseInt(poParcelData.POID) : null,
         poParcelData.ItemQuantity ? parseFloat(poParcelData.ItemQuantity) : null,
         poParcelData.Rate ? parseFloat(poParcelData.Rate) : null,
         poParcelData.Amount ? parseFloat(poParcelData.Amount) : null,
@@ -17,7 +18,7 @@ class POParcelModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePOParcel(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManagePOParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -177,6 +178,71 @@ class POParcelModel {
       };
     }
   }
+
+  // Get all Sales Order Parcels
+  static async getAllPOParcels({
+    pageNumber = 1,
+    pageSize = 10,
+    POID = null
+  }) {
+    try {
+      const pool = await poolPromise;
+
+      // Validate parameters
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new Error('Invalid pageNumber: must be a positive integer');
+      }
+      if (!Number.isInteger(pageSize) || pageSize <= 0) {
+        throw new Error('Invalid pageSize: must be a positive integer');
+      }
+      if (POID && !Number.isInteger(POID)) {
+        throw new Error('Invalid POID: must be an integer');
+      }
+
+      const queryParams = [
+        'SELECT',
+        null, // p_SalesOrderParcelID
+        POID || null, // p_SalesOrderID
+        null, // p_ItemID
+        null, // p_CertificationID
+        null, // p_ItemQuantity
+        null, // p_UOMID
+        null, // p_SalesRate
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        null // p_ChangedByID
+      ];
+
+      const [result] = await pool.query(
+        'CALL SP_ManagePOParcel( ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        // Check error log for more details
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
+        );
+        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
+      }
+
+      return {
+        data: result[0],
+        totalRecords: result[0].length
+      };
+    } catch (err) {
+      const errorMessage = err.sqlState ? 
+        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
+        `Database error: ${err.message}`;
+      throw new Error(errorMessage);
+    }
+  }
+
 }
 
 module.exports = POParcelModel;

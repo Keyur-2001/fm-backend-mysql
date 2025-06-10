@@ -4,77 +4,25 @@ class PInvoiceController {
   // Get all Purchase Invoices
   static async getAllPInvoices(req, res) {
     try {
-      const { pageNumber, pageSize } = req.query;
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
       const result = await PInvoiceModel.getAllPInvoices({
         pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10
+        pageSize: parseInt(pageSize) || 10,
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
       res.status(200).json({
         success: true,
-        message: 'Purchase Invoice records retrieved successfully.',
+        message: 'Purchase Invoices retrieved successfully.',
         data: result.data,
-        totalRecords: result.totalRecords,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        totalRecords: result.totalRecords
       });
     } catch (err) {
       console.error('Error in getAllPInvoices:', err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
-      });
-    }
-  }
-
-  // Create a new Purchase Invoice
-  static async createPInvoice(req, res) {
-    try {
-      const allowedRoles = ['Administrator', 'Accounts Payable', 'Purchase Manager'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Only Administrators, Accounts Payable, or Purchase Managers can create Purchase Invoice',
-          data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
-        });
-      }
-
-      const data = {
-        POID: req.body.POID,
-        Series: req.body.Series,
-        UserID: req.user.personId
-      };
-
-      if (!data.POID) {
-        return res.status(400).json({
-          success: false,
-          message: 'POID is required.',
-          data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
-        });
-      }
-
-      const result = await PInvoiceModel.createPInvoice(data);
-      res.status(201).json({
-        success: true,
-        message: result.message,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: result.newPInvoiceId
-      });
-    } catch (err) {
-      console.error('Error in createPInvoice:', err);
-      res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        data: null
       });
     }
   }
@@ -87,27 +35,59 @@ class PInvoiceController {
       if (!pInvoice) {
         return res.status(404).json({
           success: false,
-          message: 'Purchase Invoice not found or deleted.',
-          data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
+          message: 'Purchase Invoice not found.',
+          data: null
         });
       }
       res.status(200).json({
         success: true,
         message: 'Purchase Invoice retrieved successfully.',
-        data: pInvoice,
-        pInvoiceId: id,
-        newPInvoiceId: null
+        data: pInvoice
       });
     } catch (err) {
       console.error('Error in getPInvoiceById:', err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        data: null
+      });
+    }
+  }
+
+  // Create a Purchase Invoice
+  static async createPInvoice(req, res) {
+    try {
+      const userId = req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User ID not found in authentication context.',
+          data: null
+        });
+      }
+
+      const data = req.body;
+      // Validate required fields
+      if (!data.poid) {
+        return res.status(400).json({
+          success: false,
+          message: 'POID is required.',
+          data: null
+        });
+      }
+
+      const result = await PInvoiceModel.createPInvoice(data, userId);
+      res.status(201).json({
+        success: true,
+        message: result.message,
+        data: { pInvoiceId: result.pInvoiceId }
+      });
+    } catch (err) {
+      console.error('Error in createPInvoice:', err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null
       });
     }
   }
@@ -116,27 +96,28 @@ class PInvoiceController {
   static async updatePInvoice(req, res) {
     try {
       const { id } = req.params;
-      const data = {
-        ...req.body,
-        UserID: req.user.personId
-      };
+      const userId = req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Unauthorized: User ID not found in authentication context.',
+          data: null
+        });
+      }
 
-      const result = await PInvoiceModel.updatePInvoice(parseInt(id), data);
+      const data = req.body;
+      const result = await PInvoiceModel.updatePInvoice(parseInt(id), data, userId);
       res.status(200).json({
         success: true,
         message: result.message,
-        data: null,
-        pInvoiceId: id,
-        newPInvoiceId: null
+        data: null
       });
     } catch (err) {
       console.error('Error in updatePInvoice:', err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        data: null
       });
     }
   }
@@ -145,91 +126,44 @@ class PInvoiceController {
   static async deletePInvoice(req, res) {
     try {
       const { id } = req.params;
-      const deletedById = req.user?.personId;
-      if (!deletedById) {
+      const userId = req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      if (!userId) {
         return res.status(401).json({
           success: false,
-          message: 'Authentication required.',
-          data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
+          message: 'Unauthorized: User ID not found in authentication context.',
+          data: null
         });
       }
 
-      const result = await PInvoiceModel.deletePInvoice(parseInt(id), deletedById);
+      const result = await PInvoiceModel.deletePInvoice(parseInt(id), userId);
       res.status(200).json({
         success: true,
         message: result.message,
-        data: null,
-        pInvoiceId: id,
-        newPInvoiceId: null
+        data: null
       });
     } catch (err) {
       console.error('Error in deletePInvoice:', err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        data: null
       });
     }
   }
 
-  // Upload invoice file
-  static async uploadInvoiceFile(req, res) {
-    try {
-      const { id } = req.params;
-      
-      if (!req.file) {
-        return res.status(400).json({
-          success: false,
-          message: 'No file uploaded.',
-          data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
-        });
-      }
-
-      const fileData = {
-        FileName: req.file.originalname,
-        FileContent: req.file.buffer,
-        UserID: req.user.personId
-      };
-
-      const result = await PInvoiceModel.updatePInvoice(parseInt(id), fileData);
-      res.status(200).json({
-        success: true,
-        message: 'Invoice file uploaded successfully.',
-        data: null,
-        pInvoiceId: id,
-        newPInvoiceId: null
-      });
-    } catch (err) {
-      console.error('Error in uploadInvoiceFile:', err);
-      res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
-      });
-    }
-  }
-
-
+   // Approve a Sales Quotation
   static async approvePInvoice(req, res) {
     try {
-      const { pInvoiceID } = req.body;
-      const approverID = req.user.personId;
+      const { PInvoiceID } = req.body;
+      const approverID = req.user?.personId;
 
-      if (!pInvoiceID) {
+      if (!PInvoiceID) {
         return res.status(400).json({
           success: false,
-          message: 'pInvoiceID is required',
+          message: 'PInvoiceID is required',
           data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
+          PInvoiceID: null,
+          newPInvoiceID: null
         });
       }
 
@@ -238,30 +172,29 @@ class PInvoiceController {
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null,
-          newPInvoiceId: null
+          PInvoiceID: null,
+          newPInvoiceID: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: parseInt(pInvoiceID),
+        PInvoiceID: parseInt(PInvoiceID),
         ApproverID: parseInt(approverID)
       };
 
       const result = await PInvoiceModel.approvePInvoice(approvalData);
       return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
-    } catch (error) {
-      console.error('Approve PInvoice error:', error);
+    } catch (err) {
+      console.error('Approve Purchase Invoice error:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
-        newPInvoiceId: null
+        POID: null,
+        newPOID: null
       });
     }
   }
-
 }
 
 module.exports = PInvoiceController;
