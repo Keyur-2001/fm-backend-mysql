@@ -1,14 +1,16 @@
 const PersonModel = require('../models/personModel');
+const fs = require('fs');
+const path = require('path');
 
 class PersonController {
-  // Get all persons with pagination
+  // Get all Persons with pagination
   static async getAllPersons(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
       const persons = await PersonModel.getAllPersons({
-        pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize),
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
         fromDate,
         toDate
       });
@@ -17,7 +19,8 @@ class PersonController {
         success: true,
         message: 'Persons retrieved successfully',
         data: persons.data,
-        totalRecords: persons.totalRecords
+        totalRecords: persons.totalRecords,
+        personId: null
       });
     } catch (err) {
       console.error('getAllPersons error:', err);
@@ -30,7 +33,7 @@ class PersonController {
     }
   }
 
-  // Create a new person
+  // Create a new Person
   static async createPerson(req, res) {
     try {
       const {
@@ -50,14 +53,15 @@ class PersonController {
         password,
         emailId,
         isDarkMode,
-        createdById
+        createdById,
+        profileImage
       } = req.body;
 
       // Basic validation
-      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
+      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: null
         });
@@ -80,11 +84,12 @@ class PersonController {
         password,
         emailId,
         isDarkMode,
-        createdById
+        createdById,
+        profileImage
       });
 
-      return res.status(201).json({
-        success: true,
+      return res.status(result.success ? 201 : 400).json({
+        success: result.success,
         message: result.message,
         data: null,
         personId: result.personId
@@ -100,7 +105,7 @@ class PersonController {
     }
   }
 
-  // Get a single person by ID
+  // Get a single Person by ID
   static async getPersonById(req, res) {
     try {
       const { id } = req.params;
@@ -142,7 +147,7 @@ class PersonController {
     }
   }
 
-  // Update a person
+  // Update a Person
   static async updatePerson(req, res) {
     try {
       const { id } = req.params;
@@ -163,7 +168,8 @@ class PersonController {
         password,
         emailId,
         isDarkMode,
-        createdById
+        createdById,
+        profileImage
       } = req.body;
 
       if (!id || isNaN(id)) {
@@ -175,10 +181,10 @@ class PersonController {
         });
       }
 
-      if (!firstName || !lastName || !roleId || !status || !loginId || !emailId || !createdById) {
+      if (!firstName || !lastName || !roleId || !companyId || !loginId || !emailId || !createdById) {
         return res.status(400).json({
           success: false,
-          message: 'FirstName, LastName, RoleID, Status, LoginID, EmailID, and CreatedByID are required',
+          message: 'FirstName, LastName, RoleID, CompanyID, LoginID, EmailID, and CreatedByID are required',
           data: null,
           personId: id
         });
@@ -201,11 +207,12 @@ class PersonController {
         password,
         emailId,
         isDarkMode,
-        createdById
+        createdById,
+        profileImage
       });
 
-      return res.status(200).json({
-        success: true,
+      return res.status(result.success ? 200 : 400).json({
+        success: result.success,
         message: result.message,
         data: null,
         personId: id
@@ -221,7 +228,7 @@ class PersonController {
     }
   }
 
-  // Delete a person
+  // Delete a Person
   static async deletePerson(req, res) {
     try {
       const { id } = req.params;
@@ -247,14 +254,92 @@ class PersonController {
 
       const result = await PersonModel.deletePerson(parseInt(id), createdById);
 
-      return res.status(200).json({
-        success: true,
+      return res.status(result.success ? 200 : 400).json({
+        success: result.success,
         message: result.message,
         data: null,
         personId: id
       });
     } catch (err) {
       console.error('deletePerson error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        personId: null
+      });
+    }
+  }
+
+  static async uploadProfileImage(req, res) {
+    try {
+      if (!req.user || !req.user.personId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          personId: null
+        });
+      }
+
+      if (!req.file) {
+        return res.status(400).json({
+          success: false,
+          message: 'No image file provided',
+          data: null,
+          personId: null
+        });
+      }
+
+      const personId = parseInt(req.params.id);
+      const isAdmin = req.user.role === 'Administrator';
+      if (personId !== req.user.personId && !isAdmin) {
+        return res.status(403).json({
+          success: false,
+          message: 'You can only update your own profile image or must be an Administrator',
+          data: null,
+          personId
+        });
+      }
+
+      const pool = await require('../config/db.config');
+      const [results] = await pool.query(
+        'SELECT ProfileImage FROM dbo_tblperson WHERE PersonID = ? AND IsDeleted = 0',
+        [personId]
+      );
+
+      if (results.length > 0 && results[0].ProfileImage) {
+        const oldImagePath = path.join(__dirname, '../', results[0].ProfileImage);
+        if (fs.existsSync(oldImagePath)) {
+          fs.unlinkSync(oldImagePath);
+          console.log(`Deleted old image: ${oldImagePath}`);
+        }
+      }
+
+      const profileImage = `/Uploads/${req.file.filename}`;
+
+      const result = await PersonModel.updateProfileImage({
+        personId,
+        profileImage,
+        createdById: req.user.personId
+      });
+
+      return res.status(result.success ? 200 : 400).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        personId
+      });
+    } catch (err) {
+      console.error('uploadProfileImage error:', err);
+      if (err.code === 'ENOENT') {
+        return res.status(500).json({
+          success: false,
+          message: 'Upload directory not found. Please contact the administrator.',
+          data: null,
+          personId: null
+        });
+      }
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,

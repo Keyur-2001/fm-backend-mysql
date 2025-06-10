@@ -50,16 +50,16 @@ class SupplierQuotationParcelModel {
       const queryParams = [
         'UPDATE',
         id,
-        data.supplierQuotationId,
-        data.itemId,
-        data.certificationId,
+        data.SupplierQuotationID,
+        data.ItemID,
+        data.CertificationID,
         data.lineItemNumber,
-        data.itemQuantity,
-        data.uomId,
-        data.rate,
-        data.amount,
-        data.countryOfOriginId,
-        data.createdById
+        data.ItemQuantity,
+        data.UOMID,
+        data.Rate,
+        data.Amount,
+        data.CountryOfOriginID,
+        data.CreatedByID
       ];
 
       const [result] = await pool.query(
@@ -84,7 +84,7 @@ class SupplierQuotationParcelModel {
   }
 
   // Delete a Supplier Quotation Parcel
-  static async deleteSupplierQuotationParcel(id, deletedById) {
+  static async deleteSupplierQuotationParcel(id, DeletedByID) {
     try {
       const pool = await poolPromise;
 
@@ -100,7 +100,7 @@ class SupplierQuotationParcelModel {
         null,
         null,
         null,
-        deletedById
+        DeletedByID
       ];
 
       const [result] = await pool.query(

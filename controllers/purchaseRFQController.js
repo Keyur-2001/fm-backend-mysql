@@ -32,12 +32,25 @@ class PurchaseRFQController {
   // Create a new Purchase RFQ
   static async createPurchaseRFQ(req, res) {
     try {
-      const data = req.body;
-      // Validate required fields
-      if (!data.salesRFQId || !data.createdById) {
+      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      if (!req.user || !allowedRoles.includes(req.user.role)) {
+        return res.status(403).json({
+          success: false,
+          message: 'Only Administrators or Customer Order Coordinators can create Purchase RFQ',
+          data: null,
+          purchaseRFQId: null,
+          newPurchaseRFQId: null
+        });
+      }
+
+      const data = {
+        SalesRFQID: req.body.SalesRFQID,
+        CreatedByID: req.user.personId
+      };
+      if (!data.SalesRFQID) {
         return res.status(400).json({
           success: false,
-          message: 'SalesRFQID and CreatedByID are required.',
+          message: 'SalesRFQID is required.',
           data: null,
           purchaseRFQId: null,
           newPurchaseRFQId: null
@@ -103,7 +116,7 @@ class PurchaseRFQController {
       const { id } = req.params;
       const data = req.body;
       // Validate required fields
-      if (!data.salesRFQId || !data.createdById) {
+      if (!data.SalesRFQID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
           message: 'SalesRFQID and CreatedByID are required.',
@@ -137,11 +150,11 @@ class PurchaseRFQController {
   static async deletePurchaseRFQ(req, res) {
     try {
       const { id } = req.params;
-      const { deletedById } = req.body;
+      const deletedById = req.user?.personId;
       if (!deletedById) {
-        return res.status(400).json({
+        return res.status(401).json({
           success: false,
-          message: 'DeletedByID is required.',
+          message: 'Authentication required.',
           data: null,
           purchaseRFQId: null,
           newPurchaseRFQId: null
@@ -159,6 +172,51 @@ class PurchaseRFQController {
     } catch (err) {
       console.error('Error in deletePurchaseRFQ:', err);
       res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        purchaseRFQId: null,
+        newPurchaseRFQId: null
+      });
+    }
+  }
+
+  // Approve a Purchase RFQ
+  static async approvePurchaseRFQ(req, res) {
+    try {
+      const { PurchaseRFQID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!PurchaseRFQID) {
+        return res.status(400).json({
+          success: false,
+          message: 'purchaseRFQID is required',
+          data: null,
+          purchaseRFQId: null,
+          newPurchaseRFQId: null
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          purchaseRFQId: null,
+          newPurchaseRFQId: null
+        });
+      }
+
+      const approvalData = {
+        PurchaseRFQID: parseInt(PurchaseRFQID),
+        ApproverID: parseInt(approverID)
+      };
+
+      const result = await PurchaseRFQModel.approvePurchaseRFQ(approvalData);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+    } catch (err) {
+      console.error('Approve PurchaseRFQ error:', err);
+      return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
