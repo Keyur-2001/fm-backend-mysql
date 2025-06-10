@@ -1,27 +1,43 @@
 const poolPromise = require('../config/db.config');
 
 class SalesOrderParcelModel {
-  static async #executeManageStoredProcedure(action, salesOrderParcelData) {
+  // Get all Sales Order Parcels
+  static async getAllSalesOrderParcels({
+    pageNumber = 1,
+    pageSize = 10,
+    salesOrderId = null
+  }) {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new Error('Invalid pageNumber: must be a positive integer');
+      }
+      if (!Number.isInteger(pageSize) || pageSize <= 0) {
+        throw new Error('Invalid pageSize: must be a positive integer');
+      }
+      if (salesOrderId && !Number.isInteger(salesOrderId)) {
+        throw new Error('Invalid salesOrderId: must be an integer');
+      }
+
       const queryParams = [
-        action,
-        salesOrderParcelData.SalesOrderParcelID ? parseInt(salesOrderParcelData.SalesOrderParcelID) : null,
-        salesOrderParcelData.SalesOrderID ? parseInt(salesOrderParcelData.SalesOrderID) : null,
-        salesOrderParcelData.SalesQuotationParcelID ? parseInt(salesOrderParcelData.SalesQuotationParcelID) : null,
-        salesOrderParcelData.SupplierQuotationParcelID ? parseInt(salesOrderParcelData.SupplierQuotationParcelID) : null,
-        salesOrderParcelData.ParcelID ? parseInt(salesOrderParcelData.ParcelID) : null,
-        salesOrderParcelData.ItemID ? parseInt(salesOrderParcelData.ItemID) : null,
-        salesOrderParcelData.CertificationID ? parseInt(salesOrderParcelData.CertificationID) : null,
-        salesOrderParcelData.LineItemNumber ? parseInt(salesOrderParcelData.LineItemNumber) : null,
-        salesOrderParcelData.RequiredByDate || null,
-        salesOrderParcelData.ItemQuantity ? parseFloat(salesOrderParcelData.ItemQuantity) : null,
-        salesOrderParcelData.UOMID ? parseInt(salesOrderParcelData.UOMID) : null,
-        salesOrderParcelData.SalesRate ? parseFloat(salesOrderParcelData.SalesRate) : null,
-        salesOrderParcelData.SalesAmount ? parseFloat(salesOrderParcelData.SalesAmount) : null,
-        salesOrderParcelData.CountryOfOriginID ? parseInt(salesOrderParcelData.CountryOfOriginID) : null,
-        salesOrderParcelData.ChangedByID ? parseInt(salesOrderParcelData.ChangedByID) : null
+        'SELECT',
+        null, // p_SalesOrderParcelID
+        salesOrderId || null, // p_SalesOrderID
+        null, // p_SalesQuotationParcelID
+        null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
+        null, // p_ItemID
+        null, // p_CertificationID
+        null, // p_LineItemNumber
+        null, // p_RequiredByDate
+        null, // p_ItemQuantity
+        null, // p_UOMID
+        null, // p_SalesRate
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        null // p_ChangedByID
       ];
 
       const [result] = await pool.query(
@@ -33,197 +49,158 @@ class SalesOrderParcelModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
+      if (outParams.result !== 1) {
+        // Check error log for more details
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
+        );
+        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
+      }
+
       return {
-        success: outParams.result === 1,
-        message: outParams.message || (outParams.result === 1 ? `${action} operation successful` : 'Operation failed'),
-        data: action === 'SELECT' ? result[0] || [] : null,
-        salesOrderParcelId: salesOrderParcelData.SalesOrderParcelID,
-        salesOrderId: salesOrderParcelData.SalesOrderID
+        data: result[0],
+        totalRecords: result[0].length
       };
-    } catch (error) {
-      console.error(`Database error in ${action} operation:`, error);
-      throw new Error(`Database error: ${error.message || 'Unknown error'}`);
+    } catch (err) {
+      const errorMessage = err.sqlState ? 
+        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
+        `Database error: ${err.message}`;
+      throw new Error(errorMessage);
     }
   }
 
-  static async #validateForeignKeys(salesOrderParcelData, action) {
-    const pool = await poolPromise;
-    const errors = [];
-
-    if (action === 'UPDATE') {
-      if (salesOrderParcelData.SalesOrderID) {
-        const [salesOrderCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblsalesorder WHERE SalesOrderID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.SalesOrderID)]
-        );
-        if (salesOrderCheck.length === 0) errors.push(`SalesOrderID ${salesOrderParcelData.SalesOrderID} does not exist`);
-      }
-      if (salesOrderParcelData.SalesQuotationParcelID) {
-        const [salesQuotationParcelCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblsalesquotationparcel WHERE SalesQuotationParcelID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.SalesQuotationParcelID)]
-        );
-        if (salesQuotationParcelCheck.length === 0) errors.push(`SalesQuotationParcelID ${salesOrderParcelData.SalesQuotationParcelID} does not exist`);
-      }
-      if (salesOrderParcelData.SupplierQuotationParcelID) {
-        const [supplierQuotationParcelCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblsupplierquotationparcel WHERE SupplierQuotationParcelID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.SupplierQuotationParcelID)]
-        );
-        if (supplierQuotationParcelCheck.length === 0) errors.push(`SupplierQuotationParcelID ${salesOrderParcelData.SupplierQuotationParcelID} does not exist`);
-      }
-      if (salesOrderParcelData.ParcelID) {
-        const [parcelCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblparcel WHERE ParcelID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.ParcelID)]
-        );
-        if (parcelCheck.length === 0) errors.push(`ParcelID ${salesOrderParcelData.ParcelID} does not exist`);
-      }
-      if (salesOrderParcelData.ItemID) {
-        const [itemCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblitem WHERE ItemID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.ItemID)]
-        );
-        if (itemCheck.length === 0) errors.push(`ItemID ${salesOrderParcelData.ItemID} does not exist`);
-      }
-      if (salesOrderParcelData.CertificationID) {
-        const [certificationCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblcertification WHERE CertificationID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.CertificationID)]
-        );
-        if (certificationCheck.length === 0) errors.push(`CertificationID ${salesOrderParcelData.CertificationID} does not exist`);
-      }
-      if (salesOrderParcelData.UOMID) {
-        const [uomCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tbluom WHERE UOMID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.UOMID)]
-        );
-        if (uomCheck.length === 0) errors.push(`UOMID ${salesOrderParcelData.UOMID} does not exist`);
-      }
-      if (salesOrderParcelData.CountryOfOriginID) {
-        const [countryCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblcountry WHERE CountryID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
-          [parseInt(salesOrderParcelData.CountryOfOriginID)]
-        );
-        if (countryCheck.length === 0) errors.push(`CountryOfOriginID ${salesOrderParcelData.CountryOfOriginID} does not exist`);
-      }
-      if (salesOrderParcelData.ChangedByID) {
-        const [changedByCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
-          [parseInt(salesOrderParcelData.ChangedByID)]
-        );
-        if (changedByCheck.length === 0) errors.push(`ChangedByID ${salesOrderParcelData.ChangedByID} does not exist`);
-      }
-    }
-
-    if (action === 'DELETE' && salesOrderParcelData.ChangedByID) {
-      const [changedByCheck] = await pool.query(
-        'SELECT 1 FROM dbo_tblperson WHERE PersonID = ?',
-        [parseInt(salesOrderParcelData.ChangedByID)]
-      );
-      if (changedByCheck.length === 0) errors.push(`ChangedByID ${salesOrderParcelData.ChangedByID} does not exist`);
-    }
-
-    return errors.length > 0 ? errors.join('; ') : null;
-  }
-
-  static async getSalesOrderParcels({ salesOrderParcelID = null, salesOrderID = null, pageNumber = 1, pageSize = 10 }) {
+  // Get a single Sales Order Parcel by ID
+  static async getSalesOrderParcelById(id) {
     try {
-      const salesOrderParcelData = {
-        SalesOrderParcelID: salesOrderParcelID,
-        SalesOrderID: salesOrderID
-      };
+      const pool = await poolPromise;
 
-      const result = await this.#executeManageStoredProcedure('SELECT', salesOrderParcelData);
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_SalesOrderID
+        null, // p_SalesQuotationParcelID
+        null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
+        null, // p_ItemID
+        null, // p_CertificationID
+        null, // p_LineItemNumber
+        null, // p_RequiredByDate
+        null, // p_ItemQuantity
+        null, // p_UOMID
+        null, // p_SalesRate
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        null // p_ChangedByID
+      ];
 
-      if (!result.success) {
-        return {
-          success: false,
-          message: result.message,
-          data: null,
-          salesOrderParcelId: salesOrderParcelID,
-          salesOrderId: salesOrderID,
-          totalRecords: 0
-        };
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Sales Order Parcel not found or deleted');
       }
 
-      let parcels = result.data || [];
-
-      if (!salesOrderParcelID && !salesOrderID) {
-        const start = (pageNumber - 1) * pageSize;
-        const end = start + pageSize;
-        parcels = parcels.slice(start, end);
-      }
-
-      return {
-        success: true,
-        message: result.message,
-        data: parcels,
-        salesOrderParcelId: salesOrderParcelID,
-        salesOrderId: salesOrderID,
-        totalRecords: salesOrderParcelID || salesOrderID ? parcels.length : (result.data ? result.data.length : 0)
-      };
-    } catch (error) {
-      console.error('Error in getSalesOrderParcels:', error);
-      return {
-        success: false,
-        message: `Server error: ${error.message}`,
-        data: null,
-        salesOrderParcelId: salesOrderParcelID,
-        salesOrderId: salesOrderID,
-        totalRecords: 0
-      };
+      return result[0][0] || null;
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  static async updateSalesOrderParcel(salesOrderParcelData) {
-    if (!salesOrderParcelData.SalesOrderParcelID) {
-      return {
-        success: false,
-        message: 'SalesOrderParcelID is required for UPDATE',
-        data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null
-      };
-    }
+  // Update a Sales Order Parcel
+  static async updateSalesOrderParcel(id, data) {
+    try {
+      const pool = await poolPromise;
 
-    const fkErrors = await this.#validateForeignKeys(salesOrderParcelData, 'UPDATE');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        salesOrderParcelId: salesOrderParcelData.SalesOrderParcelID,
-        salesOrderId: salesOrderParcelData.SalesOrderID
-      };
-    }
+      const queryParams = [
+        'UPDATE',
+        id,
+        data.salesOrderId || null,
+        data.salesQuotationParcelId || null,
+        data.supplierQuotationParcelId || null,
+        data.parcelId || null,
+        data.itemId || null,
+        data.certificationId || null,
+        data.lineItemNumber || null,
+        data.requiredByDate || null,
+        data.itemQuantity || null,
+        data.uomId || null,
+        data.salesRate || null,
+        data.salesAmount || null,
+        data.countryOfOriginId || null,
+        data.changedById || null
+      ];
 
-    return await this.#executeManageStoredProcedure('UPDATE', salesOrderParcelData);
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to update Sales Order Parcel');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
   }
 
-  static async deleteSalesOrderParcel(salesOrderParcelData) {
-    if (!salesOrderParcelData.SalesOrderParcelID) {
-      return {
-        success: false,
-        message: 'SalesOrderParcelID is required for DELETE',
-        data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null
-      };
-    }
+  // Delete a Sales Order Parcel
+  static async deleteSalesOrderParcel(id, changedById) {
+    try {
+      const pool = await poolPromise;
 
-    const fkErrors = await this.#validateForeignKeys(salesOrderParcelData, 'DELETE');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        salesOrderParcelId: salesOrderParcelData.SalesOrderParcelID,
-        salesOrderId: salesOrderParcelData.SalesOrderID
-      };
-    }
+      const queryParams = [
+        'DELETE',
+        id,
+        null, // p_SalesOrderID
+        null, // p_SalesQuotationParcelID
+        null, // p_SupplierQuotationParcelID
+        null, // p_ParcelID
+        null, // p_ItemID
+        null, // p_CertificationID
+        null, // p_LineItemNumber
+        null, // p_RequiredByDate
+        null, // p_ItemQuantity
+        null, // p_UOMID
+        null, // p_SalesRate
+        null, // p_SalesAmount
+        null, // p_CountryOfOriginID
+        changedById // p_ChangedByID
+      ];
 
-    return await this.#executeManageStoredProcedure('DELETE', salesOrderParcelData);
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesOrderParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
+
+      if (outParams.result !== 1) {
+        throw new Error(outParams.message || 'Failed to delete Sales Order Parcel');
+      }
+
+      return {
+        message: outParams.message
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
   }
 }
 

@@ -12,4 +12,7 @@ router.get('/',  PurchaseOrderController.getAllPurchaseOrders);
 // Create a new purchase order
 router.post('/', authMiddleware, PurchaseOrderController.createPurchaseOrder);
 
+router.post('/approve', authMiddleware, PurchaseOrderController.approvePO);
+
+
 module.exports = router;

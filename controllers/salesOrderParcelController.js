@@ -1,170 +1,124 @@
 const SalesOrderParcelModel = require('../models/salesOrderParcelModel');
 
 class SalesOrderParcelController {
+  // Get all Sales Order Parcels
+  static async getAllSalesOrderParcels(req, res) {
+    try {
+      const { pageNumber, pageSize, salesOrderId } = req.query;
+      const result = await SalesOrderParcelModel.getAllSalesOrderParcels({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        salesOrderId: parseInt(salesOrderId) || null
+      });
+      res.status(200).json({
+        success: true,
+        message: 'Sales Order Parcel records retrieved successfully.',
+        data: result.data,
+        totalRecords: result.totalRecords,
+        salesOrderParcelId: null
+      });
+    } catch (err) {
+      console.error('Error in getAllSalesOrderParcels:', err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        salesOrderParcelId: null
+      });
+    }
+  }
+
+  // Get a single Sales Order Parcel by ID
   static async getSalesOrderParcelById(req, res) {
     try {
-      const salesOrderParcelId = parseInt(req.params.id);
-      if (isNaN(salesOrderParcelId)) {
-        return res.status(400).json({
+      const { id } = req.params;
+      const salesOrderParcel = await SalesOrderParcelModel.getSalesOrderParcelById(parseInt(id));
+      if (!salesOrderParcel) {
+        return res.status(404).json({
           success: false,
-          message: 'Invalid or missing SalesOrderParcelID',
+          message: 'Sales Order Parcel not found or deleted.',
           data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null,
-          totalRecords: 0
+          salesOrderParcelId: null
         });
       }
-
-      const result = await SalesOrderParcelModel.getSalesOrderParcels({
-        salesOrderParcelID: salesOrderParcelId,
-        salesOrderID: null,
-        pageNumber: 1,
-        pageSize: 10
+      res.status(200).json({
+        success: true,
+        message: 'Sales Order Parcel retrieved successfully.',
+        data: salesOrderParcel,
+        salesOrderParcelId: id
       });
-
-      return res.status(result.success ? 200 : 404).json(result);
     } catch (err) {
       console.error('Error in getSalesOrderParcelById:', err);
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null,
-        totalRecords: 0
+        salesOrderParcelId: null
       });
     }
   }
 
-  static async getSalesOrderParcels(req, res) {
-    try {
-      const { salesOrderID, pageNumber, pageSize } = req.query;
-
-      if (salesOrderID && isNaN(parseInt(salesOrderID))) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid or missing SalesOrderID',
-          data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null,
-          totalRecords: 0
-        });
-      }
-
-      const result = await SalesOrderParcelModel.getSalesOrderParcels({
-        salesOrderParcelID: null, // Not using salesOrderParcelID for this route
-        salesOrderID: salesOrderID ? parseInt(salesOrderID) : null,
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10
-      });
-
-      return res.status(result.success ? 200 : 400).json(result);
-    } catch (err) {
-      console.error('Error in getSalesOrderParcels:', err);
-      return res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null,
-        totalRecords: 0
-      });
-    }
-  }
-
+  // Update a Sales Order Parcel
   static async updateSalesOrderParcel(req, res) {
     try {
-      const salesOrderParcelId = parseInt(req.params.id);
-      if (isNaN(salesOrderParcelId)) {
+      const { id } = req.params;
+      const data = req.body;
+      // Validate required fields
+      if (!data.changedById) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing SalesOrderParcelID',
+          message: 'ChangedByID is required.',
           data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null
+          salesOrderParcelId: null
         });
       }
 
-      if (!req.user || !req.user.personId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-          data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null
-        });
-      }
-
-      const salesOrderParcelData = {
-        SalesOrderParcelID: salesOrderParcelId,
-        SalesOrderID: req.body.salesOrderID ? parseInt(req.body.salesOrderID) : null,
-        SalesQuotationParcelID: req.body.salesQuotationParcelID ? parseInt(req.body.salesQuotationParcelID) : null,
-        SupplierQuotationParcelID: req.body.supplierQuotationParcelID ? parseInt(req.body.supplierQuotationParcelID) : null,
-        ParcelID: req.body.parcelID ? parseInt(req.body.parcelID) : null,
-        ItemID: req.body.itemID ? parseInt(req.body.itemID) : null,
-        CertificationID: req.body.certificationID ? parseInt(req.body.certificationID) : null,
-        LineItemNumber: req.body.lineItemNumber ? parseInt(req.body.lineItemNumber) : null,
-        RequiredByDate: req.body.requiredByDate || null,
-        ItemQuantity: req.body.itemQuantity ? parseFloat(req.body.itemQuantity) : null,
-        UOMID: req.body.uomID ? parseInt(req.body.uomID) : null,
-        SalesRate: req.body.salesRate ? parseFloat(req.body.salesRate) : null,
-        SalesAmount: req.body.salesAmount ? parseFloat(req.body.salesAmount) : null,
-        CountryOfOriginID: req.body.countryOfOriginID ? parseInt(req.body.countryOfOriginID) : null,
-        ChangedByID: req.user.personId
-      };
-
-      const result = await SalesOrderParcelModel.updateSalesOrderParcel(salesOrderParcelData);
-      return res.status(result.success ? 200 : 400).json(result);
+      const result = await SalesOrderParcelModel.updateSalesOrderParcel(parseInt(id), data);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        salesOrderParcelId: id
+      });
     } catch (err) {
       console.error('Error in updateSalesOrderParcel:', err);
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null
+        salesOrderParcelId: null
       });
     }
   }
 
+  // Delete a Sales Order Parcel
   static async deleteSalesOrderParcel(req, res) {
     try {
-      const salesOrderParcelId = parseInt(req.params.id);
-      if (isNaN(salesOrderParcelId)) {
+      const { id } = req.params;
+      const { changedById } = req.body;
+      if (!changedById) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing SalesOrderParcelID',
+          message: 'ChangedByID is required.',
           data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null
+          salesOrderParcelId: null
         });
       }
 
-      if (!req.user || !req.user.personId) {
-        return res.status(401).json({
-          success: false,
-          message: 'Authentication required',
-          data: null,
-          salesOrderParcelId: null,
-          salesOrderId: null
-        });
-      }
-
-      const salesOrderParcelData = {
-        SalesOrderParcelID: salesOrderParcelId,
-        ChangedByID: req.user.personId
-      };
-
-      const result = await SalesOrderParcelModel.deleteSalesOrderParcel(salesOrderParcelData);
-      return res.status(result.success ? 200 : 400).json(result);
+      const result = await SalesOrderParcelModel.deleteSalesOrderParcel(parseInt(id), changedById);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        salesOrderParcelId: id
+      });
     } catch (err) {
       console.error('Error in deleteSalesOrderParcel:', err);
-      return res.status(500).json({
+      res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        salesOrderParcelId: null,
-        salesOrderId: null
+        salesOrderParcelId: null
       });
     }
   }
