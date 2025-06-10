@@ -8,14 +8,14 @@ const companyRoutes = require('./routes/companyRoutes');
 const supplierRoutes = require('./routes/supplierRoutes');
 const serviceTypeRoutes = require('./routes/serviceTypeRoutes');
 const salesRFQParcelRoutes = require('./routes/salesRFQParcelRoutes');
-// const addressRoutes = require('./routes/addressRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 const mailingPriorityRoutes = require('./routes/mailingPriorityRoutes');
 const currencyRoutes = require('./routes/currencyRoutes');
 const salesRFQApprovalRoutes = require('./routes/salesRFQApprovalRoutes');
 const personRoutes = require('./routes/personRoutes');
 const personTypeRoutes = require('./routes/personTypeRoutes');
 const purchaseRFQRoutes = require('./routes/purchaseRFQRoutes');
-// const itemRoutes = require('./routes/itemRoutes');
+const itemRoutes = require('./routes/itemRoutes');
 const uomRoutes = require('./routes/uomRoutes');
 const authRoutes = require('./routes/authRoutes');
 const cityRoutes = require('./routes/cityRoutes');
@@ -27,7 +27,7 @@ const bankAccountRoutes = require('./routes/bankAccountRoutes');
 const certificationRoutes = require('./routes/certificationRoutes');
 const RolesRoutes = require('./routes/roleRoutes');
 const permissionRoutes = require('./routes/permissionRoutes');
-// const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
+const rolePermissionRoutes = require('./routes/rolePermissionRoutes');
 const purchaseRFQParcelRoutes = require('./routes/purchaseRFQParcelRoutes');
 // const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
@@ -37,8 +37,8 @@ const formRoleApprovalRoutes = require('./routes/formRoleApproverRoutes');
 const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
 const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
-// const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
-// const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
+const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
+const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 // const minRateRoutes = require('./routes/minRateRoutes');
 const formRoutes = require('./routes/formRoutes');
@@ -90,12 +90,12 @@ async function startServer() {
       ['/api/companies', companyRoutes],
       ['/api/suppliers', supplierRoutes],
       ['/api/service-types', serviceTypeRoutes],
-      // ['/api/addresses', addressRoutes],
+      ['/api/addresses', addressRoutes],
       ['/api/mailing-priorities', mailingPriorityRoutes],
       ['/api/currencies', currencyRoutes],
       ['/api/persons', personRoutes],
       ['/api/person-types', personTypeRoutes],
-      // ['/api/items', itemRoutes],
+      ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
       ['/api/auth', authRoutes],
       ['/api/cities', cityRoutes],
