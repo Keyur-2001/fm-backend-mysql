@@ -2,48 +2,71 @@ const poolPromise = require('../config/db.config');
 
 class SalesQuotationParcelModel {
   // Get all Sales Quotation Parcels
-  static async getAllSalesQuotationParcels({
+ static async getAllSalesQuotationParcels({
     pageNumber = 1,
     pageSize = 10,
-    fromDate = null,
-    toDate = null
+    salesQuotationId = null
   }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new Error('Invalid pageNumber: must be a positive integer');
+      }
+      if (!Number.isInteger(pageSize) || pageSize <= 0) {
+        throw new Error('Invalid pageSize: must be a positive integer');
+      }
+      if (salesQuotationId && !Number.isInteger(salesQuotationId)) {
+        throw new Error('Invalid salesQuotationId: must be an integer');
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate || null,
-        toDate || null
+        'SELECT',
+        null, // p_SalesQuotationParcelID
+        salesQuotationId || null, // p_SalesQuotationID
+        null, // p_SupplierQuotationParcelID
+        null, // p_ItemID
+        null, // p_CertificationID
+        null, // p_LineItemNumber
+        null, // p_ItemQuantity
+        null, // p_UOMID
+        null, // p_CountryOfOriginID
+        null, // p_SalesRate
+        null, // p_CreatedByID
+        null // p_DeletedByID
       ];
 
-      // Call SP_GetAllSalesQuotationParcel
       const [result] = await pool.query(
-        'CALL SP_GetAllSalesQuotationParcel(?, ?, ?, ?, @p_TotalRecords)',
+        'CALL SP_ManageSalesQuotationParcel(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
-      // Retrieve OUT parameter
-      const [[{ totalRecords }]] = await pool.query('SELECT @p_TotalRecords AS totalRecords');
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS result, @p_Message AS message'
+      );
 
-      if (totalRecords === -1) {
+      if (outParams.result !== 1) {
+        // Check error log for more details
+        await new Promise(resolve => setTimeout(resolve, 100));
         const [[errorLog]] = await pool.query(
-          'SELECT errormessage FROM dbo_tblerrorlog WHERE errormessage LIKE ? ORDER BY createdat DESC LIMIT 1',
-          ['%SP_GetAllSalesQuotationParcel%']
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
         );
-        throw new Error(`Stored procedure error: ${errorLog?.errormessage || 'Unknown error'}`);
+        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
       }
 
       return {
         data: result[0],
-        totalRecords: totalRecords || 0
+        totalRecords: result[0].length
       };
     } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+      const errorMessage = err.sqlState ? 
+        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
+        `Database error: ${err.message}`;
+      throw new Error(errorMessage);
     }
   }
+
 
   // Get a single Sales Quotation Parcel by ID
   static async getSalesQuotationParcelById(id) {

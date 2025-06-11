@@ -1,9 +1,18 @@
 const express = require('express');
 const router = express.Router();
-const POController = require('../controllers/poController');
+const PurchaseOrderController = require('../controllers/poController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-router.post('/', authMiddleware, POController.createPO);
-router.get('/', authMiddleware, POController.getAllPOs);
+// Get a single purchase order by ID
+router.get('/:id', PurchaseOrderController.getPurchaseOrderById);
+
+// Get all purchase orders (paginated)
+router.get('/',  PurchaseOrderController.getAllPurchaseOrders);
+
+// Create a new purchase order
+router.post('/', authMiddleware, PurchaseOrderController.createPurchaseOrder);
+
+router.post('/approve', authMiddleware, PurchaseOrderController.approvePO);
+
 
 module.exports = router;

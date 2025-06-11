@@ -1,13 +1,62 @@
 const SalesOrderModel = require('../models/SalesOrderModel');
 
 class SalesOrderController {
+  static async getSalesOrderById(req, res) {
+    try {
+      const salesOrderId = parseInt(req.params.id);
+      if (isNaN(salesOrderId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SalesOrderID',
+          data: null,
+          salesOrderId: null
+        });
+      }
+
+      const result = await SalesOrderModel.getSalesOrderById(salesOrderId);
+      return res.status(result.success ? 200 : 404).json(result);
+    } catch (err) {
+      console.error('Error in getSalesOrderById:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        salesOrderId: null
+      });
+    }
+  }
+
+  static async getAllSalesOrders(req, res) {
+    try {
+      const { pageNumber, pageSize, sortColumn, sortDirection, fromDate, toDate } = req.query;
+
+      const result = await SalesOrderModel.getAllSalesOrders({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        sortColumn: sortColumn || 'CreatedDateTime',
+        sortDirection: sortDirection || 'DESC',
+        fromDate: fromDate || null,
+        toDate: toDate || null
+      });
+
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+      console.error('Error in getAllSalesOrders:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: [],
+        totalRecords: 0
+      });
+    }
+  }
+
   static async createSalesOrder(req, res) {
     try {
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
+      if (!req.user || !req.user.personId) {
+        return res.status(401).json({
           success: false,
-          message: 'Only Administrators or Customer Order Coordinators can create SalesOrder',
+          message: 'Authentication required',
           data: null,
           salesOrderId: null,
           newSalesOrderId: null
@@ -15,19 +64,19 @@ class SalesOrderController {
       }
 
       const salesOrderData = {
-        SalesQuotationID: req.body.SalesQuotationID ? parseInt(req.body.SalesQuotationID) : null,
-        CreatedByID: parseInt(req.body.CreatedByID) || req.user.personId,
-        ShippingPriorityID: req.body.ShippingPriorityID ? parseInt(req.body.ShippingPriorityID) : null,
-        PostingDate: req.body.PostingDate || null
+        SalesQuotationID: req.body.salesQuotationID ? parseInt(req.body.salesQuotationID) : null,
+        CreatedByID: req.user.personId,
+        ShippingPriorityID: req.body.shippingPriorityID ? parseInt(req.body.shippingPriorityID) : null,
+        PostingDate: req.body.postingDate || null
       };
 
       const result = await SalesOrderModel.createSalesOrder(salesOrderData);
       return res.status(result.success ? 201 : 400).json(result);
-    } catch (error) {
-      console.error('Create SalesOrder error:', error);
+    } catch (err) {
+      console.error('Error in createSalesOrder:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
         salesOrderId: null,
         newSalesOrderId: null
@@ -43,55 +92,62 @@ class SalesOrderController {
           success: false,
           message: 'Invalid or missing SalesOrderID',
           data: null,
-          salesOrderId: null,
-          newSalesOrderId: null
+          salesOrderId: null
+        });
+      }
+
+      if (!req.user || !req.user.personId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          salesOrderId: null
         });
       }
 
       const salesOrderData = {
         SalesOrderID: salesOrderId,
-        SalesQuotationID: req.body.SalesQuotationID ? parseInt(req.body.SalesQuotationID) : null,
-        SalesRFQID: req.body.SalesRFQID ? parseInt(req.body.SalesRFQID) : null,
-        CompanyID: req.body.CompanyID ? parseInt(req.body.CompanyID) : null,
-        CustomerID: req.body.CustomerID ? parseInt(req.body.CustomerID) : null,
-        SupplierID: req.body.SupplierID ? parseInt(req.body.SupplierID) : null,
-        OriginAddressID: req.body.OriginAddressID ? parseInt(req.body.OriginAddressID) : null,
-        DestinationAddressID: req.body.DestinationAddressID ? parseInt(req.body.DestinationAddressID) : null,
-        BillingAddressID: req.body.BillingAddressID ? parseInt(req.body.BillingAddressID) : null,
-        CollectionAddressID: req.body.CollectionAddressID ? parseInt(req.body.CollectionAddressID) : null,
-        ShippingPriorityID: req.body.ShippingPriorityID ? parseInt(req.body.ShippingPriorityID) : null,
-        PackagingRequiredYN: req.body.PackagingRequiredYN != null ? Boolean(req.body.PackagingRequiredYN) : null,
-        CollectFromSupplierYN: req.body.CollectFromSupplierYN != null ? Boolean(req.body.CollectFromSupplierYN) : null,
-        Terms: req.body.Terms || null,
-        PostingDate: req.body.PostingDate || null,
-        DeliveryDate: req.body.DeliveryDate || null,
-        RequiredByDate: req.body.RequiredByDate || null,
-        DateReceived: req.body.DateReceived || null,
-        ServiceTypeID: req.body.ServiceTypeID ? parseInt(req.body.ServiceTypeID) : null,
-        ExternalRefNo: req.body.ExternalRefNo || null,
-        ExternalSupplierID: req.body.ExternalSupplierID ? parseInt(req.body.ExternalSupplierID) : null,
-        OrderStatusID: req.body.OrderStatusID ? parseInt(req.body.OrderStatusID) : null,
-        ApplyTaxWithholdingAmount: req.body.ApplyTaxWithholdingAmount != null ? Boolean(req.body.ApplyTaxWithholdingAmount) : null,
-        CurrencyID: req.body.CurrencyID ? parseInt(req.body.CurrencyID) : null,
-        SalesAmount: req.body.SalesAmount ? parseFloat(req.body.SalesAmount) : null,
-        TaxesAndOtherCharges: req.body.TaxesAndOtherCharges ? parseFloat(req.body.TaxesAndOtherCharges) : null,
-        Total: req.body.Total ? parseFloat(req.body.Total) : null,
-        FormCompletedYN: req.body.FormCompletedYN != null ? Boolean(req.body.FormCompletedYN) : null,
-        FileName: req.body.FileName || null,
-        FileContent: req.body.FileContent || null, // Added FileContent
-        ChangedByID: parseInt(req.body.ChangedByID) || req.user.personId
+        SalesQuotationID: req.body.salesQuotationID ? parseInt(req.body.salesQuotationID) : null,
+        SalesRFQID: req.body.salesRFQID ? parseInt(req.body.salesRFQID) : null,
+        CompanyID: req.body.companyID ? parseInt(req.body.companyID) : null,
+        CustomerID: req.body.customerID ? parseInt(req.body.customerID) : null,
+        SupplierID: req.body.supplierID ? parseInt(req.body.supplierID) : null,
+        OriginAddressID: req.body.originAddressID ? parseInt(req.body.originAddressID) : null,
+        DestinationAddressID: req.body.destinationAddressID ? parseInt(req.body.destinationAddressID) : null,
+        BillingAddressID: req.body.billingAddressID ? parseInt(req.body.billingAddressID) : null,
+        CollectionAddressID: req.body.collectionAddressID ? parseInt(req.body.collectionAddressID) : null,
+        ShippingPriorityID: req.body.shippingPriorityID ? parseInt(req.body.shippingPriorityID) : null,
+        PackagingRequiredYN: req.body.packagingRequiredYN !== undefined ? req.body.packagingRequiredYN : null,
+        CollectFromSupplierYN: req.body.collectFromSupplierYN !== undefined ? req.body.collectFromSupplierYN : null,
+        Terms: req.body.terms || null,
+        PostingDate: req.body.postingDate || null,
+        DeliveryDate: req.body.deliveryDate || null,
+        RequiredByDate: req.body.requiredByDate || null,
+        DateReceived: req.body.dateReceived || null,
+        ServiceTypeID: req.body.serviceTypeID ? parseInt(req.body.serviceTypeID) : null,
+        ExternalRefNo: req.body.externalRefNo || null,
+        ExternalSupplierID: req.body.externalSupplierID ? parseInt(req.body.externalSupplierID) : null,
+        OrderStatusID: req.body.orderStatusID ? parseInt(req.body.orderStatusID) : null,
+        ApplyTaxWithholdingAmount: req.body.applyTaxWithholdingAmount !== undefined ? req.body.applyTaxWithholdingAmount : null,
+        CurrencyID: req.body.currencyID ? parseInt(req.body.currencyID) : null,
+        SalesAmount: req.body.salesAmount ? parseFloat(req.body.salesAmount) : null,
+        TaxesAndOtherCharges: req.body.taxesAndOtherCharges ? parseFloat(req.body.taxesAndOtherCharges) : null,
+        Total: req.body.total ? parseFloat(req.body.total) : null,
+        FormCompletedYN: req.body.formCompletedYN !== undefined ? req.body.formCompletedYN : null,
+        FileName: req.body.fileName || null,
+        FileContent: req.body.fileContent || null,
+        ChangedByID: req.user.personId
       };
 
       const result = await SalesOrderModel.updateSalesOrder(salesOrderData);
       return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Update SalesOrder error:', error);
+    } catch (err) {
+      console.error('Error in updateSalesOrder:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
+        salesOrderId: null
       });
     }
   }
@@ -104,80 +160,78 @@ class SalesOrderController {
           success: false,
           message: 'Invalid or missing SalesOrderID',
           data: null,
-          salesOrderId: null,
-          newSalesOrderId: null
+          salesOrderId: null
+        });
+      }
+
+      if (!req.user || !req.user.personId) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          salesOrderId: null
         });
       }
 
       const salesOrderData = {
         SalesOrderID: salesOrderId,
-        ChangedByID: parseInt(req.body.ChangedByID) || req.user.personId
+        ChangedByID: req.user.personId
       };
 
       const result = await SalesOrderModel.deleteSalesOrder(salesOrderData);
       return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Delete SalesOrder error:', error);
+    } catch (err) {
+      console.error('Error in deleteSalesOrder:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
-        data: null ,
-        salesOrderId: null,
-        newSalesOrderId: null
+        message: `Server error: ${err.message}`,
+        data: null,
+        salesOrderId: null
       });
     }
   }
 
-  static async getSalesOrder(req, res) {
+   // Approve a Sales Quotation
+  static async approveSalesOrder(req, res) {
     try {
-      const salesOrderId = parseInt(req.params.id);
-      if (isNaN(salesOrderId)) {
+      const { SalesOrderID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!SalesOrderID) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing SalesOrderID',
+          message: 'SalesOrderID is required',
           data: null,
-          salesOrderId: null,
-          newSalesOrderId: null
+          SalesOrderID: null,
+          newSalesOrderID: null
         });
       }
 
-      const salesOrderData = {
-        SalesOrderID: salesOrderId
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          SalesOrderID: null,
+          newSalesOrderID: null
+        });
+      }
+
+      const approvalData = {
+        SalesOrderID: parseInt(SalesOrderID),
+        ApproverID: parseInt(approverID)
       };
 
-      const result = await SalesOrderModel.getSalesOrder(salesOrderData);
-      return res.status(result.success ? 200 : 404).json(result);
-    } catch (error) {
-      console.error('Get SalesOrder error:', error);
+      const result = await SalesOrderModel.approveSalesOrder(approvalData);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+    } catch (err) {
+      console.error('Approve SalesQuotation error:', err);
       return res.status(500).json({
         success: false,
-        message: `Server error: ${error.message}`,
+        message: `Server error: ${err.message}`,
         data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
-      });
-    }
-  }
-
-  static async getAllSalesOrders(req, res) {
-    try {
-      const paginationData = {
-        PageNumber: req.query.pageNumber ? parseInt(req.query.pageNumber) : 1,
-        PageSize: req.query.pageSize ? parseInt(req.query.pageSize) : 10,
-        FromDate: req.query.fromDate || null,
-        ToDate: req.query.toDate || null
-      };
-
-      const result = await SalesOrderModel.getAllSalesOrders(paginationData);
-      return res.status(result.success ? 200 : 400).json(result);
-    } catch (error) {
-      console.error('Get All SalesOrders error:', error);
-      return res.status(500).json({
-        success: false,
-        message: `Server error: ${error.message}`,
-        data: null,
-        salesOrderId: null,
-        newSalesOrderId: null
+       SalesOrderID: null,
+        newSalesOrderID: null
       });
     }
   }
