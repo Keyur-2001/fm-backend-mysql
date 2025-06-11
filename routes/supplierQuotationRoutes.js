@@ -4,13 +4,13 @@ const SupplierQuotationController = require('../controllers/supplierQuotationCon
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Get all Supplier Quotations
-router.get('/',  SupplierQuotationController.getAllSupplierQuotations);
+router.get('/',  authMiddleware,SupplierQuotationController.getAllSupplierQuotations);
 
 // Create a new Supplier Quotation
-router.post('/', authMiddleware, SupplierQuotationController.createSupplierQuotation);
+router.post('/', authMiddleware,  SupplierQuotationController.createSupplierQuotation);
 
 // Get a single Supplier Quotation by ID
-router.get('/:id',  SupplierQuotationController.getSupplierQuotationById);
+router.get('/:id',  authMiddleware, SupplierQuotationController.getSupplierQuotationById);
 
 // Update a Supplier Quotation
 router.put('/:id', authMiddleware, SupplierQuotationController.updateSupplierQuotation);

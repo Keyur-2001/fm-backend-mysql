@@ -2,13 +2,13 @@ const poolPromise = require('../config/db.config');
 
 class UOMModel {
   // Get paginated UOMs
-  static async getAllUOMs({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
+  static async getAllUOMs({ pageNumber = 1, pageSize = 1000, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
+        pageSize > 0 ? pageSize : 1000,
         fromDate ? new Date(fromDate) : null,
         toDate ? new Date(toDate) : null
       ];
