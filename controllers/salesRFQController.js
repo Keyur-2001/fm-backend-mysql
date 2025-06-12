@@ -226,6 +226,33 @@ class SalesRFQController {
       });
     }
   }
+
+  static async getSalesRFQApprovalStatus(req, res) {
+    try {
+      const salesRFQId = parseInt(req.params.id);
+      if (isNaN(salesRFQId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SalesRFQID',
+          data: null,
+          salesRFQId: null,
+          newSalesRFQId: null
+        });
+      }
+
+      const result = await SalesRFQModel.getSalesRFQApprovalStatus(salesRFQId);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get SalesRFQ Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        salesRFQId: null,
+        newSalesRFQId: null
+      });
+    }
+  }
 }
 
 module.exports = SalesRFQController;
