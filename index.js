@@ -52,6 +52,8 @@ const poRoutes = require('./routes/poRoutes');
 const poParcelRoutes = require('./routes/poParcelRoutes');
 const poApprovalRoutes = require('./routes/poApprovalRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
+const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
+const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 // const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
 const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
 const tableAccessRoutes = require('./routes/tableAccessRoutes');
@@ -135,6 +137,8 @@ async function startServer() {
       ['/api/po-Parcel', poParcelRoutes],
       ['/api/po-Approval', poApprovalRoutes],
       ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/pInvoice-Parcel', pInvoiceParcelRoutes],
+      ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
       // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
       ['/api/tableAccess', tableAccessRoutes],
@@ -160,7 +164,7 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7000;
+    const PORT = process.env.PORT || 7001;
     const server = app.listen(PORT, () => {
       console.log(
         `Server running on port ${PORT} in ${
