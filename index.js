@@ -52,11 +52,12 @@ const poParcelRoutes = require('./routes/poParcelRoutes');
 const poApprovalRoutes = require('./routes/poApprovalRoutes');
 const sendPurchaseOrderRoutes = require('./routes/sendPurchaseOrderRoutes');
 const pendingApprovalsRoutes = require('./routes/pendingApprovalsRoutes');
-const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
-const tableAccessRoutes = require('./routes/tableAccessRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
+// const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
+const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
+const tableAccessRoutes = require('./routes/tableAccessRoutes');
 const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 
 const app = express();
@@ -132,63 +133,62 @@ async function startServer() {
 
     // Mount routes with validation
     const routes = [
-      ["/api/customers", customerRoutes],
-      ["/api/companies", companyRoutes],
-      ["/api/suppliers", supplierRoutes],
-      ["/api/service-types", serviceTypeRoutes],
-      ["/api/addresses", addressRoutes],
-      ["/api/mailing-priorities", mailingPriorityRoutes],
-      ["/api/currencies", currencyRoutes],
-      ["/api/persons", personRoutes],
-      ["/api/person-types", personTypeRoutes],
-      ["/api/items", itemRoutes],
-      ["/api/uoms", uomRoutes],
-      ["/api/auth", authRoutes],
-      ["/api/city", cityRoutes],
-      ["/api/country-of-origin", countryOfOriginRoutes],
-      ["/api/address-types", addressTypeRoutes],
-      ["/api/warehouses", warehouseRoutes],
-      ["/api/vehicles", vehicleRoutes],
-      ["/api/bank-accounts", bankAccountRoutes],
-      ["/api/certifications", certificationRoutes],
-      ["/api/roles", RolesRoutes],
-      ["/api/permissions", permissionRoutes],
-      ["/api/rolepermissions", rolePermissionRoutes],
-      ["/api/forms", formRoutes],
-      ["/api/formRole", formRoleRoutes],
-      ["/api/formRoleApproval", formRoleApprovalRoutes],
-      ["/api/taxChargesType", taxChargesTypeRoutes],
-      ["/api/collectionRate", collectionRateRoutes],
-      ["/api/subscriptionPlan", subscriptionPlanRoutes],
-      ["/api/sales-rfq", salesRFQRoutes],
-      ["/api/sales-rfq-parcels", salesRFQParcelRoutes],
-      ["/api/sales-rfq-approvals", salesRFQApprovalRoutes],
-      ["/api/purchase-rfq", purchaseRFQRoutes],
-      ["/api/purchase-rfq-parcels", purchaseRFQParcelRoutes],
-      ["/api/purchase-rfq-approvals", purchaseRFQApprovalRoutes],
-      ["/api/rfqsent", sentPurchaseRFQToSuppliersRoutes],
-      ["/api/supplier-Quotation", supplierQuotationRoutes],
-      ["/api/supplier-Quotation-Parcel", supplierQuotationParcelRoutes],
-      ["/api/supplier-quotation-approvals", supplierQuotationApprovalRoutes],
-      ["/api/sales-Quotation-Approvals", salesQuotationApprovalRoutes],
-      ["/api/sales-Quotation", salesQuotationRoutes],
-      ["/api/sales-Quotation-Parcel", salesQuotationParcelRoutes],
-      ["/api/sales-Quotation-Approvals", salesQuotationApprovalRoutes],
-      ["/api/send-sales-quotation", sendSalesQuotationRoutes],
-      ["/api/sales-Order", salesOrderRoutes],
-      ["/api/sales-Order-Parcel", salesOrderParcelRoutes],
-      ["/api/sales-Order-Approval", salesOrderApprovalRoutes],
-      ["/api/po", poRoutes],
-      ["/api/po-Parcel", poParcelRoutes],
-      ["/api/po-Approval", poApprovalRoutes],
-      ["/api/sendPurchaseOrder", sendPurchaseOrderRoutes],
-      ["/api/pendingApprovals", pendingApprovalsRoutes],
-      ["/api/pInvoice", pInvoiceRoutes],
-      ["/api/pInvoiceParcel", pInvoiceParcelRoutes],
-      ["/api/pInvoiceApproval", pInvoiceApprovalRoutes],
-      ["/api/salesInvoice", salesInvoiceRoutes],
-      ["/api/lowestItemPrice", lowestItemPriceRoutes],
-      ["/api/tableAccess", tableAccessRoutes],
+      ['/api/customers', customerRoutes],
+      ['/api/companies', companyRoutes],
+      ['/api/suppliers', supplierRoutes],
+      ['/api/service-types', serviceTypeRoutes],
+      ['/api/addresses', addressRoutes],
+      ['/api/mailing-priorities', mailingPriorityRoutes],
+      ['/api/currencies', currencyRoutes],
+      ['/api/persons', personRoutes],
+      ['/api/person-types', personTypeRoutes],
+      ['/api/items', itemRoutes],
+      ['/api/uoms', uomRoutes],
+      ['/api/auth', authRoutes],
+      ['/api/cities', cityRoutes],
+      ['/api/country-of-origin', countryOfOriginRoutes],
+      ['/api/address-types', addressTypeRoutes],
+      ['/api/warehouses', warehouseRoutes],
+      ['/api/vehicles', vehicleRoutes],
+      ['/api/bank-accounts', bankAccountRoutes],
+      ['/api/certifications', certificationRoutes],
+      ['/api/roles', RolesRoutes],
+      ['/api/permissions', permissionRoutes],
+      ['/api/rolepermissions', rolePermissionRoutes],
+      ['/api/forms', formRoutes],
+      ['/api/formRole', formRoleRoutes],
+      ['/api/formRoleApproval', formRoleApprovalRoutes],
+      ['/api/taxChargesType', taxChargesTypeRoutes],
+      ['/api/collectionRate', collectionRateRoutes],
+      ['/api/subscriptionPlan', subscriptionPlanRoutes],
+      ['/api/sales-rfq', salesRFQRoutes],
+      ['/api/sales-rfq-parcels', salesRFQParcelRoutes],
+      ['/api/sales-rfq-approvals', salesRFQApprovalRoutes],
+      ['/api/purchase-rfq', purchaseRFQRoutes],
+      ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
+      ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
+      ['/api/supplier-Quotation', supplierQuotationRoutes],
+      ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
+      ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      ['/api/sales-Quotation', salesQuotationRoutes],
+      ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
+      ['/api/send-sales-quotation', sendSalesQuotationRoutes],
+      ['/api/sales-Order', salesOrderRoutes],
+      ['/api/sales-Order-Parcel', salesOrderParcelRoutes],
+      ['/api/sales-Order-Approval', salesOrderApprovalRoutes],
+      ['/api/po', poRoutes],
+      ['/api/po-Parcel', poParcelRoutes],
+      ['/api/po-Approval', poApprovalRoutes],
+      ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
+      ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
+      // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
+      ['/api/lowestItemPrice', lowestItemPriceRoutes],
+      ['/api/tableAccess', tableAccessRoutes],
+      ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      // ['/api/min-rate', minRateRoutes]
     ];
 
     routes.forEach(([path, route]) => {
@@ -210,8 +210,12 @@ async function startServer() {
     });
 
     const PORT = process.env.PORT || 7000;
-    server.listen(PORT, () => {
-      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
+    const server = app.listen(PORT, () => {
+      console.log(
+        `Server running on port ${PORT} in ${
+          process.env.NODE_ENV || "development"
+        } mode`
+      );
     });
 
     // Graceful shutdown
