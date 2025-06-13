@@ -1,5 +1,3 @@
-
-
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
@@ -12,7 +10,7 @@ const upload = multer({
   limits: {
     fileSize: 16 * 1024 * 1024 // 16MB limit for MEDIUMBLOB
   },
-  fileFilter: (req, file, cb) => {
+  fileFilter: (req, file, cb) => {            
     // Allow common document types
     const allowedTypes = [
       'application/pdf',
@@ -32,6 +30,9 @@ const upload = multer({
     }
   }
 });
+
+// Get all Purchase Invoice Parcels
+router.get('/', PInvoiceParcelController.getAllPInvoiceParcels);
 
 // Get all parcels for a specific Purchase Invoice
 router.get('/pinvoice/:pInvoiceId', PInvoiceParcelController.getParcelsByPInvoiceId);

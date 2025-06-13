@@ -1,6 +1,33 @@
 const PInvoiceParcelModel = require('../models/pInvoiceParcelModel');
 
 class PInvoiceParcelController {
+  // Get all Purchase Invoice Parcels
+  static async getAllPInvoiceParcels(req, res) {
+    try {
+      const { pageNumber, pageSize, PInvoiceID } = req.query;
+      const result = await PInvoiceParcelModel.getAllPInvoiceParcels({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        PInvoiceID: parseInt(PInvoiceID) || null
+      });
+      res.status(200).json({
+        success: true,
+        message: 'Purchase Invoice Parcel records retrieved successfully.',
+        data: result.data,
+        totalRecords: result.totalRecords,
+        pInvoiceParcelId: null
+      });
+    } catch (err) {
+      console.error('Error in getAllPInvoiceParcels:', err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        pInvoiceParcelId: null
+      });
+    }
+  }
+
   // Get a single Purchase Invoice Parcel by ID
   static async getPInvoiceParcelById(req, res) {
     try {

@@ -137,7 +137,7 @@ async function startServer() {
       ['/api/po-Parcel', poParcelRoutes],
       ['/api/po-Approval', poApprovalRoutes],
       ['/api/pInvoice', pInvoiceRoutes],
-      ['/api/pInvoice-Parcel', pInvoiceParcelRoutes],
+      ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
       // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
