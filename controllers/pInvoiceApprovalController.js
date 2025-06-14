@@ -1,72 +1,97 @@
 const PInvoiceApprovalModel = require('../models/pInvoiceApprovalModel');
 
 class PInvoiceApprovalController {
-  static async getPInvoiceApproval(req, res) {
+  static async getPInvoiceApprovals(req, res) {
     try {
-      const pInvoiceId = parseInt(req.params.pInvoiceId);
-      const approverId = parseInt(req.params.approverId);
-      if (isNaN(pInvoiceId) || isNaN(approverId)) {
+      const { pInvoiceID, pageNumber, pageSize } = req.query;
+
+      if (pInvoiceID && isNaN(parseInt(pInvoiceID))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing PInvoiceID or ApproverID',
+          message: 'Invalid or missing PInvoiceID',
           data: null,
           pInvoiceId: null,
-          approverId: null
+          totalRecords: 0
         });
       }
 
-      const result = await PInvoiceApprovalModel.getPInvoiceApproval(pInvoiceId, approverId);
-      return res.status(result.success ? 200 : 404).json(result);
+      const result = await PInvoiceApprovalModel.getPInvoiceApprovals({
+        pInvoiceID: pInvoiceID ? parseInt(pInvoiceID) : null,
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10
+      });
+
+      return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('Error in getPInvoiceApproval:', err);
+      console.error('Error in getPInvoiceApprovals:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         pInvoiceId: null,
-        approverId: null
+        totalRecords: 0
       });
     }
   }
 
-  static async getAllPInvoiceApprovals(req, res) {
+  static async getPInvoiceApprovalById(req, res) {
     try {
-      const pInvoiceId = req.query.pInvoiceId ? parseInt(req.query.pInvoiceId) : null;
-      const approverId = req.query.approverId ? parseInt(req.query.approverId) : null;
+      const { pInvoiceID, approverID } = req.params;
 
-      const result = await PInvoiceApprovalModel.getAllPInvoiceApprovals(pInvoiceId, approverId);
-      return res.status(result.success ? 200 : 400).json(result);
+      if (isNaN(parseInt(pInvoiceID)) || isNaN(parseInt(approverID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing PInvoiceID or ApproverID',
+          data: null,
+          pInvoiceId: null
+        });
+      }
+
+      const result = await PInvoiceApprovalModel.getPInvoiceApprovalById({
+        pInvoiceID: parseInt(pInvoiceID),
+        approverID: parseInt(approverID)
+      });
+
+      return res.status(result.success ? (result.data ? 200 : 404) : 400).json(result);
     } catch (err) {
-      console.error('Error in getAllPInvoiceApprovals:', err);
+      console.error('Error in getPInvoiceApprovalById:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: [],
-        pInvoiceId: null,
-        approverId: null,
-        totalRecords: 0
+        data: null,
+        pInvoiceId: null
       });
     }
   }
 
   static async createPInvoiceApproval(req, res) {
     try {
-      if (!req.user || !req.user.personId) {
+      const { pInvoiceID, approvedYN } = req.body;
+      const createdByID = req.user?.personId;
+
+      if (!pInvoiceID || approvedYN == null) {
+        return res.status(400).json({
+          success: false,
+          message: 'PInvoiceID and ApprovedYN are required',
+          data: null,
+          pInvoiceId: null
+        });
+      }
+
+      if (!req.user || !createdByID) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null,
-          approverId: null
+          pInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: req.body.pInvoiceId ? parseInt(req.body.pInvoiceId) : null,
-        ApproverID: req.body.approverId ? parseInt(req.body.approverId) : null,
-        ApprovedYN: req.body.approvedYN !== undefined ? req.body.approvedYN : null,
-        ApproverDateTime: req.body.approverDateTime || null,
-        CreatedByID: req.user.personId
+        PInvoiceID: parseInt(pInvoiceID),
+        ApproverID: parseInt(createdByID),
+        ApprovedYN: Boolean(approvedYN),
+        CreatedByID: parseInt(createdByID)
       };
 
       const result = await PInvoiceApprovalModel.createPInvoiceApproval(approvalData);
@@ -77,42 +102,39 @@ class PInvoiceApprovalController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
-        approverId: null
+        pInvoiceId: null
       });
     }
   }
 
   static async updatePInvoiceApproval(req, res) {
     try {
-      const pInvoiceId = parseInt(req.params.pInvoiceId);
-      const approverId = parseInt(req.params.approverId);
-      if (isNaN(pInvoiceId) || isNaN(approverId)) {
+      const { pInvoiceID, approverID, approvedYN } = req.body;
+      const userID = req.user?.personId;
+
+      if (!pInvoiceID || !approverID || approvedYN == null) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing PInvoiceID or ApproverID',
+          message: 'PInvoiceID, ApproverID, and ApprovedYN are required',
           data: null,
-          pInvoiceId: null,
-          approverId: null
+          pInvoiceId: null
         });
       }
 
-      if (!req.user || !req.user.personId) {
+      if (!req.user || !userID) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null,
-          approverId: null
+          pInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: pInvoiceId,
-        ApproverID: approverId,
-        ApprovedYN: req.body.approvedYN !== undefined ? req.body.approvedYN : null,
-        ApproverDateTime: req.body.approverDateTime || null,
-        CreatedByID: req.user.personId
+        PInvoiceID: parseInt(pInvoiceID),
+        ApproverID: parseInt(approverID),
+        ApprovedYN: Boolean(approvedYN),
+        UserID: parseInt(userID)
       };
 
       const result = await PInvoiceApprovalModel.updatePInvoiceApproval(approvalData);
@@ -123,40 +145,38 @@ class PInvoiceApprovalController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
-        approverId: null
+        pInvoiceId: null
       });
     }
   }
 
   static async deletePInvoiceApproval(req, res) {
     try {
-      const pInvoiceId = parseInt(req.params.pInvoiceId);
-      const approverId = parseInt(req.params.approverId);
-      if (isNaN(pInvoiceId) || isNaN(approverId)) {
+      const { pInvoiceID, approverID } = req.body;
+      const deletedByID = req.user?.personId;
+
+      if (!pInvoiceID || !approverID) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing PInvoiceID or ApproverID',
+          message: 'PInvoiceID and ApproverID are required',
           data: null,
-          pInvoiceId: null,
-          approverId: null
+          pInvoiceId: null
         });
       }
 
-      if (!req.user || !req.user.personId) {
+      if (!req.user || !deletedByID) {
         return res.status(401).json({
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null,
-          approverId: null
+          pInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: pInvoiceId,
-        ApproverID: approverId,
-        DeletedByID: req.user.personId
+        PInvoiceID: parseInt(pInvoiceID),
+        ApproverID: parseInt(approverID),
+        DeletedByID: parseInt(deletedByID)
       };
 
       const result = await PInvoiceApprovalModel.deletePInvoiceApproval(approvalData);
@@ -167,8 +187,7 @@ class PInvoiceApprovalController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
-        approverId: null
+        pInvoiceId: null
       });
     }
   }

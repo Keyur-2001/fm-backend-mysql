@@ -155,6 +155,7 @@ class SalesOrderModel {
           'SELECT 1 FROM dbo_tblorderstatus WHERE OrderStatusID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)',
           [parseInt(salesOrderData.OrderStatusID)]
         );
+        stagger
         if (statusCheck.length === 0) errors.push(`OrderStatusID ${salesOrderData.OrderStatusID} does not exist`);
       }
       if (salesOrderData.CurrencyID) {
@@ -351,23 +352,33 @@ class SalesOrderModel {
     try {
       const pool = await poolPromise;
 
+      // Validate input parameters
+      const validSortColumns = ['SalesOrderID', 'Series', 'PostingDate', 'CreatedDateTime', 'CustomerName', 'Total'];
+      const validSortDirections = ['ASC', 'DESC'];
+
+      if (!validSortColumns.includes(sortColumn)) {
+        sortColumn = 'CreatedDateTime';
+      }
+      if (!validSortDirections.includes(sortDirection.toUpperCase())) {
+        sortDirection = 'DESC';
+      }
+      if (pageNumber < 1) pageNumber = 1;
+      if (pageSize < 1) pageSize = 10;
+      if (pageSize > 100) pageSize = 100;
+
       const queryParams = [
         pageNumber,
         pageSize,
         sortColumn,
-        sortDirection,
-        fromDate || null,
-        toDate || null
+        sortDirection.toUpperCase(),
+        fromDate ? new Date(fromDate) : null,
+        toDate ? new Date(toDate) : null
       ];
 
       const [result] = await pool.query(
         'CALL SP_GetAllSalesOrder(?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
-
-      console.log('SP_GetAllSalesOrder result:', JSON.stringify(result, (key, value) =>
-        typeof value === 'bigint' ? value.toString() : value
-      ));
 
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
@@ -380,11 +391,20 @@ class SalesOrderModel {
       const salesOrders = result[0] || [];
       const totalRecords = result[1][0]?.TotalRecords || 0;
 
+      // Convert BigInt fields to strings to avoid serialization issues
+      const processedSalesOrders = salesOrders.map(order => ({
+        ...order,
+        SalesOrderID: order.SalesOrderID ? order.SalesOrderID.toString() : null,
+        SalesAmount: order.SalesAmount ? parseFloat(order.SalesAmount) : null,
+        TaxesAndOtherCharges: order.TaxesAndOtherCharges ? parseFloat(order.TaxesAndOtherCharges) : null,
+        Total: order.Total ? parseFloat(order.Total) : null
+      }));
+
       return {
         success: outParams.result === 1,
         message: outParams.message || (outParams.result === 1 ? 'Sales orders retrieved successfully' : 'Operation failed'),
-        data: salesOrders,
-        totalRecords: totalRecords
+        data: processedSalesOrders,
+        totalRecords: parseInt(totalRecords)
       };
     } catch (error) {
       console.error('Error in getAllSalesOrders:', error);

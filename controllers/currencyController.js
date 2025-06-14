@@ -1,152 +1,159 @@
-const CurrencyModel = require('../models/currencyModel');
+const { validationResult } = require('express-validator');
+const CurrencyModel = require('../models/CurrencyModel');
 
-class CurrencyController {
-  // Get all Currencies
-  static async getAllCurrencies(req, res) {
-    try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
-      const result = await CurrencyModel.getAllCurrencies({
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-        fromDate: fromDate || null,
-        toDate: toDate || null
-      });
-      res.status(200).json({
-        success: true,
-        message: 'Currency records retrieved successfully.',
-        data: result.data,
-        totalRecords: result.totalRecords,
-        currencyId: null
-      });
-    } catch (err) {
-      console.error('Error in getAllCurrencies:', err);
-      res.status(500).json({
+// Get all currencies
+const getAllCurrencies = async (req, res) => {
+  try {
+    const { pageNumber, pageSize, fromDate, toDate } = req.query;
+    console.log('getAllCurrencies query:', { pageNumber, pageSize, fromDate, toDate });
+
+    const result = await CurrencyModel.getAllCurrencies({
+      pageNumber: parseInt(pageNumber) || 1,
+      pageSize: parseInt(pageSize) || 10,
+      fromDate,
+      toDate
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Currencies retrieved successfully',
+      data: result.data,
+      totalRecords: result.totalRecords
+    });
+  } catch (error) {
+    console.error('getAllCurrencies error:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`
+    });
+  }
+};
+
+// Create a currency
+const createCurrency = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        currencyId: null
+        message: 'Validation failed',
+        errors: errors.array()
       });
     }
+
+    const { currencyName } = req.body;
+    const createdById = req.user?.userId || 1006; // Assume auth middleware provides userId
+    console.log('createCurrency body:', req.body, 'createdById:', createdById);
+
+    const result = await CurrencyModel.createCurrency({
+      currencyName,
+      createdById
+    });
+
+    res.status(201).json({
+      success: true,
+      message: result.message,
+      currencyId: result.currencyId
+    });
+  } catch (error) {
+    console.error('createCurrency error:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`
+    });
   }
+};
 
-  // Create a new Currency
-  static async createCurrency(req, res) {
-    try {
-      const data = req.body;
-      // Validate required fields
-      if (!data.currencyName || !data.createdById) {
-        return res.status(400).json({
-          success: false,
-          message: 'CurrencyName and CreatedById are required.',
-          data: null,
-          currencyId: null
-        });
-      }
+// Get currency by ID
+const getCurrencyById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('getCurrencyById id:', id);
 
-      const result = await CurrencyModel.createCurrency(data);
-      res.status(201).json({
-        success: true,
-        message: result.message,
-        data: null,
-        currencyId: result.currencyId
-      });
-    } catch (err) {
-      console.error('Error in createCurrency:', err);
-      res.status(500).json({
+    const currency = await CurrencyModel.getCurrencyById(id);
+
+    if (!currency) {
+      return res.status(404).json({
         success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        currencyId: null
+        message: 'Currency not found'
       });
     }
-  }
 
-  // Get a single Currency by ID
-  static async getCurrencyById(req, res) {
-    try {
-      const { id } = req.params;
-      const currency = await CurrencyModel.getCurrencyById(parseInt(id));
-      if (!currency) {
-        return res.status(400).json({
-          success: false,
-          message: 'Currency not found.',
-          data: null,
-          currencyId: null
-        });
-      }
-      res.status(200).json({
-        success: true,
-        message: 'Currency retrieved successfully.',
-        data: currency,
-        currencyId: id
-      });
-    } catch (err) {
-      console.error('Error in getCurrencyById:', err);
-      res.status(500).json({
+    res.status(200).json({
+      success: true,
+      message: 'Currency retrieved successfully',
+      data: currency
+    });
+  } catch (error) {
+    console.error('getCurrencyById error:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`
+    });
+  }
+};
+
+// Update a currency
+const updateCurrency = async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({
         success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        currencyId: null
+        message: 'Validation failed',
+        errors: errors.array()
       });
     }
+
+    const { id } = req.params;
+    const { currencyName } = req.body;
+    const createdById = req.user?.userId || 1006;
+    console.log('updateCurrency id:', id, 'body:', req.body, 'createdById:', createdById);
+
+    const result = await CurrencyModel.updateCurrency(id, {
+      currencyName,
+      createdById
+    });
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('updateCurrency error:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`
+    });
   }
+};
 
-  // Update a Currency
-  static async updateCurrency(req, res) {
-    try {
-      const { id } = req.params;
-      const data = req.body;
-      // Validate required fields
-      if (!data.currencyName || !data.createdById) {
-        return res.status(400).json({
-          success: false,
-          message: 'CurrencyName and CreatedById are required.',
-          data: null,
-          currencyId: null
-        });
-      }
+// Delete a currency
+const deleteCurrency = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const createdById = req.user?.userId || 1006;
+    console.log('deleteCurrency id:', id, 'createdById:', createdById);
 
-      const result = await CurrencyModel.updateCurrency(parseInt(id), data);
-      res.status(200).json({
-        success: true,
-        message: result.message,
-        data: null,
-        currencyId: id
-      });
-    } catch (err) {
-      console.error('Error in updateCurrency:', err);
-      res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        currencyId: null
-      });
-    }
+    const result = await CurrencyModel.deleteCurrency(id, createdById);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error) {
+    console.error('deleteCurrency error:', error.stack);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${error.message}`
+    });
   }
+};
 
-  // Delete a Currency
-  static async deleteCurrency(req, res) {
-    try {
-      const { id } = req.params;
-      const { createdById } = req.body; // Optional, passed as-is
-
-      const result = await CurrencyModel.deleteCurrency(parseInt(id), createdById);
-      res.status(200).json({
-        success: true,
-        message: result.message,
-        data: null,
-        currencyId: id
-      });
-    } catch (err) {
-      console.error('Error in deleteCurrency:', err);
-      res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        currencyId: null
-      });
-    }
-  }
-}
-
-module.exports = CurrencyController;
+module.exports = {
+  getAllCurrencies,
+  createCurrency,
+  getCurrencyById,
+  updateCurrency,
+  deleteCurrency
+};

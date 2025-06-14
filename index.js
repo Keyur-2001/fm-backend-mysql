@@ -33,7 +33,7 @@ const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
-const formRoleApprovalRoutes = require('./routes/formRoleApprovalRoutes');
+const formRoleApprovalRoutes = require('./routes/formRoleApproverRoutes');
 const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
 const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
@@ -50,14 +50,15 @@ const sendSalesQuotationRoutes = require('./routes/sendSalesQuotationRoutes');
 const poRoutes = require('./routes/poRoutes');
 const poParcelRoutes = require('./routes/poParcelRoutes');
 const poApprovalRoutes = require('./routes/poApprovalRoutes');
-const sendPurchaseOrderRoutes = require('./routes/sendPurchaseOrderRoutes');
-const pendingApprovalsRoutes = require('./routes/pendingApprovalsRoutes');
-const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
-const tableAccessRoutes = require('./routes/tableAccessRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
-const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
+// const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
+const salesInvoiceParcelRoutes = require('./routes/salesInvoiceParcelRoutes');
+// const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
+const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
+const tableAccessRoutes = require('./routes/tableAccessRoutes');
+// const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 
 const app = express();
 
@@ -129,7 +130,7 @@ async function startServer() {
   try {
     // Wait for database connection
     const pool = await poolPromise;
-    console.log('Database pool initialized successfully');
+    console.log("Database pool initialized successfully");
 
     // Mount routes with validation
     const routes = [
@@ -167,10 +168,10 @@ async function startServer() {
       ['/api/purchase-rfq', purchaseRFQRoutes],
       ['/api/purchase-rfq-parcels', purchaseRFQParcelRoutes],
       ['/api/purchase-rfq-approvals', purchaseRFQApprovalRoutes],
-      ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
       ['/api/supplier-Quotation', supplierQuotationRoutes],
       ['/api/supplier-Quotation-Parcel', supplierQuotationParcelRoutes],
       ['/api/supplier-quotation-approvals', supplierQuotationApprovalRoutes],
+      ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
       ['/api/sales-Quotation', salesQuotationRoutes],
       ['/api/sales-Quotation-Parcel', salesQuotationParcelRoutes],
       ['/api/sales-Quotation-Approvals', salesQuotationApprovalRoutes],
@@ -181,14 +182,16 @@ async function startServer() {
       ['/api/po', poRoutes],
       ['/api/po-Parcel', poParcelRoutes],
       ['/api/po-Approval', poApprovalRoutes],
-      ['/api/sendPurchaseOrder', sendPurchaseOrderRoutes],
-      ['/api/pendingApprovals', pendingApprovalsRoutes],
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
-      ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
-      ['/api/salesInvoice', salesInvoiceRoutes],
+      ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
+      // ['/api/salesInvoice', salesInvoiceRoutes],
+      ['/api/salesInvoiceParcel', salesInvoiceParcelRoutes],
+      // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
-      ['/api/tableAccess', tableAccessRoutes]
+      ['/api/tableAccess', tableAccessRoutes],
+      ['/api/rfqsent', sentPurchaseRFQToSuppliersRoutes],
+      // ['/api/min-rate', minRateRoutes]
     ];
 
     routes.forEach(([path, route]) => {
@@ -201,10 +204,11 @@ async function startServer() {
 
     // Error handling middleware
     app.use((err, req, res, next) => {
-      console.error('Application Error:', err.stack);
+      console.error("Application Error:", err.stack);
       res.status(500).json({
-        error: 'Internal server error',
-        details: process.env.NODE_ENV === 'development' ? err.message : undefined
+        error: "Internal server error",
+        details:
+          process.env.NODE_ENV === "development" ? err.message : undefined,
       });
     });
 
@@ -223,44 +227,44 @@ async function startServer() {
 
         if (pool) {
           await pool.end();
-          console.log('Database pool closed');
+          console.log("Database pool closed");
         }
 
         process.exit(0);
       } catch (err) {
-        console.error('Shutdown error:', err);
+        console.error("Shutdown error:", err);
         process.exit(1);
       }
     };
 
     // Handle process signals
-    ['SIGINT', 'SIGTERM'].forEach(signal => {
+    ["SIGINT", "SIGTERM"].forEach((signal) => {
       process.on(signal, () => shutdown(signal));
     });
 
     // Handle uncaught errors
-    process.on('uncaughtException', (err) => {
-      console.error('Uncaught Exception:', err);
-      shutdown('uncaughtException');
+    process.on("uncaughtException", (err) => {
+      console.error("Uncaught Exception:", err);
+      shutdown("uncaughtException");
     });
 
-    process.on('unhandledRejection', (reason, promise) => {
-      console.error('Unhandled Rejection at:', promise, 'reason:', reason);
-      shutdown('unhandledRejection');
+    process.on("unhandledRejection", (reason, promise) => {
+      console.error("Unhandled Rejection at:", promise, "reason:", reason);
+      shutdown("unhandledRejection");
     });
 
     return pool;
   } catch (err) {
-    console.error('Server initialization failed:', err);
+    console.error("Server initialization failed:", err);
     process.exit(1);
   }
 }
 
 // Start the server
 startServer()
-  .then(() => console.log('Server initialization complete'))
-  .catch(err => {
-    console.error('Fatal error during server startup:', err);
+  .then(() => console.log("Server initialization complete"))
+  .catch((err) => {
+    console.error("Fatal error during server startup:", err);
     process.exit(1);
   });
 

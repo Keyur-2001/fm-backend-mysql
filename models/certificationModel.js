@@ -17,9 +17,9 @@ class CertificationModel {
       // Log query parameters
       console.log('getAllCertifications params:', queryParams);
 
-      // Call SP_GetCertification
+      // Call SP_GetAllCertification
       const [results] = await pool.query(
-        'CALL SP_GetCertification(?, ?, ?, ?)',
+        'CALL SP_GetAllCertification(?, ?, ?, ?)',
         queryParams
       );
 

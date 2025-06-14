@@ -2,7 +2,7 @@ const poolPromise = require('../config/db.config');
 
 class SupplierModel {
   // Get paginated Suppliers
-  static async getAllSuppliers({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
+ static async getAllSuppliers({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
@@ -43,16 +43,20 @@ class SupplierModel {
         throw new Error(output[0].p_Message || 'Failed to retrieve suppliers');
       }
 
+      const data = Array.isArray(results[0]) ? results[0].map(supplier => ({
+        ...supplier,
+        SupplierEmail: supplier.SupplierEmail || ''
+      })) : [];
+
       return {
-        data: Array.isArray(results[0]) ? results[0] : [],
-        totalRecords: Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : results[0].length
+        data,
+        totalRecords: Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : data.length
       };
     } catch (err) {
       console.error('getAllSuppliers error:', err.stack);
       throw new Error(`Database error: ${err.message}`);
     }
   }
-
   // Create a new Supplier
   static async createSupplier(data) {
     try {

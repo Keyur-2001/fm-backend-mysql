@@ -226,7 +226,7 @@ class SubscriptionPlanModel {
       };
     } catch (err) {
       console.error('deleteSubscriptionPlan error:', err);
-      throw new Error(`Database error: ${err.message}`);
+      throw new Error( `Database error: ${err.message}  `);
     }
   }
 }

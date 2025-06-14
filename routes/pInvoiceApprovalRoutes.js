@@ -3,19 +3,14 @@ const router = express.Router();
 const PInvoiceApprovalController = require('../controllers/pInvoiceApprovalController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Get a specific Purchase Invoice approval by PInvoiceID and ApproverID
-router.get('/:pInvoiceId/:approverId', PInvoiceApprovalController.getPInvoiceApproval);
+router.get('/', authMiddleware, PInvoiceApprovalController.getPInvoiceApprovals);
 
-// Get all Purchase Invoice approvals (optionally filtered by PInvoiceID or ApproverID)
-router.get('/', authMiddleware, PInvoiceApprovalController.getAllPInvoiceApprovals);
+router.get('/:pInvoiceID/:approverID', PInvoiceApprovalController.getPInvoiceApprovalById);
 
-// Create a new Purchase Invoice approval
 router.post('/', authMiddleware, PInvoiceApprovalController.createPInvoiceApproval);
 
-// Update a Purchase Invoice approval
-router.put('/:pInvoiceId/:approverId', authMiddleware, PInvoiceApprovalController.updatePInvoiceApproval);
+router.put('/', authMiddleware, PInvoiceApprovalController.updatePInvoiceApproval);
 
-// Delete a Purchase Invoice approval
-router.delete('/:pInvoiceId/:approverId', authMiddleware, PInvoiceApprovalController.deletePInvoiceApproval);
+router.delete('/', authMiddleware, PInvoiceApprovalController.deletePInvoiceApproval);
 
 module.exports = router;
