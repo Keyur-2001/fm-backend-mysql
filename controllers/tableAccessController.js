@@ -12,7 +12,7 @@ class TableAccessController {
 
       return res.status(200).json({
         success: true,
-        message: 'Accessible tables retrieved successfully',
+        message: 'Accessible tables retrieved successfully (only tables with at least one permission are shown)',
         data: req.user.accessibleTables
       });
     } catch (error) {
