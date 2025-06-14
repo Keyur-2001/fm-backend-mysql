@@ -1,17 +1,17 @@
-const poolPromise = require('../config/db.config');
+const poolPromise = require("../config/db.config");
 
 class SalesQuotationModel {
   // Get all Sales Quotations
   static async getAllSalesQuotations({
     pageNumber = 1,
     pageSize = 10,
-    sortColumn = 'SalesQuotationID',
-    sortDirection = 'ASC',
+    sortColumn = "SalesQuotationID",
+    sortDirection = "ASC",
     fromDate = null,
     toDate = null,
     status = null,
     customerId = null,
-    supplierId = null
+    supplierId = null,
   }) {
     try {
       const pool = await poolPromise;
@@ -20,27 +20,29 @@ class SalesQuotationModel {
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
-        sortColumn || 'SalesQuotationID',
-        sortDirection.toUpperCase() === 'DESC' ? 'DESC' : 'ASC',
+        sortColumn || "SalesQuotationID",
+        sortDirection.toUpperCase() === "DESC" ? "DESC" : "ASC",
         fromDate || null,
         toDate || null,
         status || null,
         customerId ? parseInt(customerId) : null,
-        supplierId ? parseInt(supplierId) : null
+        supplierId ? parseInt(supplierId) : null,
       ];
 
       // Call SP_GetAllSalesQuotation
       const [result] = await pool.query(
-        'CALL SP_GetAllSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, @p_TotalRecords)',
+        "CALL SP_GetAllSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, @p_TotalRecords)",
         queryParams
       );
 
       // Retrieve OUT parameter
-      const [[{ totalRecords }]] = await pool.query('SELECT @p_TotalRecords AS totalRecords');
+      const [[{ totalRecords }]] = await pool.query(
+        "SELECT @p_TotalRecords AS totalRecords"
+      );
 
       return {
         data: result[0],
-        totalRecords: totalRecords || 0
+        totalRecords: totalRecords || 0,
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -53,12 +55,12 @@ class SalesQuotationModel {
       const pool = await poolPromise;
 
       const queryParams = [
-        'INSERT',
+        "INSERT",
         null, // p_SalesQuotationID
         data.SalesRFQID || null,
         data.PurchaseRFQID,
         data.supplierId || null,
-        data.Status || 'Pending',
+        data.Status || "Pending",
         data.originAddressId || null,
         data.collectionAddressId || null,
         data.billingAddressId || null,
@@ -84,27 +86,29 @@ class SalesQuotationModel {
         data.isDeliveryOnly || 0,
         data.taxesAndOtherCharges || 0,
         data.CreatedByID,
-        null // p_DeletedByID
+        null, // p_DeletedByID
       ];
 
       // Call SP_ManageSalesQuotation
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        "CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)",
         queryParams
       );
 
       // Retrieve OUT parameters
       const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId'
+        "SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId"
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to create Sales Quotation');
+        throw new Error(
+          outParams.message || "Failed to create Sales Quotation"
+        );
       }
 
       return {
         newSalesQuotationId: outParams.newSalesQuotationId,
-        message: outParams.message
+        message: outParams.message,
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -117,7 +121,7 @@ class SalesQuotationModel {
       const pool = await poolPromise;
 
       const queryParams = [
-        'SELECT',
+        "SELECT",
         id,
         null, // p_SalesRFQID
         null, // p_PurchaseRFQID
@@ -148,20 +152,22 @@ class SalesQuotationModel {
         null, // p_IsDeliveryOnly
         null, // p_TaxesAndOtherCharges
         null, // p_CreatedByID
-        null // p_DeletedByID
+        null, // p_DeletedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        "CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)",
         queryParams
       );
 
       const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId'
+        "SELECT @p_Result AS result, @p_Message AS message, @p_NewSalesQuotationID AS newSalesQuotationId"
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Sales Quotation not found or deleted');
+        throw new Error(
+          outParams.message || "Sales Quotation not found or deleted"
+        );
       }
 
       return result[0][0] || null;
@@ -176,7 +182,7 @@ class SalesQuotationModel {
       const pool = await poolPromise;
 
       const queryParams = [
-        'UPDATE',
+        "UPDATE",
         id,
         data.SalesRFQID || null,
         data.PurchaseRFQID || null,
@@ -207,24 +213,26 @@ class SalesQuotationModel {
         data.isDeliveryOnly || null,
         data.TaxesAndOtherCharges || null,
         data.CreatedByID || null,
-        null // p_DeletedByID
+        null, // p_DeletedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        "CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)",
         queryParams
       );
 
       const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
+        "SELECT @p_Result AS result, @p_Message AS message"
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to update Sales Quotation');
+        throw new Error(
+          outParams.message || "Failed to update Sales Quotation"
+        );
       }
 
       return {
-        message: outParams.message
+        message: outParams.message,
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -237,7 +245,7 @@ class SalesQuotationModel {
       const pool = await poolPromise;
 
       const queryParams = [
-        'DELETE',
+        "DELETE",
         id,
         null, // p_SalesRFQID
         null, // p_PurchaseRFQID
@@ -268,24 +276,26 @@ class SalesQuotationModel {
         null, // p_IsDeliveryOnly
         null, // p_TaxesAndOtherCharges
         null, // p_CreatedByID
-        deletedById
+        deletedById,
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        "CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)",
         queryParams
       );
 
       const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
+        "SELECT @p_Result AS result, @p_Message AS message"
       );
 
       if (outParams.result !== 1) {
-        throw new Error(outParams.message || 'Failed to delete Sales Quotation');
+        throw new Error(
+          outParams.message || "Failed to delete Sales Quotation"
+        );
       }
 
       return {
-        message: outParams.message
+        message: outParams.message,
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -306,10 +316,15 @@ class SalesQuotationModel {
           AND fra.ActiveYN = 1
           AND f.IsDeleted = 0;
       `;
-      const [result] = await pool.query(query, [parseInt(approverID), formName]);
+      const [result] = await pool.query(query, [
+        parseInt(approverID),
+        formName,
+      ]);
       return result.length > 0;
     } catch (error) {
-      throw new Error(`Error checking form role approver permission: ${error.message}`);
+      throw new Error(
+        `Error checking form role approver permission: ${error.message}`
+      );
     }
   }
 
@@ -328,7 +343,9 @@ class SalesQuotationModel {
       }
       return { exists: true, status: result[0].Status };
     } catch (error) {
-      throw new Error(`Error checking Sales Quotation status: ${error.message}`);
+      throw new Error(
+        `Error checking Sales Quotation status: ${error.message}`
+      );
     }
   }
 
@@ -346,12 +363,20 @@ class SalesQuotationModel {
         parseInt(approvalData.SalesQuotationID),
         parseInt(approvalData.ApproverID),
         1,
-        parseInt(approvalData.ApproverID)
+        parseInt(approvalData.ApproverID),
       ]);
-      console.log(`Insert Debug: SalesQuotationID=${approvalData.SalesQuotationID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
-      return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
+      console.log(
+        `Insert Debug: SalesQuotationID=${approvalData.SalesQuotationID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`
+      );
+      return {
+        success: true,
+        message: "Approval record inserted successfully.",
+        insertId: result.insertId,
+      };
     } catch (error) {
-      throw new Error(`Error inserting Sales Quotation approval: ${error.message}`);
+      throw new Error(
+        `Error inserting Sales Quotation approval: ${error.message}`
+      );
     }
   }
 
@@ -363,54 +388,70 @@ class SalesQuotationModel {
       connection = await pool.getConnection();
       await connection.beginTransaction();
 
-      const requiredFields = ['SalesQuotationID', 'ApproverID'];
-      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      const requiredFields = ["SalesQuotationID", "ApproverID"];
+      const missingFields = requiredFields.filter(
+        (field) => !approvalData[field]
+      );
       if (missingFields.length > 0) {
-        throw new Error(`${missingFields.join(', ')} are required`);
+        throw new Error(`${missingFields.join(", ")} are required`);
       }
 
       const salesQuotationID = parseInt(approvalData.SalesQuotationID);
       const approverID = parseInt(approvalData.ApproverID);
       if (isNaN(salesQuotationID) || isNaN(approverID)) {
-        throw new Error('Invalid SalesQuotationID or ApproverID');
+        throw new Error("Invalid SalesQuotationID or ApproverID");
       }
 
-      const formName = 'Sales Quotation';
-      const hasPermission = await this.#checkFormRoleApproverPermission(approverID, formName);
+      const formName = "Sales Quotation";
+      const hasPermission = await this.#checkFormRoleApproverPermission(
+        approverID,
+        formName
+      );
       if (!hasPermission) {
-        throw new Error('Approver does not have permission to approve this form');
+        throw new Error(
+          "Approver does not have permission to approve this form"
+        );
       }
 
-      const { exists, status } = await this.#checkSalesQuotationStatus(salesQuotationID);
+      const { exists, status } = await this.#checkSalesQuotationStatus(
+        salesQuotationID
+      );
       if (!exists) {
-        throw new Error('Sales Quotation does not exist or has been deleted');
+        throw new Error("Sales Quotation does not exist or has been deleted");
       }
-      if (status !== 'Pending') {
-        throw new Error(`Sales Quotation status must be Pending to approve, current status: ${status}`);
+      if (status !== "Pending") {
+        throw new Error(
+          `Sales Quotation status must be Pending to approve, current status: ${status}`
+        );
       }
 
       // Check for existing approval
       const [existingApproval] = await connection.query(
-        'SELECT 1 FROM dbo_tblsalesquotationapproval WHERE SalesQuotationID = ? AND ApproverID = ? AND IsDeleted = 0',
+        "SELECT 1 FROM dbo_tblsalesquotationapproval WHERE SalesQuotationID = ? AND ApproverID = ? AND IsDeleted = 0",
         [salesQuotationID, approverID]
       );
       if (existingApproval.length > 0) {
-        throw new Error('Approver has already approved this Sales Quotation');
+        throw new Error("Approver has already approved this Sales Quotation");
       }
 
       // Record approval
-      const approvalInsertResult = await this.#insertSalesQuotationApproval(connection, { SalesQuotationID: salesQuotationID, ApproverID: approverID });
+      const approvalInsertResult = await this.#insertSalesQuotationApproval(
+        connection,
+        { SalesQuotationID: salesQuotationID, ApproverID: approverID }
+      );
       if (!approvalInsertResult.success) {
-        throw new Error(`Failed to insert approval record: ${approvalInsertResult.message}`);
+        throw new Error(
+          `Failed to insert approval record: ${approvalInsertResult.message}`
+        );
       }
 
       // Get FormID
       const [form] = await connection.query(
-        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        "SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0",
         [formName]
       );
       if (!form.length) {
-        throw new Error('Invalid FormID for Sales Quotation');
+        throw new Error("Invalid FormID for Sales Quotation");
       }
       const formID = form[0].FormID;
 
@@ -438,18 +479,28 @@ class SalesQuotationModel {
            )`,
         [salesQuotationID, formID]
       );
-      const approved = approvedList.filter(a => a.ApprovedYN === 1).length;
+      const approved = approvedList.filter((a) => a.ApprovedYN === 1).length;
 
       // Check for mismatched ApproverIDs
       const [allApprovals] = await connection.query(
-        'SELECT ApproverID FROM dbo_tblsalesquotationapproval WHERE SalesQuotationID = ? AND IsDeleted = 0',
+        "SELECT ApproverID FROM dbo_tblsalesquotationapproval WHERE SalesQuotationID = ? AND IsDeleted = 0",
         [salesQuotationID]
       );
-      const requiredUserIDs = requiredApproversList.map(a => a.UserID);
-      const mismatchedApprovals = allApprovals.filter(a => !requiredUserIDs.includes(a.ApproverID));
+      const requiredUserIDs = requiredApproversList.map((a) => a.UserID);
+      const mismatchedApprovals = allApprovals.filter(
+        (a) => !requiredUserIDs.includes(a.ApproverID)
+      );
 
       // Debug logs
-      console.log(`Approval Debug: SalesQuotationID=${salesQuotationID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(requiredApproversList)}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(approvedList)}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(mismatchedApprovals)}`);
+      console.log(
+        `Approval Debug: SalesQuotationID=${salesQuotationID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(
+          requiredApproversList
+        )}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(
+          approvedList
+        )}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(
+          mismatchedApprovals
+        )}`
+      );
 
       let message;
       let isFullyApproved = false;
@@ -457,10 +508,10 @@ class SalesQuotationModel {
       if (approved >= requiredCount) {
         // All approvals complete
         await connection.query(
-          'UPDATE dbo_tblsalesquotation SET Status = ? WHERE SalesQuotationID = ?',
-          ['Approved', salesQuotationID]
+          "UPDATE dbo_tblsalesquotation SET Status = ? WHERE SalesQuotationID = ?",
+          ["Approved", salesQuotationID]
         );
-        message = 'Sales Quotation fully approved.';
+        message = "Sales Quotation fully approved.";
         isFullyApproved = true;
       } else {
         // Partial approval
@@ -476,19 +527,19 @@ class SalesQuotationModel {
         data: null,
         salesQuotationId: salesQuotationID.toString(),
         newSalesQuotationId: null,
-        isFullyApproved
+        isFullyApproved,
       };
     } catch (error) {
       if (connection) {
         await connection.rollback();
       }
-      console.error('Database error in approveSalesQuotation:', error);
+      console.error("Database error in approveSalesQuotation:", error);
       return {
         success: false,
-        message: `Approval failed: ${error.message || 'Unknown error'}`,
+        message: `Approval failed: ${error.message || "Unknown error"}`,
         data: null,
         salesQuotationId: approvalData.SalesQuotationID.toString(),
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       };
     } finally {
       if (connection) {
