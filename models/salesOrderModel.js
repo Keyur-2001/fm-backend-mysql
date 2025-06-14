@@ -416,6 +416,211 @@ class SalesOrderModel {
       };
     }
   }
+
+   // Helper: Check form role approver permission
+  static async #checkFormRoleApproverPermission(approverID, formName) {
+    try {
+      const pool = await poolPromise;
+      const query = `
+        SELECT fra.UserID
+        FROM dbo_tblformroleapprover fra
+        JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+        JOIN dbo_tblform f ON fr.FormID = f.FormID
+        WHERE fra.UserID = ?
+          AND f.FormName = ?
+          AND fra.ActiveYN = 1
+          AND f.IsDeleted = 0;
+      `;
+      const [result] = await pool.query(query, [parseInt(approverID), formName]);
+      return result.length > 0;
+    } catch (error) {
+      throw new Error(`Error checking form role approver permission: ${error.message}`);
+    }
+  }
+
+  // Helper: Check Supplier Quotation status
+  static async #checkSalesOrderStatus(SalesOrderID) {
+    try {
+      const pool = await poolPromise;
+      const query = `
+        SELECT Status
+        FROM dbo_tblsalesorder
+        WHERE SalesOrderID = ? AND IsDeleted = 0;
+      `;
+      const [result] = await pool.query(query, [parseInt(SalesOrderID)]);
+      if (result.length === 0) {
+        return { exists: false, status: null };
+      }
+      return { exists: true, status: result[0].Status };
+    } catch (error) {
+      throw new Error(`Error checking Sales Order status: ${error.message}`);
+    }
+  }
+
+  // Helper: Insert approval record
+  static async #insertSalesOrderApproval(connection, approvalData) {
+    try {
+      const query = `
+        INSERT INTO dbo_tblsalesorderapproval (
+         SalesOrderID, ApproverID, ApprovedYN, ApproverDateTime, CreatedByID, CreatedDateTime, IsDeleted
+        ) VALUES (
+          ?, ?, ?, NOW(), ?, NOW(), 0
+        );
+      `;
+      const [result] = await connection.query(query, [
+        parseInt(approvalData.SalesOrderID),
+        parseInt(approvalData.ApproverID),
+        1,
+        parseInt(approvalData.ApproverID)
+      ]);
+      console.log(`Insert Debug: SalesOrderID=${approvalData.SalesOrderID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
+      return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
+    } catch (error) {
+      throw new Error(`Error inserting Sales Order approval: ${error.message}`);
+    }
+  }
+
+  // Approve a Supplier Quotation
+  static async approveSalesOrder(approvalData) {
+    let connection;
+    try {
+      const pool = await poolPromise;
+      connection = await pool.getConnection();
+      await connection.beginTransaction();
+
+      const requiredFields = ['SalesOrderID', 'ApproverID'];
+      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      if (missingFields.length > 0) {
+        throw new Error(`${missingFields.join(', ')} are required`);
+      }
+
+      const SalesOrderID = parseInt(approvalData.SalesOrderID);
+      const approverID = parseInt(approvalData.ApproverID);
+      if (isNaN(SalesOrderID) || isNaN(approverID)) {
+        throw new Error('Invalid SalesOrderID or ApproverID');
+      }
+
+      const formName = 'Sales Order';
+      const hasPermission = await this.#checkFormRoleApproverPermission(approverID, formName);
+      if (!hasPermission) {
+        throw new Error('Approver does not have permission to approve this form');
+      }
+
+      const { exists, status } = await this.#checkSalesOrderStatus(SalesOrderID);
+      if (!exists) {
+        throw new Error('Sales Order does not exist or has been deleted');
+      }
+      if (status !== 'Pending') {
+        throw new Error(`Sales Order status must be Pending to approve, current status: ${status}`);
+      }
+
+      // Check for existing approval
+      const [existingApproval] = await connection.query(
+        'SELECT 1 FROM dbo_tblsalesorderapproval WHERE SalesOrderID = ? AND ApproverID = ? AND IsDeleted = 0',
+        [SalesOrderID, approverID]
+      );
+      if (existingApproval.length > 0) {
+        throw new Error('Approver has already approved this Sales Order');
+      }
+
+      // Record approval
+      const approvalInsertResult = await this.#insertSalesOrderApproval(connection, { SalesOrderID: SalesOrderID, ApproverID: approverID });
+      if (!approvalInsertResult.success) {
+        throw new Error(`Failed to insert approval record: ${approvalInsertResult.message}`);
+      }
+
+      // Get FormID
+      const [form] = await connection.query(
+        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        [formName]
+      );
+      if (!form.length) {
+        throw new Error('Invalid FormID for Sales Order');
+      }
+      const formID = form[0].FormID;
+
+      // Get required approvers
+      const [requiredApproversList] = await connection.query(
+        `SELECT DISTINCT fra.UserID, p.FirstName
+         FROM dbo_tblformroleapprover fra
+         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+         JOIN dbo_tblperson p ON fra.UserID = p.PersonID
+         WHERE fr.FormID = ? AND fra.ActiveYN = 1`,
+        [formID]
+      );
+      const requiredCount = requiredApproversList.length;
+
+      // Get completed approvals
+      const [approvedList] = await connection.query(
+        `SELECT s.ApproverID, s.ApprovedYN
+         FROM dbo_tblsalesorderapproval s
+         WHERE s.SalesOrderID = ? AND s.IsDeleted = 0
+           AND s.ApproverID IN (
+             SELECT DISTINCT fra.UserID
+             FROM dbo_tblformroleapprover fra
+             JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+             WHERE fr.FormID = ? AND fra.ActiveYN = 1
+           )`,
+        [SalesOrderID, formID]
+      );
+      const approved = approvedList.filter(a => a.ApprovedYN === 1).length;
+
+      // Check for mismatched ApproverIDs
+      const [allApprovals] = await connection.query(
+        'SELECT ApproverID FROM dbo_tblsalesorderapproval WHERE SalesOrderID = ? AND IsDeleted = 0',
+        [SalesOrderID]
+      );
+      const requiredUserIDs = requiredApproversList.map(a => a.UserID);
+      const mismatchedApprovals = allApprovals.filter(a => !requiredUserIDs.includes(a.ApproverID));
+
+      // Debug logs
+      console.log(`Approval Debug: SalesOrderID=${SalesOrderID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(requiredApproversList)}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(approvedList)}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(mismatchedApprovals)}`);
+
+      let message;
+      let isFullyApproved = false;
+
+      if (approved >= requiredCount) {
+        // All approvals complete
+        await connection.query(
+          'UPDATE dbo_tblsalesorder SET Status = ? WHERE SalesOrderID = ?',
+          ['Approved', SalesOrderID]
+        );
+        message = 'Sales Order fully approved.';
+        isFullyApproved = true;
+      } else {
+        // Partial approval
+        const remaining = requiredCount - approved;
+        message = `Approval recorded. Awaiting ${remaining} more approval(s).`;
+      }
+
+      await connection.commit();
+
+      return {
+        success: true,
+        message,
+        data: null,
+        SalesOrderID: SalesOrderID.toString(),
+        newSalesOrderID: null,
+        isFullyApproved
+      };
+    } catch (error) {
+      if (connection) {
+        await connection.rollback();
+      }
+      console.error('Database error in approveSalesOrder:', error);
+      return {
+        success: false,
+        message: `Approval failed: ${error.message || 'Unknown error'}`,
+        data: null,
+        SalesOrderID: approvalData.SalesOrderID.toString(),
+        newSalesOrderID: null
+      };
+    } finally {
+      if (connection) {
+        connection.release();
+      }
+    }
+  }
 }
 
 module.exports = SalesOrderModel;

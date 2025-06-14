@@ -487,6 +487,73 @@ class SalesRFQModel {
   static async getAllSalesRFQs(paginationData) {
     return await this.#executeGetAllStoredProcedure(paginationData);
   }
+
+  static async getSalesRFQApprovalStatus(salesRFQID) {
+    try {
+      const pool = await poolPromise;
+      const formName = 'Sales RFQ';
+
+      // Get FormID
+      const [form] = await pool.query(
+        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        [formName]
+      );
+      if (!form.length) {
+        throw new Error('Invalid FormID for Sales RFQ');
+      }
+      const formID = form[0].FormID;
+
+      // Get required approvers
+      const [requiredApprovers] = await pool.query(
+        `SELECT DISTINCT fra.UserID, p.FirstName, p.LastName
+         FROM dbo_tblformroleapprover fra
+         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+         JOIN dbo_tblperson p ON fra.UserID = p.PersonID
+         WHERE fr.FormID = ? AND fra.ActiveYN = 1 AND p.IsDeleted = 0`,
+        [formID]
+      );
+
+      // Get completed approvals
+      const [completedApprovals] = await pool.query(
+        `SELECT s.ApproverID, p.FirstName, p.LastName, s.ApproverDateTime
+         FROM dbo_tblsalesrfqapproval s
+         JOIN dbo_tblperson p ON s.ApproverID = p.PersonID
+         WHERE s.SalesRFQID = ? AND s.IsDeleted = 0 AND s.ApprovedYN = 1
+         AND s.ApproverID IN (
+           SELECT DISTINCT fra.UserID 
+           FROM dbo_tblformroleapprover fra 
+           JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID 
+           WHERE fr.FormID = ? AND fra.ActiveYN = 1
+         )`,
+        [parseInt(salesRFQID), formID]
+      );
+
+      // Prepare approval status
+      const approvalStatus = requiredApprovers.map(approver => ({
+        UserID: approver.UserID,
+        FirstName: approver.FirstName,
+        LastName: approver.LastName,
+        Approved: completedApprovals.some(a => a.ApproverID === approver.UserID),
+        ApproverDateTime: completedApprovals.find(a => a.ApproverID === approver.UserID)?.ApproverDateTime || null
+      }));
+
+      return {
+        success: true,
+        message: 'Approval status retrieved successfully',
+        data: {
+          salesRFQID,
+          requiredApprovers: requiredApprovers.length,
+          completedApprovals: completedApprovals.length,
+          approvalStatus
+        },
+        salesRFQId: salesRFQID.toString(),
+        newSalesRFQId: null
+      };
+    } catch (error) {
+      console.error('Error in getSalesRFQApprovalStatus:', error);
+      throw new Error(`Error retrieving approval status: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SalesRFQModel;

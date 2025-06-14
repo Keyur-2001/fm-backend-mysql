@@ -190,6 +190,51 @@ class SalesOrderController {
       });
     }
   }
+
+   // Approve a Sales Quotation
+  static async approveSalesOrder(req, res) {
+    try {
+      const { SalesOrderID } = req.body;
+      const approverID = req.user?.personId;
+
+      if (!SalesOrderID) {
+        return res.status(400).json({
+          success: false,
+          message: 'SalesOrderID is required',
+          data: null,
+          SalesOrderID: null,
+          newSalesOrderID: null
+        });
+      }
+
+      if (!req.user || !approverID) {
+        return res.status(401).json({
+          success: false,
+          message: 'Authentication required',
+          data: null,
+          SalesOrderID: null,
+          newSalesOrderID: null
+        });
+      }
+
+      const approvalData = {
+        SalesOrderID: parseInt(SalesOrderID),
+        ApproverID: parseInt(approverID)
+      };
+
+      const result = await SalesOrderModel.approveSalesOrder(approvalData);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+    } catch (err) {
+      console.error('Approve SalesQuotation error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+       SalesOrderID: null,
+        newSalesOrderID: null
+      });
+    }
+  }
 }
 
 module.exports = SalesOrderController;

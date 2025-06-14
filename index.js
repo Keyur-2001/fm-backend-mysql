@@ -40,7 +40,6 @@ const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
 const salesQuotationParcelRoutes = require('./routes/salesQuotationParcelRoutes');
 const salesQuotationApprovalRoutes = require('./routes/salesQuotationApprovalRoutes');
 const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
-// const minRateRoutes = require('./routes/minRateRoutes');
 const formRoutes = require('./routes/formRoutes');
 const taxChargesTypeRoutes = require('./routes/taxChargesTypeRoutes');
 const collectionRateRoutes = require('./routes/collectionRateRoutes');
@@ -68,7 +67,8 @@ app.use(express.json());
 app.use(cors({
   origin: [
     process.env.CORS_ORIGIN,
-    "http://65.0.131.65",
+    "http://13.201.17.98",
+    "http://localhost:3000",
     "http://localhost:5173"
   ],
   credentials: true,
@@ -76,9 +76,53 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
 }));
 
+// WebSocket setup
+const http = require('http');
+const WebSocket = require('ws');
+const SalesRFQModel = require('./models/salesRFQModel');
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
+const clients = new Map();
+
+wss.on('connection', (ws, req) => {
+  const urlParams = new URLSearchParams(req.url.split('?')[1]);
+  const salesRFQId = urlParams.get('salesRFQId');
+  const userId = urlParams.get('userId');
+
+  if (salesRFQId && userId) {
+    clients.set(ws, { salesRFQId, userId });
+    ws.send(JSON.stringify({ message: `Connected to SalesRFQ ${salesRFQId} updates` }));
+  } else {
+    ws.close(1008, 'Missing salesRFQId or userId');
+  }
+
+  ws.on('close', () => {
+    clients.delete(ws);
+  });
+});
+
+async function broadcastApprovalUpdate(salesRFQId) {
+  try {
+    const result = await SalesRFQModel.getSalesRFQApprovalStatus(salesRFQId);
+    clients.forEach((client, ws) => {
+      if (client.salesRFQId === salesRFQId.toString() && ws.isAlive !== false) {
+        ws.send(JSON.stringify({
+          type: 'APPROVAL_UPDATE',
+          data: result.data
+        }));
+      }
+    });
+  } catch (error) {
+    console.error('Error broadcasting approval update:', error);
+  }
+}
+
+SalesRFQModel.onApprovalUpdate = broadcastApprovalUpdate;
+
 // Health check endpoint
-app.get("/health", (req, res) => {
-  res.status(200).json({ status: "OK", timestamp: new Date().toISOString() });
+app.get('/health', (req, res) => {
+  res.status(200).json({ success: true, timestamp: new Date().toISOString() });
 });
 
 // Initialize server
@@ -102,7 +146,7 @@ async function startServer() {
       ['/api/items', itemRoutes],
       ['/api/uoms', uomRoutes],
       ['/api/auth', authRoutes],
-      ['/api/cities', cityRoutes],
+      ['/api/city', cityRoutes],
       ['/api/country-of-origin', countryOfOriginRoutes],
       ['/api/address-types', addressTypeRoutes],
       ['/api/warehouses', warehouseRoutes],
@@ -168,13 +212,9 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7001;
-    const server = app.listen(PORT, () => {
-      console.log(
-        `Server running on port ${PORT} in ${
-          process.env.NODE_ENV || "development"
-        } mode`
-      );
+    const PORT = process.env.PORT || 7000;
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
 
     // Graceful shutdown
