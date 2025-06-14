@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const multer = require('multer');
-const PInvoiceParcelController = require('../controllers/PInvoiceParcelController');
+const PInvoiceParcelController = require('../controllers/pInvoiceParcelController');
 const authMiddleware = require('../middleware/authMiddleware');
 
 // Configure multer for file uploads
