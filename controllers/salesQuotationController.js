@@ -1,37 +1,47 @@
-const SalesQuotationModel = require('../models/salesQuotationModel');
+const SalesQuotationModel = require("../models/salesQuotationModel");
 
 class SalesQuotationController {
   // Get all Sales Quotations
   static async getAllSalesQuotations(req, res) {
     try {
-      const { pageNumber, pageSize, sortColumn, sortDirection, fromDate, toDate, status, customerId, supplierId } = req.query;
+      const {
+        pageNumber,
+        pageSize,
+        sortColumn,
+        sortDirection,
+        fromDate,
+        toDate,
+        status,
+        customerId,
+        supplierId,
+      } = req.query;
       const result = await SalesQuotationModel.getAllSalesQuotations({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
-        sortColumn: sortColumn || 'SalesQuotationID',
-        sortDirection: sortDirection || 'ASC',
+        sortColumn: sortColumn || "SalesQuotationID",
+        sortDirection: sortDirection || "ASC",
         fromDate: fromDate || null,
         toDate: toDate || null,
         status: status || null,
         customerId: parseInt(customerId) || null,
-        supplierId: parseInt(supplierId) || null
+        supplierId: parseInt(supplierId) || null,
       });
       res.status(200).json({
         success: true,
-        message: 'Sales Quotation records retrieved successfully.',
+        message: "Sales Quotation records retrieved successfully.",
         data: result.data,
         totalRecords: result.totalRecords,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     } catch (err) {
-      console.error('Error in getAllSalesQuotations:', err);
+      console.error("Error in getAllSalesQuotations:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
@@ -39,14 +49,15 @@ class SalesQuotationController {
   // Create a new Sales Quotation
   static async createSalesQuotation(req, res) {
     try {
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
+      const allowedRoles = ["Administrator", "Customer Order Coordinator"];
       if (!req.user || !allowedRoles.includes(req.user.role)) {
         return res.status(403).json({
           success: false,
-          message: 'Only Administrators or Customer Order Coordinators can create Sales Quotation',
+          message:
+            "Only Administrators or Customer Order Coordinators can create Sales Quotation",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
@@ -79,17 +90,17 @@ class SalesQuotationController {
         supplierContactPersonId: req.body.supplierContactPersonId,
         isDeliveryOnly: req.body.isDeliveryOnly,
         taxesAndOtherCharges: req.body.taxesAndOtherCharges,
-        CreatedByID: req.user.personId
+        CreatedByID: req.user.personId,
       };
 
       // Validate required fields
       if (!data.PurchaseRFQID || !data.CreatedByID) {
         return res.status(400).json({
           success: false,
-          message: 'PurchaseRFQID and CreatedByID are required.',
+          message: "PurchaseRFQID and CreatedByID are required.",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
@@ -99,16 +110,16 @@ class SalesQuotationController {
         message: result.message,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: result.newSalesQuotationId
+        newSalesQuotationId: result.newSalesQuotationId,
       });
     } catch (err) {
-      console.error('Error in createSalesQuotation:', err);
+      console.error("Error in createSalesQuotation:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
@@ -117,31 +128,33 @@ class SalesQuotationController {
   static async getSalesQuotationById(req, res) {
     try {
       const { id } = req.params;
-      const salesQuotation = await SalesQuotationModel.getSalesQuotationById(parseInt(id));
+      const salesQuotation = await SalesQuotationModel.getSalesQuotationById(
+        parseInt(id)
+      );
       if (!salesQuotation) {
         return res.status(404).json({
           success: false,
-          message: 'Sales Quotation not found or deleted.',
+          message: "Sales Quotation not found or deleted.",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
       res.status(200).json({
         success: true,
-        message: 'Sales Quotation retrieved successfully.',
+        message: "Sales Quotation retrieved successfully.",
         data: salesQuotation,
         salesQuotationId: id,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     } catch (err) {
-      console.error('Error in getSalesQuotationById:', err);
+      console.error("Error in getSalesQuotationById:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
@@ -179,36 +192,39 @@ class SalesQuotationController {
         supplierContactPersonId: req.body.supplierContactPersonId,
         isDeliveryOnly: req.body.isDeliveryOnly,
         TaxesAndOtherCharges: req.body.taxesAndOtherCharges,
-        CreatedByID: req.user.personId
+        CreatedByID: req.user.personId,
       };
 
       // Validate required fields
       if (!data.CreatedByID) {
         return res.status(400).json({
           success: false,
-          message: 'CreatedByID is required.',
+          message: "CreatedByID is required.",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
-      const result = await SalesQuotationModel.updateSalesQuotation(parseInt(id), data);
+      const result = await SalesQuotationModel.updateSalesQuotation(
+        parseInt(id),
+        data
+      );
       res.status(200).json({
         success: true,
         message: result.message,
         data: null,
         salesQuotationId: id,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     } catch (err) {
-      console.error('Error in updateSalesQuotation:', err);
+      console.error("Error in updateSalesQuotation:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
@@ -221,29 +237,32 @@ class SalesQuotationController {
       if (!deletedById) {
         return res.status(401).json({
           success: false,
-          message: 'Authentication required.',
+          message: "Authentication required.",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
-      const result = await SalesQuotationModel.deleteSalesQuotation(parseInt(id), deletedById);
+      const result = await SalesQuotationModel.deleteSalesQuotation(
+        parseInt(id),
+        deletedById
+      );
       res.status(200).json({
         success: true,
         message: result.message,
         data: null,
         salesQuotationId: id,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     } catch (err) {
-      console.error('Error in deleteSalesQuotation:', err);
+      console.error("Error in deleteSalesQuotation:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
@@ -257,38 +276,42 @@ class SalesQuotationController {
       if (!SalesQuotationID) {
         return res.status(400).json({
           success: false,
-          message: 'salesQuotationID is required',
+          message: "salesQuotationID is required",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
       if (!req.user || !approverID) {
         return res.status(401).json({
           success: false,
-          message: 'Authentication required',
+          message: "Authentication required",
           data: null,
           salesQuotationId: null,
-          newSalesQuotationId: null
+          newSalesQuotationId: null,
         });
       }
 
       const approvalData = {
         SalesQuotationID: parseInt(SalesQuotationID),
-        ApproverID: parseInt(approverID)
+        ApproverID: parseInt(approverID),
       };
 
-      const result = await SalesQuotationModel.approveSalesQuotation(approvalData);
-      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+      const result = await SalesQuotationModel.approveSalesQuotation(
+        approvalData
+      );
+      return res
+        .status(result.success ? (result.isFullyApproved ? 200 : 202) : 403)
+        .json(result);
     } catch (err) {
-      console.error('Approve SalesQuotation error:', err);
+      console.error("Approve SalesQuotation error:", err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesQuotationId: null,
-        newSalesQuotationId: null
+        newSalesQuotationId: null,
       });
     }
   }
