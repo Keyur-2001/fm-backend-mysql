@@ -242,6 +242,7 @@ async function startServer() {
       // ['/api/min-rate', minRateRoutes]
       ["/api/salesInvoice", salesInvoiceRoutes],
       ["/api/sendPurchaseOrder", sendPurchaseOrderRoutes],
+      ["/api/pendingApprovals", pendingApprovalsRoutes],
     ];
 
     routes.forEach(([path, route]) => {
