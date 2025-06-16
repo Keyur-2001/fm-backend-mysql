@@ -1,6 +1,6 @@
 const express = require('express');
 const { check } = require('express-validator');
-const CurrencyController = require('../controllers/CurrencyController');
+const CurrencyController = require('../controllers/currencyController');
 // const authMiddleware = require('../middleware/auth'); // Assume auth middleware
 
 const router = express.Router();

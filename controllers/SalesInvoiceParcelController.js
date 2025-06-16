@@ -1,4 +1,4 @@
-const SalesInvoiceParcelModel = require('../models/salesInvoiceParcelModel');
+const SalesInvoiceParcelModel = require('../models/SalesInvoiceParcelModel');
 
 class SalesInvoiceParcelController {
   // Get all Sales Invoice Parcels
