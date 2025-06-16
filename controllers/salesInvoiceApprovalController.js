@@ -1,80 +1,80 @@
-const PInvoiceApprovalModel = require('../models/pInvoiceApprovalModel');
+const SalesInvoiceApprovalModel = require('../models/salesInvoiceApprovalModel');
 
-class PInvoiceApprovalController {
-  static async getPInvoiceApprovals(req, res) {
+class SalesInvoiceApprovalController {
+  static async getSalesInvoiceApprovals(req, res) {
     try {
-      const { pInvoiceID, pageNumber, pageSize } = req.query;
+      const { salesInvoiceID, pageNumber, pageSize } = req.query;
 
-      if (pInvoiceID && isNaN(parseInt(pInvoiceID))) {
+      if (salesInvoiceID && isNaN(parseInt(salesInvoiceID))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing PInvoiceID',
+          message: 'Invalid or missing SalesInvoiceID',
           data: null,
-          pInvoiceId: null,
+          salesInvoiceId: null,
           totalRecords: 0
         });
       }
 
-      const result = await PInvoiceApprovalModel.getPInvoiceApprovals({
-        pInvoiceID: pInvoiceID ? parseInt(pInvoiceID) : null,
+      const result = await SalesInvoiceApprovalModel.getSalesInvoiceApprovals({
+        salesInvoiceID: salesInvoiceID ? parseInt(salesInvoiceID) : null,
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10
       });
 
       return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('Error in getPInvoiceApprovals:', err);
+      console.error('Error in getSalesInvoiceApprovals:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
+        salesInvoiceId: null,
         totalRecords: 0
       });
     }
   }
 
-  static async getPInvoiceApprovalById(req, res) {
+  static async getSalesInvoiceApprovalById(req, res) {
     try {
-      const { pInvoiceID, approverID } = req.params;
+      const { salesInvoiceID, approverID } = req.params;
 
-      if (isNaN(parseInt(pInvoiceID)) || isNaN(parseInt(approverID))) {
+      if (isNaN(parseInt(salesInvoiceID)) || isNaN(parseInt(approverID))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid or missing PInvoiceID or ApproverID',
+          message: 'Invalid or missing SalesInvoiceID or ApproverID',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
-      const result = await PInvoiceApprovalModel.getPInvoiceApprovalById({
-        pInvoiceID: parseInt(pInvoiceID),
+      const result = await SalesInvoiceApprovalModel.getSalesInvoiceApprovalById({
+        salesInvoiceID: parseInt(salesInvoiceID),
         approverID: parseInt(approverID)
       });
 
       return res.status(result.success ? (result.data ? 200 : 404) : 400).json(result);
     } catch (err) {
-      console.error('Error in getPInvoiceApprovalById:', err);
+      console.error('Error in getSalesInvoiceApprovalById:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null
+        salesInvoiceId: null
       });
     }
   }
 
-  static async createPInvoiceApproval(req, res) {
+  static async createSalesInvoiceApproval(req, res) {
     try {
-      const { pInvoiceID, approvedYN } = req.body;
+      const { salesInvoiceID, approvedYN } = req.body;
       const createdByID = req.user?.personId;
 
-      if (!pInvoiceID || approvedYN == null) {
+      if (!salesInvoiceID || approvedYN == null) {
         return res.status(400).json({
           success: false,
-          message: 'PInvoiceID and ApprovedYN are required',
+          message: 'SalesInvoiceID and ApprovedYN are required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
@@ -83,41 +83,41 @@ class PInvoiceApprovalController {
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: parseInt(pInvoiceID),
+        SalesInvoiceID: parseInt(salesInvoiceID),
         ApproverID: parseInt(createdByID),
         ApprovedYN: Boolean(approvedYN),
         CreatedByID: parseInt(createdByID)
       };
 
-      const result = await PInvoiceApprovalModel.createPInvoiceApproval(approvalData);
+      const result = await SalesInvoiceApprovalModel.createSalesInvoiceApproval(approvalData);
       return res.status(result.success ? 201 : 400).json(result);
     } catch (err) {
-      console.error('Error in createPInvoiceApproval:', err);
+      console.error('Error in createSalesInvoiceApproval:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null
+        salesInvoiceId: null
       });
     }
   }
 
-  static async updatePInvoiceApproval(req, res) {
+  static async updateSalesInvoiceApproval(req, res) {
     try {
-      const { pInvoiceID, approverID, approvedYN } = req.body;
+      const { salesInvoiceID, approverID, approvedYN } = req.body;
       const userID = req.user?.personId;
 
-      if (!pInvoiceID || !approverID || approvedYN == null) {
+      if (!salesInvoiceID || !approverID || approvedYN == null) {
         return res.status(400).json({
           success: false,
-          message: 'PInvoiceID, ApproverID, and ApprovedYN are required',
+          message: 'SalesInvoiceID, ApproverID, and ApprovedYN are required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
@@ -126,41 +126,41 @@ class PInvoiceApprovalController {
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: parseInt(pInvoiceID),
+        SalesInvoiceID: parseInt(salesInvoiceID),
         ApproverID: parseInt(approverID),
         ApprovedYN: Boolean(approvedYN),
         UserID: parseInt(userID)
       };
 
-      const result = await PInvoiceApprovalModel.updatePInvoiceApproval(approvalData);
+      const result = await SalesInvoiceApprovalModel.updateSalesInvoiceApproval(approvalData);
       return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('Error in updatePInvoiceApproval:', err);
+      console.error('Error in updateSalesInvoiceApproval:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null
+        salesInvoiceId: null
       });
     }
   }
 
-  static async deletePInvoiceApproval(req, res) {
+  static async deleteSalesInvoiceApproval(req, res) {
     try {
-      const { pInvoiceID, approverID } = req.body;
+      const { salesInvoiceID, approverID } = req.body;
       const deletedByID = req.user?.personId;
 
-      if (!pInvoiceID || !approverID) {
+      if (!salesInvoiceID || !approverID) {
         return res.status(400).json({
           success: false,
-          message: 'PInvoiceID and ApproverID are required',
+          message: 'SalesInvoiceID and ApproverID are required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
@@ -169,28 +169,28 @@ class PInvoiceApprovalController {
           success: false,
           message: 'Authentication required',
           data: null,
-          pInvoiceId: null
+          salesInvoiceId: null
         });
       }
 
       const approvalData = {
-        PInvoiceID: parseInt(pInvoiceID),
+        SalesInvoiceID: parseInt(salesInvoiceID),
         ApproverID: parseInt(approverID),
         DeletedByID: parseInt(deletedByID)
       };
 
-      const result = await PInvoiceApprovalModel.deletePInvoiceApproval(approvalData);
+      const result = await SalesInvoiceApprovalModel.deleteSalesInvoiceApproval(approvalData);
       return res.status(result.success ? 200 : 400).json(result);
     } catch (err) {
-      console.error('Error in deletePInvoiceApproval:', err);
+      console.error('Error in deleteSalesInvoiceApproval:', err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null
+        salesInvoiceId: null
       });
     }
   }
 }
 
-module.exports = PInvoiceApprovalController;
+module.exports = SalesInvoiceApprovalController;

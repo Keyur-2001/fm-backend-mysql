@@ -55,7 +55,7 @@ class PInvoiceParcelController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceParcelId: null,
+        pInvoiceParcelId: null
       });
     }
   }
@@ -77,7 +77,7 @@ class PInvoiceParcelController {
         success: true,
         message: result.message,
         data: null,
-        pInvoiceParcelId: id,
+        pInvoiceParcelId: id
       });
     } catch (err) {
       console.error("Error in updatePInvoiceParcel:", err);
@@ -85,7 +85,7 @@ class PInvoiceParcelController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceParcelId: null,
+        pInvoiceParcelId: null
       });
     }
   }
@@ -112,7 +112,7 @@ class PInvoiceParcelController {
         success: true,
         message: result.message,
         data: null,
-        pInvoiceParcelId: id,
+        pInvoiceParcelId: id
       });
     } catch (err) {
       console.error("Error in deletePInvoiceParcel:", err);
@@ -185,7 +185,7 @@ class PInvoiceParcelController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        pInvoiceId: null,
+        pInvoiceId: null
       });
     }
   }

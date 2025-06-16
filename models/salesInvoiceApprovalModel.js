@@ -1,13 +1,13 @@
 const poolPromise = require('../config/db.config');
 
-class PInvoiceApprovalModel {
-  static async getPInvoiceApprovals({ pInvoiceID = null, pageNumber = 1, pageSize = 10 }) {
+class SalesInvoiceApprovalModel {
+  static async getSalesInvoiceApprovals({ salesInvoiceID = null, pageNumber = 1, pageSize = 10 }) {
     try {
       const pool = await poolPromise;
 
       let queryParams = [
         'SELECT',
-        pInvoiceID ? parseInt(pInvoiceID) : null,
+        salesInvoiceID ? parseInt(salesInvoiceID) : null,
         null, // ApproverID
         null, // ApprovedYN
         null, // ApproverDateTime
@@ -16,7 +16,7 @@ class PInvoiceApprovalModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -27,16 +27,16 @@ class PInvoiceApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to retrieve PInvoice approvals',
+          message: outParams.message || 'Failed to retrieve SalesInvoice approvals',
           data: null,
-          pInvoiceId: pInvoiceID,
+          salesInvoiceId: salesInvoiceID,
           totalRecords: 0
         };
       }
 
       let approvals = result[0] || [];
 
-      if (!pInvoiceID) {
+      if (!salesInvoiceID) {
         const start = (pageNumber - 1) * pageSize;
         const end = start + pageSize;
         approvals = approvals.slice(start, end);
@@ -44,39 +44,39 @@ class PInvoiceApprovalModel {
 
       return {
         success: true,
-        message: outParams.message || 'PInvoice Approval records retrieved successfully.',
+        message: outParams.message || 'SalesInvoice Approval records retrieved successfully.',
         data: approvals,
-        pInvoiceId: pInvoiceID,
-        totalRecords: pInvoiceID ? approvals.length : (result[0] ? result[0].length : 0)
+        salesInvoiceId: salesInvoiceID,
+        totalRecords: salesInvoiceID ? approvals.length : (result[0] ? result[0].length : 0)
       };
     } catch (err) {
-      console.error('Database error in getPInvoiceApprovals:', err);
+      console.error('Database error in getSalesInvoiceApprovals:', err);
       return {
         success: false,
         message: `Database error: ${err.message}`,
         data: null,
-        pInvoiceId: pInvoiceID,
+        salesInvoiceId: salesInvoiceID,
         totalRecords: 0
       };
     }
   }
 
-  static async getPInvoiceApprovalById({ pInvoiceID, approverID }) {
+  static async getSalesInvoiceApprovalById({ salesInvoiceID, approverID }) {
     try {
       const pool = await poolPromise;
 
-      if (!pInvoiceID || !approverID) {
+      if (!salesInvoiceID || !approverID) {
         return {
           success: false,
-          message: 'PInvoiceID and ApproverID are required',
+          message: 'SalesInvoiceID and ApproverID are required',
           data: null,
-          pInvoiceId: pInvoiceID
+          salesInvoiceId: salesInvoiceID
         };
       }
 
       const queryParams = [
         'SELECT',
-        parseInt(pInvoiceID),
+        parseInt(salesInvoiceID),
         parseInt(approverID),
         null, // ApprovedYN
         null, // ApproverDateTime
@@ -85,7 +85,7 @@ class PInvoiceApprovalModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -96,9 +96,9 @@ class PInvoiceApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to retrieve PInvoice approval',
+          message: outParams.message || 'Failed to retrieve SalesInvoice approval',
           data: null,
-          pInvoiceId: pInvoiceID
+          salesInvoiceId: salesInvoiceID
         };
       }
 
@@ -106,39 +106,39 @@ class PInvoiceApprovalModel {
 
       return {
         success: true,
-        message: approval ? (outParams.message || 'PInvoice approval retrieved successfully.') : 'No approval record found.',
+        message: approval ? (outParams.message || 'SalesInvoice approval retrieved successfully.') : 'No approval record found.',
         data: approval,
-        pInvoiceId: pInvoiceID
+        salesInvoiceId: salesInvoiceID
       };
     } catch (err) {
-      console.error('Database error in getPInvoiceApprovalById:', err);
+      console.error('Database error in getSalesInvoiceApprovalById:', err);
       return {
         success: false,
         message: `Database error: ${err.message}`,
         data: null,
-        pInvoiceId: pInvoiceID
+        salesInvoiceId: salesInvoiceID
       };
     }
   }
 
-  static async createPInvoiceApproval(approvalData) {
+  static async createSalesInvoiceApproval(approvalData) {
     try {
       const pool = await poolPromise;
 
-      const requiredFields = ['PInvoiceID', 'ApproverID', 'ApprovedYN', 'CreatedByID'];
+      const requiredFields = ['SalesInvoiceID', 'ApproverID', 'ApprovedYN', 'CreatedByID'];
       const missingFields = requiredFields.filter(field => !approvalData[field]);
       if (missingFields.length > 0) {
         return {
           success: false,
           message: `${missingFields.join(', ')} are required`,
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       const queryParams = [
         'INSERT',
-        parseInt(approvalData.PInvoiceID),
+        parseInt(approvalData.SalesInvoiceID),
         parseInt(approvalData.ApproverID),
         approvalData.ApprovedYN ? 1 : 0,
         new Date(),
@@ -147,7 +147,7 @@ class PInvoiceApprovalModel {
       ];
 
       await pool.query(
-        'CALL SP_ManagePInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -158,47 +158,47 @@ class PInvoiceApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to create PInvoice approval',
+          message: outParams.message || 'Failed to create SalesInvoice approval',
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       return {
         success: true,
-        message: outParams.message || 'PInvoice approval created successfully.',
+        message: outParams.message || 'SalesInvoice approval created successfully.',
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     } catch (err) {
-      console.error('Database error in createPInvoiceApproval:', err);
+      console.error('Database error in createSalesInvoiceApproval:', err);
       return {
         success: false,
         message: `Database error: ${err.message}`,
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     }
   }
 
-  static async updatePInvoiceApproval(approvalData) {
+  static async updateSalesInvoiceApproval(approvalData) {
     try {
       const pool = await poolPromise;
 
-      const requiredFields = ['PInvoiceID', 'ApproverID', 'ApprovedYN', 'UserID'];
+      const requiredFields = ['SalesInvoiceID', 'ApproverID', 'ApprovedYN', 'UserID'];
       const missingFields = requiredFields.filter(field => !approvalData[field]);
       if (missingFields.length > 0) {
         return {
           success: false,
           message: `${missingFields.join(', ')} are required`,
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       const queryParams = [
         'UPDATE',
-        parseInt(approvalData.PInvoiceID),
+        parseInt(approvalData.SalesInvoiceID),
         parseInt(approvalData.ApproverID),
         approvalData.ApprovedYN ? 1 : 0,
         new Date(),
@@ -207,7 +207,7 @@ class PInvoiceApprovalModel {
       ];
 
       await pool.query(
-        'CALL SP_ManagePInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -218,47 +218,47 @@ class PInvoiceApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to update PInvoice approval',
+          message: outParams.message || 'Failed to update SalesInvoice approval',
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       return {
         success: true,
-        message: outParams.message || 'PInvoice approval updated successfully.',
+        message: outParams.message || 'SalesInvoice approval updated successfully.',
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     } catch (err) {
-      console.error('Database error in updatePInvoiceApproval:', err);
+      console.error('Database error in updateSalesInvoiceApproval:', err);
       return {
         success: false,
         message: `Database error: ${err.message}`,
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     }
   }
 
-  static async deletePInvoiceApproval(approvalData) {
+  static async deleteSalesInvoiceApproval(approvalData) {
     try {
       const pool = await poolPromise;
 
-      const requiredFields = ['PInvoiceID', 'ApproverID', 'DeletedByID'];
+      const requiredFields = ['SalesInvoiceID', 'ApproverID', 'DeletedByID'];
       const missingFields = requiredFields.filter(field => !approvalData[field]);
       if (missingFields.length > 0) {
         return {
           success: false,
           message: `${missingFields.join(', ')} are required`,
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       const queryParams = [
         'DELETE',
-        parseInt(approvalData.PInvoiceID),
+        parseInt(approvalData.SalesInvoiceID),
         parseInt(approvalData.ApproverID),
         null, // ApprovedYN
         null, // ApproverDateTime
@@ -267,7 +267,7 @@ class PInvoiceApprovalModel {
       ];
 
       await pool.query(
-        'CALL SP_ManagePInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
@@ -278,28 +278,28 @@ class PInvoiceApprovalModel {
       if (outParams.result !== 1) {
         return {
           success: false,
-          message: outParams.message || 'Failed to delete PInvoice approval',
+          message: outParams.message || 'Failed to delete SalesInvoice approval',
           data: null,
-          pInvoiceId: approvalData.PInvoiceID
+          salesInvoiceId: approvalData.SalesInvoiceID
         };
       }
 
       return {
         success: true,
-        message: outParams.message || 'PInvoice approval deleted successfully.',
+        message: outParams.message || 'SalesInvoice approval deleted successfully.',
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     } catch (err) {
-      console.error('Database error in deletePInvoiceApproval:', err);
+      console.error('Database error in deleteSalesInvoiceApproval:', err);
       return {
         success: false,
         message: `Database error: ${err.message}`,
         data: null,
-        pInvoiceId: approvalData.PInvoiceID
+        salesInvoiceId: approvalData.SalesInvoiceID
       };
     }
   }
 }
 
-module.exports = PInvoiceApprovalModel;
+module.exports = SalesInvoiceApprovalModel;

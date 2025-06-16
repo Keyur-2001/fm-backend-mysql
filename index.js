@@ -57,29 +57,29 @@ const poApprovalRoutes = require('./routes/poApprovalRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
-// const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
+const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 const salesInvoiceParcelRoutes = require('./routes/salesInvoiceParcelRoutes');
+const salesInvoiceApprovalRoutes = require('./routes/salesInvoiceApprovalRoutes')
 // const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
-const lowestItemPriceRoutes = require("./routes/lowestItemPriceRoutes");
-const tableAccessRoutes = require("./routes/tableAccessRoutes");
-const salesInvoiceRoutes = require("./routes/salesInvoiceRoutes");
+const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
+const tableAccessRoutes = require('./routes/tableAccessRoutes');
+// const sentPurchaseRFQToSuppliersRoutes = require('./routes/sentPurchaseRFQToSuppliersRoutes');
 
 const app = express();
 
 // Middleware
 app.use(express.json());
-app.use(
-  cors({
-    origin: [
-      process.env.CORS_ORIGIN,
-      "http://65.0.131.65",
-      "http://localhost:5173",
-    ],
-    credentials: true,
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Accept", "Authorization"],
-  })
-);
+app.use(cors({
+  origin: [
+    process.env.CORS_ORIGIN,
+    "http://13.201.17.98",
+    "http://localhost:3000",
+    "http://localhost:5173"
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Accept', 'Authorization']
+}));
 
 // WebSocket setup
 const http = require("http");
@@ -130,7 +130,7 @@ async function broadcastApprovalUpdate(salesRFQId) {
 SalesRFQModel.onApprovalUpdate = broadcastApprovalUpdate;
 
 // Health check endpoint
-app.get("/health", (req, res) => {
+app.get('/health', (req, res) => {
   res.status(200).json({ success: true, timestamp: new Date().toISOString() });
 });
 
@@ -233,16 +233,14 @@ async function startServer() {
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
-      // ['/api/salesInvoice', salesInvoiceRoutes],
+      ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/salesInvoiceParcel', salesInvoiceParcelRoutes],
+      ['/api/salesInvoiceApproval', salesInvoiceApprovalRoutes],
       // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ["/api/lowestItemPrice", lowestItemPriceRoutes],
       ["/api/tableAccess", tableAccessRoutes],
       ["/api/rfqsent", sentPurchaseRFQToSuppliersRoutes],
       // ['/api/min-rate', minRateRoutes]
-      ["/api/salesInvoice", salesInvoiceRoutes],
-      ["/api/sendPurchaseOrder", sendPurchaseOrderRoutes],
-      ["/api/pendingApprovals", pendingApprovalsRoutes],
     ];
 
     routes.forEach(([path, route]) => {
@@ -265,13 +263,9 @@ async function startServer() {
       });
     });
 
-    const PORT = process.env.PORT || 7000;
-    const server = app.listen(PORT, () => {
-      console.log(
-        `Server running on port ${PORT} in ${
-          process.env.NODE_ENV || "development"
-        } mode`
-      );
+    const PORT = process.env.PORT || 7001;
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
 
     // Graceful shutdown

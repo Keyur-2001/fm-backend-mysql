@@ -5,7 +5,7 @@ class PInvoiceParcelModel {
   static async getAllPInvoiceParcels({
     pageNumber = 1,
     pageSize = 10,
-    PInvoiceID = null,
+    PInvoiceID = null
   }) {
     try {
       const pool = await poolPromise;
@@ -18,11 +18,11 @@ class PInvoiceParcelModel {
         throw new Error("Invalid pageSize: must be a positive integer");
       }
       if (PInvoiceID && !Number.isInteger(PInvoiceID)) {
-        throw new Error("Invalid PInvoiceID: must be an integer");
+        throw new Error('Invalid PInvoiceID: must be an integer');
       }
 
       const queryParams = [
-        "SELECT",
+        'SELECT',
         null, // p_PInvoiceParcelID
         PInvoiceID || null, // p_PInvoiceID
         null, // p_ItemID
@@ -35,7 +35,7 @@ class PInvoiceParcelModel {
         null, // p_LineItemNumber
         null, // p_FileName
         null, // p_FileContent
-        null, // p_UserID
+        null  // p_UserID
       ];
 
       const [result] = await pool.query(
@@ -60,7 +60,7 @@ class PInvoiceParcelModel {
 
       return {
         data: paginatedParcels,
-        totalRecords: parcels.length,
+        totalRecords: parcels.length
       };
     } catch (err) {
       const errorMessage = err.sqlState
@@ -89,7 +89,7 @@ class PInvoiceParcelModel {
         null, // p_LineItemNumber
         null, // p_FileName
         null, // p_FileContent
-        null, // p_UserID
+        null  // p_UserID
       ];
 
       const [result] = await pool.query(
@@ -139,7 +139,7 @@ class PInvoiceParcelModel {
       }
 
       return {
-        message: response.Message,
+        message: response.Message
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -165,7 +165,7 @@ class PInvoiceParcelModel {
         null, // p_LineItemNumber
         null, // p_FileName
         null, // p_FileContent
-        deletedById,
+        deletedById
       ];
 
       const [result] = await pool.query(
@@ -182,7 +182,7 @@ class PInvoiceParcelModel {
       }
 
       return {
-        message: response.Message,
+        message: response.Message
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);

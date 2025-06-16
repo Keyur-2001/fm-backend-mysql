@@ -13,11 +13,11 @@ class PInvoiceController {
       });
       res.status(200).json({
         success: true,
-        message: "Purchase Invoice records retrieved successfully.",
+        message: 'Purchase Invoice records retrieved successfully.',
         data: result.data,
         totalRecords: result.totalRecords,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     } catch (err) {
       console.error("Error in getAllPInvoices:", err);
@@ -98,7 +98,7 @@ class PInvoiceController {
         message: `Server error: ${err.message}`,
         data: null,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     }
   }
@@ -111,18 +111,18 @@ class PInvoiceController {
       if (!pInvoice) {
         return res.status(404).json({
           success: false,
-          message: "Purchase Invoice not found or deleted.",
+          message: 'Purchase Invoice not found or deleted.',
           data: null,
           pInvoiceId: null,
-          newPInvoiceId: null,
+          newPInvoiceId: null
         });
       }
       res.status(200).json({
         success: true,
-        message: "Purchase Invoice retrieved successfully.",
+        message: 'Purchase Invoice retrieved successfully.',
         data: pInvoice,
         pInvoiceId: id,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     } catch (err) {
       console.error("Error in getPInvoiceById:", err);
@@ -131,7 +131,7 @@ class PInvoiceController {
         message: `Server error: ${err.message}`,
         data: null,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     }
   }
@@ -163,7 +163,7 @@ class PInvoiceController {
         message: result.message,
         data: null,
         pInvoiceId: id,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     } catch (err) {
       console.error("Error in updatePInvoice:", err);
@@ -172,7 +172,7 @@ class PInvoiceController {
         message: `Server error: ${err.message}`,
         data: null,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     }
   }
@@ -201,7 +201,7 @@ class PInvoiceController {
         message: result.message,
         data: null,
         pInvoiceId: id,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     } catch (err) {
       console.error("Error in deletePInvoice:", err);
@@ -210,7 +210,7 @@ class PInvoiceController {
         message: `Server error: ${err.message}`,
         data: null,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     }
   }
@@ -267,7 +267,7 @@ class PInvoiceController {
           message: "pInvoiceID is required",
           data: null,
           pInvoiceId: null,
-          newPInvoiceId: null,
+          newPInvoiceId: null
         });
       }
 
@@ -277,19 +277,17 @@ class PInvoiceController {
           message: "Authentication required",
           data: null,
           pInvoiceId: null,
-          newPInvoiceId: null,
+          newPInvoiceId: null
         });
       }
 
       const approvalData = {
         PInvoiceID: parseInt(pInvoiceID),
-        ApproverID: parseInt(approverID),
+        ApproverID: parseInt(approverID)
       };
 
       const result = await PInvoiceModel.approvePInvoice(approvalData);
-      return res
-        .status(result.success ? (result.isFullyApproved ? 200 : 202) : 403)
-        .json(result);
+      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
     } catch (error) {
       console.error("Approve PInvoice error:", error);
       return res.status(500).json({
@@ -297,7 +295,7 @@ class PInvoiceController {
         message: `Server error: ${error.message}`,
         data: null,
         pInvoiceId: null,
-        newPInvoiceId: null,
+        newPInvoiceId: null
       });
     }
   }
