@@ -2,11 +2,11 @@ const express = require('express');
 const router = express.Router();
 const SalesRFQController = require('../controllers/salesRFQController');
 const authMiddleware = require('../middleware/authMiddleware');
-// const tableAccessMiddleware = require('../middleware/tableAccessMiddleware');
-// const permissionMiddleware = require('../middleware/permissionMiddleware');
+const tableAccessMiddleware = require('../middleware/tableAccessMiddleware');
+const permissionMiddleware = require('../middleware/permissionMiddleware');
 
 // Get all SalesRFQs (requires read permission on SalesRFQ table)
-router.get('/', SalesRFQController.getAllSalesRFQs);
+router.get('/', authMiddleware, permissionMiddleware('read'),tableAccessMiddleware,SalesRFQController.getAllSalesRFQs);
 
 // Get a single SalesRFQ by ID (requires read permission on SalesRFQ table)
 router.get('/:id', SalesRFQController.getSalesRFQ);
