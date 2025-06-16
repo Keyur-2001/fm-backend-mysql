@@ -53,7 +53,7 @@ const poApprovalRoutes = require('./routes/poApprovalRoutes');
 const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
-// const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
+const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 const salesInvoiceParcelRoutes = require('./routes/salesInvoiceParcelRoutes');
 // const pendingSalesRFQApprovalRoutes = require('./routes/pendingSalesRFQApprovalRoutes');
 const lowestItemPriceRoutes = require('./routes/lowestItemPriceRoutes');
@@ -185,7 +185,7 @@ async function startServer() {
       ['/api/pInvoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoice-Approval', pInvoiceApprovalRoutes],
-      // ['/api/salesInvoice', salesInvoiceRoutes],
+      ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/salesInvoiceParcel', salesInvoiceParcelRoutes],
       // ['/api/pendingSalesRFQApprovals', pendingSalesRFQApprovalRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
