@@ -1,5 +1,5 @@
 const { validationResult } = require('express-validator');
-const CurrencyModel = require('../models/CurrencyModel');
+const CurrencyModel = require('../models/currencyModel');
 
 // Get all currencies
 const getAllCurrencies = async (req, res) => {

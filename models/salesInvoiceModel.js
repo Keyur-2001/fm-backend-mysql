@@ -64,6 +64,85 @@ class SalesInvoiceModel {
     }
   }
 
+  // Get a single Sales Invoice by ID
+  static async getSalesInvoiceById(salesInvoiceId) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'SELECT', // Ensure uppercase
+        salesInvoiceId,
+        null, // p_PInvoiceID
+        null, // p_SalesRFQID
+        null, // p_UserID
+        null, // p_Series
+        null, // p_ReferencedSalesInvoiceID
+        null, // p_SalesOrderID
+        null, // p_PostingDate
+        null, // p_RequiredByDate
+        null, // p_DeliveryDate
+        null, // p_DateReceived
+        null, // p_Terms
+        null, // p_PackagingRequiredYN
+        null, // p_CollectFromSupplierYN
+        null, // p_ExternalRefNo
+        null, // p_ExternalSupplierID
+        null, // p_SalesAmount
+        null, // p_TaxesAndOtherCharges
+        null, // p_Total
+        null, // p_FormCompletedYN
+        null, // p_CopyTaxesFromPInvoice
+        null, // p_TaxChargesTypeID
+        null, // p_TaxRate
+        null  // p_TaxTotal
+        
+      ];
+
+      const [result] = await pool.query(
+        'CALL SP_ManageSalesInvoiceDEV(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,@p_ErrorMessage)',
+        queryParams
+      );
+
+      console.log('Stored Procedure Result:', JSON.stringify(result, null, 2));
+
+      // Check if the result set contains data
+      if (!result[0] || result[0].length === 0) {
+        return {
+          data: null,
+          message: 'Sales Invoice not found or deleted'
+        };
+      }
+
+      // Check for status in the second result set or error message
+      const statusResult = result[1] || result[0].find(row => row.Status && row.Message);
+      if (statusResult && statusResult.Status === 'FAILED') {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
+        );
+        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || statusResult.Message || 'Unknown error'}`);
+      }
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_ErrorMessage AS errorMessage'
+      );
+
+      if (outParams?.errorMessage) {
+        throw new Error(`Stored procedure error: ${outParams.errorMessage}`);
+      }
+
+      return {
+        data: result[0][0],
+        message: 'Sales Invoice retrieved successfully'
+      };
+    } catch (err) {
+      const errorMessage = err.sqlState ? 
+        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
+        `Database error: ${err.message}`;
+      throw new Error(errorMessage);
+    }
+  }
+
   // Create a Sales Invoice
   static async createSalesInvoice(data, userId) {
     try {
@@ -98,7 +177,7 @@ class SalesInvoiceModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManageSalesInvoiceDEV(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         queryParams
       );
 
@@ -107,7 +186,6 @@ class SalesInvoiceModel {
       );
 
       if (outParams?.errorMessage || result[0][0]?.Status === 'FAILED') {
-        // Check error log for more details
         await new Promise(resolve => setTimeout(resolve, 100));
         const [[errorLog]] = await pool.query(
           'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
@@ -148,7 +226,7 @@ class SalesInvoiceModel {
     }
   }
 
-  // Helper: Check Supplier Quotation status
+  // Helper: Check Sales Invoice status
   static async #checkSalesInvoiceStatus(SalesInvoiceID) {
     try {
       const pool = await poolPromise;
@@ -186,11 +264,11 @@ class SalesInvoiceModel {
       console.log(`Insert Debug: SalesInvoiceID=${approvalData.SalesInvoiceID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
       return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
     } catch (error) {
-      throw new Error(`Error inserting Purchase Invoice approval: ${error.message}`);
+      throw new Error(`Error inserting Sales Invoice approval: ${error.message}`);
     }
   }
 
-  // Approve a Supplier Quotation
+  // Approve a Sales Invoice
   static async approveSalesInvoice(approvalData) {
     let connection;
     try {
@@ -331,8 +409,6 @@ class SalesInvoiceModel {
       }
     }
   }
-
-
 }
 
 module.exports = SalesInvoiceModel;
