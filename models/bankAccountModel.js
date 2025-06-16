@@ -1,6 +1,68 @@
 const poolPromise = require('../config/db.config');
 
 class BankAccountModel {
+  // Get all BankAccounts with pagination
+  static async getAllBankAccounts({ pageNumber = 1, pageSize = 10 }) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'SELECT',
+        null, // p_BankAccountID
+        null, // p_AccountName
+        null, // p_AccountType
+        null, // p_BankName
+        null, // p_BranchCode
+        null, // p_IBAN
+        null, // p_IFSC
+        null, // p_MICRA
+        null, // p_AccountVerified
+        null, // p_IsDefaultAccount
+        null, // p_Disabled
+        null  // p_CreatedByID
+      ];
+
+      const [result] = await pool.query(
+        'CALL sp_ManageBankAccount(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        'SELECT @p_Result AS Result, @p_Message AS Message'
+      );
+
+      if (outParams.Result !== 1) {
+        return {
+          success: false,
+          message: outParams.Message || 'Failed to retrieve BankAccounts',
+          data: null,
+          totalRecords: 0
+        };
+      }
+
+      let accounts = result[0] || [];
+      const totalRecords = accounts.length;
+      const start = (pageNumber - 1) * pageSize;
+      const end = start + pageSize;
+      accounts = accounts.slice(start, end);
+
+      return {
+        success: true,
+        message: outParams.Message || 'BankAccounts retrieved successfully.',
+        data: accounts,
+        totalRecords
+      };
+    } catch (err) {
+      console.error('Database error in getAllBankAccounts:', err);
+      return {
+        success: false,
+        message: `Database error: ${err.message}`,
+        data: null,
+        totalRecords: 0
+      };
+    }
+  }
+
   // Create a new BankAccount
   static async createBankAccount(data) {
     try {

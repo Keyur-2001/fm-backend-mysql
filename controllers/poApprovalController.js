@@ -33,9 +33,19 @@ class POApprovalController {
     try {
       const poId = req.query.poId ? parseInt(req.query.poId) : null;
       const approverId = req.query.approverId ? parseInt(req.query.approverId) : null;
+      const { pageNumber = 1, pageSize = 10 } = req.query;
 
-      const result = await POApprovalModel.getAllPOApprovals(poId, approverId);
-      return res.status(result.success ? 200 : 400).json(result);
+      const result = await POApprovalModel.getAllPOApprovals({
+        poId,
+        approverId,
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize)
+      });
+      
+      return res.status(result.success ? 200 : 400).json({
+        ...result,
+        totalRecords: result.totalRecords || 0
+      });
     } catch (err) {
       console.error('Error in getAllPOApprovals:', err);
       return res.status(500).json({
@@ -47,7 +57,7 @@ class POApprovalController {
         totalRecords: 0
       });
     }
-  }
+}
 
   static async createPOApproval(req, res) {
     try {

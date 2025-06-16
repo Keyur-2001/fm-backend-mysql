@@ -1,6 +1,37 @@
 const BankAccountModel = require('../models/bankAccountModel');
 
 class BankAccountController {
+  // Get all BankAccounts with pagination
+  static async getAllBankAccounts(req, res) {
+    try {
+      const { pageNumber, pageSize } = req.query;
+
+      const result = await BankAccountModel.getAllBankAccounts({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10
+      });
+
+      return res.status(result.success ? 200 : 400).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        bankAccountId: null,
+        newBankAccountId: null,
+        totalRecords: result.totalRecords
+      });
+    } catch (err) {
+      console.error('Error in getAllBankAccounts:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        bankAccountId: null,
+        newBankAccountId: null,
+        totalRecords: 0
+      });
+    }
+  }
+
   // Create a new BankAccount
   static async createBankAccount(req, res) {
     try {

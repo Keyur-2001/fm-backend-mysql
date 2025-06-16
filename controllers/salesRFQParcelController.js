@@ -4,15 +4,25 @@ class SalesRFQParcelController {
   // Get Sales RFQ Parcels
   static async getSalesRFQParcels(req, res) {
     try {
-      const { salesRFQParcelId, salesRFQId } = req.query;
+      const { pageNumber = 1, pageSize = 10, salesRFQParcelId, salesRFQId } = req.query;
+      
       const result = await SalesRFQParcelModel.getSalesRFQParcels({
+        pageNumber: parseInt(pageNumber),
+        pageSize: parseInt(pageSize),
         salesRFQParcelId: parseInt(salesRFQParcelId) || null,
         salesRFQId: parseInt(salesRFQId) || null
       });
+      
       res.status(200).json({
         success: true,
         message: result.message,
         data: result.data,
+        pagination: {
+          totalRecords: result.totalRecords,
+          totalPages: Math.ceil(result.totalRecords / parseInt(pageSize)),
+          currentPage: parseInt(pageNumber),
+          pageSize: parseInt(pageSize)
+        },
         salesRFQParcelId: salesRFQParcelId || null,
         newSalesRFQParcelId: null
       });
@@ -26,7 +36,7 @@ class SalesRFQParcelController {
         newSalesRFQParcelId: null
       });
     }
-  }
+}
 
   // Get a single Sales RFQ Parcel by ID
   static async getSalesRFQParcelById(req, res) {
