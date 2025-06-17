@@ -1,34 +1,45 @@
-const poolPromise = require('../config/db.config');
+const poolPromise = require("../config/db.config");
 
 class SalesInvoiceModel {
   // Get all Sales Invoices
   static async getAllSalesInvoices({
     pageNumber = 1,
     pageSize = 10,
-    sortBy = 'CreatedDateTime',
-    sortOrder = 'DESC',
+    sortBy = "CreatedDateTime",
+    sortOrder = "DESC",
     customerId = null,
     companyId = null,
     supplierId = null,
     dateFrom = null,
     dateTo = null,
-    searchTerm = null
+    searchTerm = null,
   }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
       if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
-        throw new Error('Invalid pageNumber: must be a positive integer');
+        throw new Error("Invalid pageNumber: must be a positive integer");
       }
       if (!Number.isInteger(pageSize) || pageSize <= 0) {
-        throw new Error('Invalid pageSize: must be a positive integer');
+        throw new Error("Invalid pageSize: must be a positive integer");
       }
-      if (!['CreatedDateTime', 'PostingDate', 'DeliveryDate', 'RequiredByDate', 'Series', 'Total'].includes(sortBy)) {
-        throw new Error('Invalid sortBy: must be one of CreatedDateTime, PostingDate, DeliveryDate, RequiredByDate, Series, Total');
+      if (
+        ![
+          "CreatedDateTime",
+          "PostingDate",
+          "DeliveryDate",
+          "RequiredByDate",
+          "Series",
+          "Total",
+        ].includes(sortBy)
+      ) {
+        throw new Error(
+          "Invalid sortBy: must be one of CreatedDateTime, PostingDate, DeliveryDate, RequiredByDate, Series, Total"
+        );
       }
-      if (!['ASC', 'DESC'].includes(sortOrder.toUpperCase())) {
-        throw new Error('Invalid sortOrder: must be ASC or DESC');
+      if (!["ASC", "DESC"].includes(sortOrder.toUpperCase())) {
+        throw new Error("Invalid sortOrder: must be ASC or DESC");
       }
 
       const queryParams = [
@@ -41,11 +52,11 @@ class SalesInvoiceModel {
         supplierId ? parseInt(supplierId) : null,
         dateFrom || null,
         dateTo || null,
-        searchTerm || null
+        searchTerm || null,
       ];
 
       const [result] = await pool.query(
-        'CALL SP_GetAllSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        "CALL SP_GetAllSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         queryParams
       );
 
@@ -54,12 +65,95 @@ class SalesInvoiceModel {
         totalRecords: result[0][0]?.TotalRecords || 0,
         totalPages: result[0][0]?.TotalPages || 0,
         currentPage: result[0][0]?.CurrentPage || pageNumber,
-        pageSize: result[0][0]?.PageSize || pageSize
+        pageSize: result[0][0]?.PageSize || pageSize,
       };
     } catch (err) {
-      const errorMessage = err.sqlState ? 
-        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
-        `Database error: ${err.message}`;
+      const errorMessage = err.sqlState
+        ? `Database error: ${err.message} (SQLSTATE: ${err.sqlState})`
+        : `Database error: ${err.message}`;
+      throw new Error(errorMessage);
+    }
+  }
+
+  // Get a single Sales Invoice by ID
+  static async getSalesInvoiceById(salesInvoiceId) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        "SELECT", // Ensure uppercase
+        salesInvoiceId,
+        null, // p_PInvoiceID
+        null, // p_SalesRFQID
+        null, // p_UserID
+        null, // p_Series
+        null, // p_ReferencedSalesInvoiceID
+        null, // p_SalesOrderID
+        null, // p_PostingDate
+        null, // p_RequiredByDate
+        null, // p_DeliveryDate
+        null, // p_DateReceived
+        null, // p_Terms
+        null, // p_PackagingRequiredYN
+        null, // p_CollectFromSupplierYN
+        null, // p_ExternalRefNo
+        null, // p_ExternalSupplierID
+        null, // p_SalesAmount
+        null, // p_TaxesAndOtherCharges
+        null, // p_Total
+        null, // p_FormCompletedYN
+        null, // p_CopyTaxesFromPInvoice
+        null, // p_TaxChargesTypeID
+        null, // p_TaxRate
+        null, // p_TaxTotal
+      ];
+
+      const [result] = await pool.query(
+        "CALL SP_ManageSalesInvoiceDEV(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,@p_ErrorMessage)",
+        queryParams
+      );
+
+      console.log("Stored Procedure Result:", JSON.stringify(result, null, 2));
+
+      // Check if the result set contains data
+      if (!result[0] || result[0].length === 0) {
+        return {
+          data: null,
+          message: "Sales Invoice not found or deleted",
+        };
+      }
+
+      // Check for status in the second result set or error message
+      const statusResult =
+        result[1] || result[0].find((row) => row.Status && row.Message);
+      if (statusResult && statusResult.Status === "FAILED") {
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          "SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1"
+        );
+        throw new Error(
+          `Stored procedure error: ${
+            errorLog?.ErrorMessage || statusResult.Message || "Unknown error"
+          }`
+        );
+      }
+
+      const [[outParams]] = await pool.query(
+        "SELECT @p_ErrorMessage AS errorMessage"
+      );
+
+      if (outParams?.errorMessage) {
+        throw new Error(`Stored procedure error: ${outParams.errorMessage}`);
+      }
+
+      return {
+        data: result[0][0],
+        message: "Sales Invoice retrieved successfully",
+      };
+    } catch (err) {
+      const errorMessage = err.sqlState
+        ? `Database error: ${err.message} (SQLSTATE: ${err.sqlState})`
+        : `Database error: ${err.message}`;
       throw new Error(errorMessage);
     }
   }
@@ -70,7 +164,7 @@ class SalesInvoiceModel {
       const pool = await poolPromise;
 
       const queryParams = [
-        'INSERT',
+        "INSERT",
         null, // p_SalesInvoiceID
         data.pInvoiceId || null,
         data.salesRFQId || null,
@@ -94,35 +188,41 @@ class SalesInvoiceModel {
         data.copyTaxesFromPInvoice || 0,
         data.taxChargesTypeId || null,
         data.taxRate || null,
-        data.taxTotal || null
+        data.taxTotal || null,
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        "CALL SP_ManageSalesInvoiceDEV(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
         queryParams
       );
 
       const [[outParams]] = await pool.query(
-        'SELECT @p_ErrorMessage AS errorMessage'
+        "SELECT @p_ErrorMessage AS errorMessage"
       );
 
-      if (outParams?.errorMessage || result[0][0]?.Status === 'FAILED') {
-        // Check error log for more details
-        await new Promise(resolve => setTimeout(resolve, 100));
+      if (outParams?.errorMessage || result[0][0]?.Status === "FAILED") {
+        await new Promise((resolve) => setTimeout(resolve, 100));
         const [[errorLog]] = await pool.query(
-          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
+          "SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1"
         );
-        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams?.errorMessage || result[0][0]?.Message || 'Unknown error'}`);
+        throw new Error(
+          `Stored procedure error: ${
+            errorLog?.ErrorMessage ||
+            outParams?.errorMessage ||
+            result[0][0]?.Message ||
+            "Unknown error"
+          }`
+        );
       }
 
       return {
         salesInvoiceId: result[0][0]?.SalesInvoiceID,
-        message: result[0][0]?.Message || 'Sales Invoice created successfully'
+        message: result[0][0]?.Message || "Sales Invoice created successfully",
       };
     } catch (err) {
-      const errorMessage = err.sqlState ? 
-        `Database error: ${err.message} (SQLSTATE: ${err.sqlState})` : 
-        `Database error: ${err.message}`;
+      const errorMessage = err.sqlState
+        ? `Database error: ${err.message} (SQLSTATE: ${err.sqlState})`
+        : `Database error: ${err.message}`;
       throw new Error(errorMessage);
     }
   }
@@ -141,14 +241,19 @@ class SalesInvoiceModel {
           AND fra.ActiveYN = 1
           AND f.IsDeleted = 0;
       `;
-      const [result] = await pool.query(query, [parseInt(approverID), formName]);
+      const [result] = await pool.query(query, [
+        parseInt(approverID),
+        formName,
+      ]);
       return result.length > 0;
     } catch (error) {
-      throw new Error(`Error checking form role approver permission: ${error.message}`);
+      throw new Error(
+        `Error checking form role approver permission: ${error.message}`
+      );
     }
   }
 
-  // Helper: Check Supplier Quotation status
+  // Helper: Check Sales Invoice status
   static async #checkSalesInvoiceStatus(SalesInvoiceID) {
     try {
       const pool = await poolPromise;
@@ -181,16 +286,24 @@ class SalesInvoiceModel {
         parseInt(approvalData.SalesInvoiceID),
         parseInt(approvalData.ApproverID),
         1,
-        parseInt(approvalData.ApproverID)
+        parseInt(approvalData.ApproverID),
       ]);
-      console.log(`Insert Debug: SalesInvoiceID=${approvalData.SalesInvoiceID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
-      return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
+      console.log(
+        `Insert Debug: SalesInvoiceID=${approvalData.SalesInvoiceID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`
+      );
+      return {
+        success: true,
+        message: "Approval record inserted successfully.",
+        insertId: result.insertId,
+      };
     } catch (error) {
-      throw new Error(`Error inserting Purchase Invoice approval: ${error.message}`);
+      throw new Error(
+        `Error inserting Sales Invoice approval: ${error.message}`
+      );
     }
   }
 
-  // Approve a Supplier Quotation
+  // Approve a Sales Invoice
   static async approveSalesInvoice(approvalData) {
     let connection;
     try {
@@ -198,54 +311,70 @@ class SalesInvoiceModel {
       connection = await pool.getConnection();
       await connection.beginTransaction();
 
-      const requiredFields = ['SalesInvoiceID', 'ApproverID'];
-      const missingFields = requiredFields.filter(field => !approvalData[field]);
+      const requiredFields = ["SalesInvoiceID", "ApproverID"];
+      const missingFields = requiredFields.filter(
+        (field) => !approvalData[field]
+      );
       if (missingFields.length > 0) {
-        throw new Error(`${missingFields.join(', ')} are required`);
+        throw new Error(`${missingFields.join(", ")} are required`);
       }
 
       const SalesInvoiceID = parseInt(approvalData.SalesInvoiceID);
       const approverID = parseInt(approvalData.ApproverID);
       if (isNaN(SalesInvoiceID) || isNaN(approverID)) {
-        throw new Error('Invalid SalesInvoiceID or ApproverID');
+        throw new Error("Invalid SalesInvoiceID or ApproverID");
       }
 
-      const formName = 'Sales Invoice';
-      const hasPermission = await this.#checkFormRoleApproverPermission(approverID, formName);
+      const formName = "Sales Invoice";
+      const hasPermission = await this.#checkFormRoleApproverPermission(
+        approverID,
+        formName
+      );
       if (!hasPermission) {
-        throw new Error('Approver does not have permission to approve this form');
+        throw new Error(
+          "Approver does not have permission to approve this form"
+        );
       }
 
-      const { exists, status } = await this.#checkSalesInvoiceStatus(SalesInvoiceID);
+      const { exists, status } = await this.#checkSalesInvoiceStatus(
+        SalesInvoiceID
+      );
       if (!exists) {
-        throw new Error('Sales Invoice does not exist or has been deleted');
+        throw new Error("Sales Invoice does not exist or has been deleted");
       }
-      if (status !== 'Pending') {
-        throw new Error(`Sales Invoice status must be Pending to approve, current status: ${status}`);
+      if (status !== "Pending") {
+        throw new Error(
+          `Sales Invoice status must be Pending to approve, current status: ${status}`
+        );
       }
 
       // Check for existing approval
       const [existingApproval] = await connection.query(
-        'SELECT 1 FROM dbo_tblsalesinvoiceapproval WHERE SalesInvoiceID = ? AND ApproverID = ? AND IsDeleted = 0',
+        "SELECT 1 FROM dbo_tblsalesinvoiceapproval WHERE SalesInvoiceID = ? AND ApproverID = ? AND IsDeleted = 0",
         [SalesInvoiceID, approverID]
       );
       if (existingApproval.length > 0) {
-        throw new Error('Approver has already approved this Sales Invoice');
+        throw new Error("Approver has already approved this Sales Invoice");
       }
 
       // Record approval
-      const approvalInsertResult = await this.#insertSalesInvoiceApproval(connection, { SalesInvoiceID: SalesInvoiceID, ApproverID: approverID });
+      const approvalInsertResult = await this.#insertSalesInvoiceApproval(
+        connection,
+        { SalesInvoiceID: SalesInvoiceID, ApproverID: approverID }
+      );
       if (!approvalInsertResult.success) {
-        throw new Error(`Failed to insert approval record: ${approvalInsertResult.message}`);
+        throw new Error(
+          `Failed to insert approval record: ${approvalInsertResult.message}`
+        );
       }
 
       // Get FormID
       const [form] = await connection.query(
-        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        "SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0",
         [formName]
       );
       if (!form.length) {
-        throw new Error('Invalid FormID for Sales Invoice');
+        throw new Error("Invalid FormID for Sales Invoice");
       }
       const formID = form[0].FormID;
 
@@ -273,18 +402,28 @@ class SalesInvoiceModel {
            )`,
         [SalesInvoiceID, formID]
       );
-      const approved = approvedList.filter(a => a.ApprovedYN === 1).length;
+      const approved = approvedList.filter((a) => a.ApprovedYN === 1).length;
 
       // Check for mismatched ApproverIDs
       const [allApprovals] = await connection.query(
-        'SELECT ApproverID FROM dbo_tblsalesinvoiceapproval WHERE SalesInvoiceID = ? AND IsDeleted = 0',
+        "SELECT ApproverID FROM dbo_tblsalesinvoiceapproval WHERE SalesInvoiceID = ? AND IsDeleted = 0",
         [SalesInvoiceID]
       );
-      const requiredUserIDs = requiredApproversList.map(a => a.UserID);
-      const mismatchedApprovals = allApprovals.filter(a => !requiredUserIDs.includes(a.ApproverID));
+      const requiredUserIDs = requiredApproversList.map((a) => a.UserID);
+      const mismatchedApprovals = allApprovals.filter(
+        (a) => !requiredUserIDs.includes(a.ApproverID)
+      );
 
       // Debug logs
-      console.log(`Approval Debug: SalesInvoiceID=${SalesInvoiceID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(requiredApproversList)}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(approvedList)}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(mismatchedApprovals)}`);
+      console.log(
+        `Approval Debug: SalesInvoiceID=${SalesInvoiceID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(
+          requiredApproversList
+        )}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(
+          approvedList
+        )}, CurrentApproverID=${approverID}, MismatchedApprovals=${JSON.stringify(
+          mismatchedApprovals
+        )}`
+      );
 
       let message;
       let isFullyApproved = false;
@@ -292,10 +431,10 @@ class SalesInvoiceModel {
       if (approved >= requiredCount) {
         // All approvals complete
         await connection.query(
-          'UPDATE dbo_tblsalesinvoice SET Status = ? WHERE SalesInvoiceID = ?',
-          ['Approved', SalesInvoiceID]
+          "UPDATE dbo_tblsalesinvoice SET Status = ? WHERE SalesInvoiceID = ?",
+          ["Approved", SalesInvoiceID]
         );
-        message = 'Sales Invoice fully approved.';
+        message = "Sales Invoice fully approved.";
         isFullyApproved = true;
       } else {
         // Partial approval
@@ -311,19 +450,19 @@ class SalesInvoiceModel {
         data: null,
         SalesInvoiceID: SalesInvoiceID.toString(),
         newSalesInvoiceID: null,
-        isFullyApproved
+        isFullyApproved,
       };
     } catch (error) {
       if (connection) {
         await connection.rollback();
       }
-      console.error('Database error in approveSalesInvoice:', error);
+      console.error("Database error in approveSalesInvoice:", error);
       return {
         success: false,
-        message: `Approval failed: ${error.message || 'Unknown error'}`,
+        message: `Approval failed: ${error.message || "Unknown error"}`,
         data: null,
         SalesInvoiceID: approvalData.SalesInvoiceID.toString(),
-        newSalesInvoiceID: null
+        newSalesInvoiceID: null,
       };
     } finally {
       if (connection) {
@@ -331,8 +470,6 @@ class SalesInvoiceModel {
       }
     }
   }
-
-
 }
 
 module.exports = SalesInvoiceModel;

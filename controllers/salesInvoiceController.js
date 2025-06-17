@@ -1,4 +1,4 @@
-const SalesInvoiceModel = require('../models/salesInvoiceModel');
+const SalesInvoiceModel = require("../models/salesInvoiceModel");
 
 class SalesInvoiceController {
   // Get all Sales Invoices
@@ -14,39 +14,82 @@ class SalesInvoiceController {
         supplierId,
         dateFrom,
         dateTo,
-        searchTerm
+        searchTerm,
       } = req.query;
 
       const result = await SalesInvoiceModel.getAllSalesInvoices({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
-        sortBy: sortBy || 'CreatedDateTime',
-        sortOrder: sortOrder || 'DESC',
+        sortBy: sortBy || "CreatedDateTime",
+        sortOrder: sortOrder || "DESC",
         customerId: customerId ? parseInt(customerId) : null,
         companyId: companyId ? parseInt(companyId) : null,
         supplierId: supplierId ? parseInt(supplierId) : null,
         dateFrom: dateFrom || null,
         dateTo: dateTo || null,
-        searchTerm: searchTerm || null
+        searchTerm: searchTerm || null,
       });
 
       res.status(200).json({
         success: true,
-        message: 'Sales Invoices retrieved successfully.',
+        message: "Sales Invoices retrieved successfully.",
         data: result.data,
         pagination: {
           totalRecords: result.totalRecords,
           totalPages: result.totalPages,
           currentPage: result.currentPage,
-          pageSize: result.pageSize
-        }
+          pageSize: result.pageSize,
+        },
       });
     } catch (err) {
-      console.error('Error in getAllSalesInvoices:', err);
+      console.error("Error in getAllSalesInvoices:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null
+        data: null,
+      });
+    }
+  }
+
+  // Get a single Sales Invoice by ID
+  static async getSalesInvoiceById(req, res) {
+    try {
+      const { id } = req.params;
+      const salesInvoiceId = parseInt(id);
+      if (isNaN(salesInvoiceId)) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid or missing SalesInvoiceID",
+          data: null,
+          salesInvoiceId: null,
+        });
+      }
+
+      const result = await SalesInvoiceModel.getSalesInvoiceById(
+        salesInvoiceId
+      );
+      if (!result.data) {
+        return res.status(404).json({
+          success: false,
+          message: "Sales Invoice not found or deleted.",
+          data: null,
+          salesInvoiceId: id,
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Sales Invoice retrieved successfully.",
+        data: result.data,
+        salesInvoiceId: id,
+      });
+    } catch (err) {
+      console.error("Error in getSalesInvoiceById:", err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        salesInvoiceId: null,
       });
     }
   }
@@ -54,22 +97,23 @@ class SalesInvoiceController {
   // Create a Sales Invoice
   static async createSalesInvoice(req, res) {
     try {
-      const userId = req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      const userId =
+        req.user && req.user.personId ? parseInt(req.user.personId) : null;
       if (!userId) {
         return res.status(401).json({
           success: false,
-          message: 'Unauthorized: User ID not found in authentication context.',
-          data: null
+          message: "Unauthorized: User ID not found in authentication context.",
+          data: null,
         });
       }
 
       const data = req.body;
-      // Validate required fields (based on SP_ManageSalesInvoice requirements)
+      // Validate required fields (based on SP_ManageSalesInvoiceDEV requirements)
       if (!data.salesOrderId && !data.salesRFQId) {
         return res.status(400).json({
           success: false,
-          message: 'Either SalesOrderID or SalesRFQID is required.',
-          data: null
+          message: "Either SalesOrderID or SalesRFQID is required.",
+          data: null,
         });
       }
 
@@ -77,19 +121,19 @@ class SalesInvoiceController {
       res.status(201).json({
         success: true,
         message: result.message,
-        data: { salesInvoiceId: result.salesInvoiceId }
+        data: { salesInvoiceId: result.salesInvoiceId },
       });
     } catch (err) {
-      console.error('Error in createSalesInvoice:', err);
+      console.error("Error in createSalesInvoice:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null
+        data: null,
       });
     }
   }
 
-  // Approve a Sales Quotation
+  // Approve a Sales Invoice
   static async approveSalesInvoice(req, res) {
     try {
       const { SalesInvoiceID } = req.body;
@@ -98,42 +142,43 @@ class SalesInvoiceController {
       if (!SalesInvoiceID) {
         return res.status(400).json({
           success: false,
-          message: 'PInvoiceID is required',
+          message: "SalesInvoiceID is required",
           data: null,
           SalesInvoiceID: null,
-          newSalesInvoiceID: null
+          newSalesInvoiceID: null,
         });
       }
 
       if (!req.user || !approverID) {
         return res.status(401).json({
           success: false,
-          message: 'Authentication required',
+          message: "Authentication required",
           data: null,
-          PInvoiceID: null,
-          newPInvoiceID: null
+          SalesInvoiceID: null,
+          newSalesInvoiceID: null,
         });
       }
 
       const approvalData = {
         SalesInvoiceID: parseInt(SalesInvoiceID),
-        ApproverID: parseInt(approverID)
+        ApproverID: parseInt(approverID),
       };
 
       const result = await SalesInvoiceModel.approveSalesInvoice(approvalData);
-      return res.status(result.success ? (result.isFullyApproved ? 200 : 202) : 403).json(result);
+      return res
+        .status(result.success ? (result.isFullyApproved ? 200 : 202) : 403)
+        .json(result);
     } catch (err) {
-      console.error('Approve Sales Invoice error:', err);
+      console.error("Approve Sales Invoice error:", err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         SalesInvoiceID: null,
-        newSalesInvoiceID: null
+        newSalesInvoiceID: null,
       });
     }
   }
-
 }
 
 module.exports = SalesInvoiceController;
