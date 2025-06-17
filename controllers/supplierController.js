@@ -13,7 +13,7 @@ class SupplierController {
         });
       }
 
-      const { pageNumber = '1', pageSize = '100', fromDate, toDate } = req.query;
+      const { pageNumber = '1', pageSize = '1000', fromDate, toDate } = req.query;
       const pageNum = parseInt(pageNumber, 10);
       const pageSz = parseInt(pageSize, 10);
 
