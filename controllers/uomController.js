@@ -6,12 +6,19 @@ class UOMController {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
+      // Parse query parameters with defaults
       const uoms = await UOMModel.getAllUOMs({
-        pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize),
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
         fromDate,
         toDate
       });
+
+      // Validate totalRecords
+      if (typeof uoms.totalRecords === 'undefined' || uoms.totalRecords < 0) {
+        console.warn('Invalid totalRecords:', uoms.totalRecords);
+        uoms.totalRecords = 0;
+      }
 
       return res.status(200).json({
         success: true,
