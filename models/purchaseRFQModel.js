@@ -110,12 +110,13 @@ class PurchaseRFQModel {
         'UPDATE',
         id,
         data.SalesRFQID,
+        null,
         data.CreatedByID,
         null // p_DeletedByID
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
+        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
         queryParams
       );
 
@@ -144,12 +145,13 @@ class PurchaseRFQModel {
         'DELETE',
         id,
         null, // p_SalesRFQID
+        null,
         null, // p_CreatedByID
         deletedById
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
+        'CALL SP_ManagePurchaseRFQ(?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewPurchaseRFQID)',
         queryParams
       );
 
