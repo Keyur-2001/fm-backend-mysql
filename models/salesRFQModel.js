@@ -19,8 +19,9 @@ class SalesRFQModel {
         salesRFQData.RequiredByDate ? new Date(salesRFQData.RequiredByDate) : null,
         salesRFQData.DateReceived ? new Date(salesRFQData.DateReceived) : null,
         salesRFQData.ServiceTypeID ? parseInt(salesRFQData.ServiceTypeID) : null,
-        salesRFQData.OriginAddressID ? parseInt(salesRFQData.OriginAddressID) : null,
+        salesRFQData.OriginWarehouseAddressID ? parseInt(salesRFQData.OriginWarehouseAddressID) : null,
         salesRFQData.CollectionAddressID ? parseInt(salesRFQData.CollectionAddressID) : null,
+        salesRFQData.DestinationWarehouseAddressID ? parseInt(salesRFQData.DestinationWarehouseAddressID) : null,
         salesRFQData.Status || null,
         salesRFQData.DestinationAddressID ? parseInt(salesRFQData.DestinationAddressID) : null,
         salesRFQData.BillingAddressID ? parseInt(salesRFQData.BillingAddressID) : null,
@@ -34,7 +35,7 @@ class SalesRFQModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesRFQ(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSalesRFQID, @p_Result, @p_Message)',
+        'CALL SP_ManageSalesRFQ(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_NewSalesRFQID, @p_Result, @p_Message)',
         queryParams
       );
 

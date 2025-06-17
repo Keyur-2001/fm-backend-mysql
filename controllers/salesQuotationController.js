@@ -39,16 +39,6 @@ class SalesQuotationController {
   // Create a new Sales Quotation
   static async createSalesQuotation(req, res) {
     try {
-      const allowedRoles = ['Administrator', 'Customer Order Coordinator'];
-      if (!req.user || !allowedRoles.includes(req.user.role)) {
-        return res.status(403).json({
-          success: false,
-          message: 'Only Administrators or Customer Order Coordinators can create Sales Quotation',
-          data: null,
-          salesQuotationId: null,
-          newSalesQuotationId: null
-        });
-      }
 
       const data = {
         SalesRFQID: req.body.SalesRFQID,
