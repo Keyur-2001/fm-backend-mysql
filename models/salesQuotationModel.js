@@ -184,10 +184,11 @@ class SalesQuotationModel {
         data.PurchaseRFQID || null,
         data.supplierId || null,
         data.Status || null,
-        data.originAddressId || null,
+        data.originWarehouseAddressId || null,
         data.collectionAddressId || null,
         data.billingAddressId || null,
         data.destinationAddressId || null,
+        data.destinationWarehouseAddressId || null,
         data.collectionWarehouseId || null,
         data.postingDate || null,
         data.deliveryDate || null,
@@ -213,7 +214,7 @@ class SalesQuotationModel {
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
+        'CALL SP_ManageSalesQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSalesQuotationID)',
         queryParams
       );
 
