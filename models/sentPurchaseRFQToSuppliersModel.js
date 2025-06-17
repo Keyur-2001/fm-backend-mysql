@@ -260,7 +260,7 @@ async function getSupplierQuotationDetails(supplierQuotationID, supplierID) {
     const [quotationResult] = await pool.query(
       `SELECT 
         sq.*, c.CompanyName, s.SupplierName, cu.CustomerName, curr.CurrencyName,
-        CONCAT(orig.AddressLine1, ', ', orig.City, ', ', orig.Country) AS OriginAddress,
+        CONCAT(orig.AddressLine1, ', ', orig.City, ', ', orig.Country) AS OriginWarehouseAddress,
         CONCAT(dest.AddressLine1, ', ', dest.City, ', ', dest.Country) AS DestinationAddress,
         CONCAT(bill.AddressLine1, ', ', bill.City, ', ', bill.Country) AS BillingAddress,
         CONCAT(coll.AddressLine1, ', ', coll.City, ', ', coll.Country) AS CollectionAddress,
@@ -271,7 +271,7 @@ async function getSupplierQuotationDetails(supplierQuotationID, supplierID) {
       LEFT JOIN dbo_tblsupplier s ON sq.SupplierID = s.SupplierID
       LEFT JOIN dbo_tblcustomer cu ON sq.CustomerID = cu.CustomerID
       LEFT JOIN dbo_tblcurrency curr ON sq.CurrencyID = curr.CurrencyID
-      LEFT JOIN dbo_tbladdresses orig ON sq.OriginAddressID = orig.AddressID
+      LEFT JOIN dbo_tbladdresses orig ON sq.OriginWarehouseAddressID = orig.AddressID
       LEFT JOIN dbo_tbladdresses dest ON sq.DestinationAddressID = dest.AddressID
       LEFT JOIN dbo_tbladdresses bill ON sq.BillingAddressID = bill.AddressID
       LEFT JOIN dbo_tbladdresses coll ON sq.CollectionAddressID = coll.AddressID
