@@ -12,11 +12,13 @@ router.get("/:id", SalesInvoiceController.getSalesInvoiceById);
 // Create a Sales Invoice (protected route)
 router.post("/", authMiddleware, SalesInvoiceController.createSalesInvoice);
 
+// Update a Sales Invoice (protected route)
+router.put("/:id", authMiddleware, SalesInvoiceController.updateSalesInvoice);
+
+// Delete a Sales Invoice (protected route)
+router.delete("/:id", authMiddleware, SalesInvoiceController.deleteSalesInvoice);
+
 // Approve a Sales Invoice (protected route)
-router.post(
-  "/approve",
-  authMiddleware,
-  SalesInvoiceController.approveSalesInvoice
-);
+router.post("/approve", authMiddleware, SalesInvoiceController.approveSalesInvoice);
 
 module.exports = router;

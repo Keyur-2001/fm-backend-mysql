@@ -4,42 +4,18 @@ class SalesInvoiceController {
   // Get all Sales Invoices
   static async getAllSalesInvoices(req, res) {
     try {
-      const {
-        pageNumber,
-        pageSize,
-        sortBy,
-        sortOrder,
-        customerId,
-        companyId,
-        supplierId,
-        dateFrom,
-        dateTo,
-        searchTerm,
-      } = req.query;
-
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
       const result = await SalesInvoiceModel.getAllSalesInvoices({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
-        sortBy: sortBy || "CreatedDateTime",
-        sortOrder: sortOrder || "DESC",
-        customerId: customerId ? parseInt(customerId) : null,
-        companyId: companyId ? parseInt(companyId) : null,
-        supplierId: supplierId ? parseInt(supplierId) : null,
-        dateFrom: dateFrom || null,
-        dateTo: dateTo || null,
-        searchTerm: searchTerm || null,
+        fromDate: fromDate || null,
+        toDate: toDate || null,
       });
-
       res.status(200).json({
         success: true,
         message: "Sales Invoices retrieved successfully.",
         data: result.data,
-        pagination: {
-          totalRecords: result.totalRecords,
-          totalPages: result.totalPages,
-          currentPage: result.currentPage,
-          pageSize: result.pageSize,
-        },
+        totalRecords: result.totalRecords,
       });
     } catch (err) {
       console.error("Error in getAllSalesInvoices:", err);
@@ -55,33 +31,18 @@ class SalesInvoiceController {
   static async getSalesInvoiceById(req, res) {
     try {
       const { id } = req.params;
-      const salesInvoiceId = parseInt(id);
-      if (isNaN(salesInvoiceId)) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid or missing SalesInvoiceID",
-          data: null,
-          salesInvoiceId: null,
-        });
-      }
-
-      const result = await SalesInvoiceModel.getSalesInvoiceById(
-        salesInvoiceId
-      );
-      if (!result.data) {
+      const salesInvoice = await SalesInvoiceModel.getSalesInvoiceById(parseInt(id));
+      if (!salesInvoice) {
         return res.status(404).json({
           success: false,
-          message: "Sales Invoice not found or deleted.",
+          message: "Sales Invoice not found.",
           data: null,
-          salesInvoiceId: id,
         });
       }
-
       res.status(200).json({
         success: true,
         message: "Sales Invoice retrieved successfully.",
-        data: result.data,
-        salesInvoiceId: id,
+        data: salesInvoice,
       });
     } catch (err) {
       console.error("Error in getSalesInvoiceById:", err);
@@ -89,7 +50,6 @@ class SalesInvoiceController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        salesInvoiceId: null,
       });
     }
   }
@@ -108,7 +68,7 @@ class SalesInvoiceController {
       }
 
       const data = req.body;
-      // Validate required fields (based on SP_ManageSalesInvoiceDEV requirements)
+      // Validate required fields
       if (!data.salesOrderId && !data.salesRFQId) {
         return res.status(400).json({
           success: false,
@@ -125,6 +85,71 @@ class SalesInvoiceController {
       });
     } catch (err) {
       console.error("Error in createSalesInvoice:", err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+      });
+    }
+  }
+
+  // Update a Sales Invoice
+  static async updateSalesInvoice(req, res) {
+    try {
+      const { id } = req.params;
+      const userId =
+        req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: User ID not found in authentication context.",
+          data: null,
+        });
+      }
+
+      const data = req.body;
+      const result = await SalesInvoiceModel.updateSalesInvoice(
+        parseInt(id),
+        data,
+        userId
+      );
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+      });
+    } catch (err) {
+      console.error("Error in updateSalesInvoice:", err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+      });
+    }
+  }
+
+  // Delete a Sales Invoice
+  static async deleteSalesInvoice(req, res) {
+    try {
+      const { id } = req.params;
+      const userId =
+        req.user && req.user.personId ? parseInt(req.user.personId) : null;
+      if (!userId) {
+        return res.status(401).json({
+          success: false,
+          message: "Unauthorized: User ID not found in authentication context.",
+          data: null,
+        });
+      }
+
+      const result = await SalesInvoiceModel.deleteSalesInvoice(parseInt(id), userId);
+      res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+      });
+    } catch (err) {
+      console.error("Error in deleteSalesInvoice:", err);
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,

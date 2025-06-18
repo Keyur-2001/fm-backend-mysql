@@ -1,100 +1,83 @@
 const SalesInvoiceApprovalModel = require("../models/salesInvoiceApprovalModel");
 
 class SalesInvoiceApprovalController {
-  static async getSalesInvoiceApprovals(req, res) {
+  static async getSalesInvoiceApproval(req, res) {
     try {
-      const { salesInvoiceID, pageNumber, pageSize } = req.query;
-
-      if (salesInvoiceID && isNaN(parseInt(salesInvoiceID))) {
-        return res.status(400).json({
-          success: false,
-          message: "Invalid or missing SalesInvoiceID",
-          data: null,
-          salesInvoiceId: null,
-          totalRecords: 0,
-        });
-      }
-
-      const result = await SalesInvoiceApprovalModel.getSalesInvoiceApprovals({
-        salesInvoiceID: salesInvoiceID ? parseInt(salesInvoiceID) : null,
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-      });
-
-      return res.status(result.success ? 200 : 400).json(result);
-    } catch (err) {
-      console.error("Error in getSalesInvoiceApprovals:", err);
-      return res.status(500).json({
-        success: false,
-        message: `Server error: ${err.message}`,
-        data: null,
-        salesInvoiceId: null,
-        totalRecords: 0,
-      });
-    }
-  }
-
-  static async getSalesInvoiceApprovalById(req, res) {
-    try {
-      const { salesInvoiceID, approverID } = req.params;
-
-      if (isNaN(parseInt(salesInvoiceID)) || isNaN(parseInt(approverID))) {
+      const salesInvoiceId = parseInt(req.params.salesInvoiceId);
+      const approverId = parseInt(req.params.approverId);
+      if (isNaN(salesInvoiceId) || isNaN(approverId)) {
         return res.status(400).json({
           success: false,
           message: "Invalid or missing SalesInvoiceID or ApproverID",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
-      const result =
-        await SalesInvoiceApprovalModel.getSalesInvoiceApprovalById({
-          salesInvoiceID: parseInt(salesInvoiceID),
-          approverID: parseInt(approverID),
-        });
-
-      return res
-        .status(result.success ? (result.data ? 200 : 404) : 400)
-        .json(result);
+      const result = await SalesInvoiceApprovalModel.getSalesInvoiceApproval(
+        salesInvoiceId,
+        approverId
+      );
+      return res.status(result.success ? 200 : 404).json(result);
     } catch (err) {
-      console.error("Error in getSalesInvoiceApprovalById:", err);
+      console.error("Error in getSalesInvoiceApproval:", err);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
         salesInvoiceId: null,
+        approverId: null,
+      });
+    }
+  }
+
+  static async getAllSalesInvoiceApprovals(req, res) {
+    try {
+      const salesInvoiceId = req.query.salesInvoiceId
+        ? parseInt(req.query.salesInvoiceId)
+        : null;
+      const approverId = req.query.approverId
+        ? parseInt(req.query.approverId)
+        : null;
+
+      const result = await SalesInvoiceApprovalModel.getAllSalesInvoiceApprovals(
+        salesInvoiceId,
+        approverId
+      );
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (err) {
+      console.error("Error in getAllSalesInvoiceApprovals:", err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: [],
+        salesInvoiceId: null,
+        approverId: null,
+        totalRecords: 0,
       });
     }
   }
 
   static async createSalesInvoiceApproval(req, res) {
     try {
-      const { salesInvoiceID, approvedYN } = req.body;
-      const createdByID = req.user?.personId;
-
-      if (!salesInvoiceID || approvedYN == null) {
-        return res.status(400).json({
-          success: false,
-          message: "SalesInvoiceID and ApprovedYN are required",
-          data: null,
-          salesInvoiceId: null,
-        });
-      }
-
-      if (!req.user || !createdByID) {
+      if (!req.user || !req.user.personId) {
         return res.status(401).json({
           success: false,
           message: "Authentication required",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
       const approvalData = {
-        SalesInvoiceID: parseInt(salesInvoiceID),
-        ApproverID: parseInt(createdByID),
-        ApprovedYN: Boolean(approvedYN),
-        CreatedByID: parseInt(createdByID),
+        SalesInvoiceID: req.body.salesInvoiceId ? parseInt(req.body.salesInvoiceId) : null,
+        ApproverID: req.body.approverId ? parseInt(req.body.approverId) : null,
+        ApprovedYN:
+          req.body.approvedYN !== undefined ? req.body.approvedYN : null,
+        ApproverDateTime: req.body.approverDateTime || null,
+        CreatedByID: req.user.personId,
       };
 
       const result = await SalesInvoiceApprovalModel.createSalesInvoiceApproval(
@@ -108,38 +91,42 @@ class SalesInvoiceApprovalController {
         message: `Server error: ${err.message}`,
         data: null,
         salesInvoiceId: null,
+        approverId: null,
       });
     }
   }
 
   static async updateSalesInvoiceApproval(req, res) {
     try {
-      const { salesInvoiceID, approverID, approvedYN } = req.body;
-      const userID = req.user?.personId;
-
-      if (!salesInvoiceID || !approverID || approvedYN == null) {
+      const salesInvoiceId = parseInt(req.params.salesInvoiceId);
+      const approverId = parseInt(req.params.approverId);
+      if (isNaN(salesInvoiceId) || isNaN(approverId)) {
         return res.status(400).json({
           success: false,
-          message: "SalesInvoiceID, ApproverID, and ApprovedYN are required",
+          message: "Invalid or missing SalesInvoiceID or ApproverID",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
-      if (!req.user || !userID) {
+      if (!req.user || !req.user.personId) {
         return res.status(401).json({
           success: false,
           message: "Authentication required",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
       const approvalData = {
-        SalesInvoiceID: parseInt(salesInvoiceID),
-        ApproverID: parseInt(approverID),
-        ApprovedYN: Boolean(approvedYN),
-        UserID: parseInt(userID),
+        SalesInvoiceID: salesInvoiceId,
+        ApproverID: approverId,
+        ApprovedYN:
+          req.body.approvedYN !== undefined ? req.body.approvedYN : null,
+        ApproverDateTime: req.body.approverDateTime || null,
+        CreatedByID: req.user.personId,
       };
 
       const result = await SalesInvoiceApprovalModel.updateSalesInvoiceApproval(
@@ -153,37 +140,39 @@ class SalesInvoiceApprovalController {
         message: `Server error: ${err.message}`,
         data: null,
         salesInvoiceId: null,
+        approverId: null,
       });
     }
   }
 
   static async deleteSalesInvoiceApproval(req, res) {
     try {
-      const { salesInvoiceID, approverID } = req.body;
-      const deletedByID = req.user?.personId;
-
-      if (!salesInvoiceID || !approverID) {
+      const salesInvoiceId = parseInt(req.params.salesInvoiceId);
+      const approverId = parseInt(req.params.approverId);
+      if (isNaN(salesInvoiceId) || isNaN(approverId)) {
         return res.status(400).json({
           success: false,
-          message: "SalesInvoiceID and ApproverID are required",
+          message: "Invalid or missing SalesInvoiceID or ApproverID",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
-      if (!req.user || !deletedByID) {
+      if (!req.user || !req.user.personId) {
         return res.status(401).json({
           success: false,
           message: "Authentication required",
           data: null,
           salesInvoiceId: null,
+          approverId: null,
         });
       }
 
       const approvalData = {
-        SalesInvoiceID: parseInt(salesInvoiceID),
-        ApproverID: parseInt(approverID),
-        DeletedByID: parseInt(deletedByID),
+        SalesInvoiceID: salesInvoiceId,
+        ApproverID: approverId,
+        DeletedByID: req.user.personId,
       };
 
       const result = await SalesInvoiceApprovalModel.deleteSalesInvoiceApproval(
@@ -197,6 +186,7 @@ class SalesInvoiceApprovalController {
         message: `Server error: ${err.message}`,
         data: null,
         salesInvoiceId: null,
+        approverId: null,
       });
     }
   }
