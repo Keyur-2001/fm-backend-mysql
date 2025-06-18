@@ -68,8 +68,8 @@ class SalesInvoiceController {
       }
 
       const data = req.body;
-      // Validate required fields
-      if (!data.salesOrderId && !data.salesRFQId) {
+      // Validate required fields (based on SP_ManageSalesInvoiceDEV requirements)
+      if (!data.salesOrderId) {
         return res.status(400).json({
           success: false,
           message: "Either SalesOrderID or SalesRFQID is required.",
