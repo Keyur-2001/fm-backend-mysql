@@ -3,31 +3,36 @@ const router = express.Router();
 const SalesInvoiceApprovalController = require("../controllers/SalesInvoiceApprovalController");
 const authMiddleware = require("../middleware/authMiddleware");
 
+// Get a specific Sales Invoice approval by SalesInvoiceID and ApproverID
+router.get(
+  "/:salesInvoiceId/:approverId",
+  SalesInvoiceApprovalController.getSalesInvoiceApproval
+);
+
+// Get all Sales Invoice approvals (optionally filtered by SalesInvoiceID or ApproverID)
 router.get(
   "/",
   authMiddleware,
-  SalesInvoiceApprovalController.getSalesInvoiceApprovals
+  SalesInvoiceApprovalController.getAllSalesInvoiceApprovals
 );
 
-router.get(
-  "/:salesInvoiceID/:approverID",
-  SalesInvoiceApprovalController.getSalesInvoiceApprovalById
-);
-
+// Create a new Sales Invoice approval
 router.post(
   "/",
   authMiddleware,
   SalesInvoiceApprovalController.createSalesInvoiceApproval
 );
 
+// Update a Sales Invoice approval
 router.put(
-  "/",
+  "/:salesInvoiceId/:approverId",
   authMiddleware,
   SalesInvoiceApprovalController.updateSalesInvoiceApproval
 );
 
+// Delete a Sales Invoice approval
 router.delete(
-  "/",
+  "/:salesInvoiceId/:approverId",
   authMiddleware,
   SalesInvoiceApprovalController.deleteSalesInvoiceApproval
 );

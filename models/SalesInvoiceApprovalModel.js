@@ -1,22 +1,22 @@
 const poolPromise = require("../config/db.config");
 
 class SalesInvoiceApprovalModel {
-  static async getSalesInvoiceApprovals({
-    salesInvoiceID = null,
-    pageNumber = 1,
-    pageSize = 10,
-  }) {
+  static async #executeManageStoredProcedure(action, approvalData) {
     try {
       const pool = await poolPromise;
 
-      let queryParams = [
-        "SELECT",
-        salesInvoiceID ? parseInt(salesInvoiceID) : null,
-        null, // ApproverID
-        null, // ApprovedYN
-        null, // ApproverDateTime
-        null, // CreatedByID
-        null, // DeletedByID
+      const queryParams = [
+        action,
+        approvalData.SalesInvoiceID ? parseInt(approvalData.SalesInvoiceID) : null,
+        approvalData.ApproverID ? parseInt(approvalData.ApproverID) : null,
+        approvalData.ApprovedYN !== undefined
+          ? approvalData.ApprovedYN
+            ? 1
+            : 0
+          : null,
+        approvalData.ApproverDateTime || null,
+        approvalData.CreatedByID ? parseInt(approvalData.CreatedByID) : null,
+        approvalData.DeletedByID ? parseInt(approvalData.DeletedByID) : null,
       ];
 
       const [result] = await pool.query(
@@ -28,123 +28,138 @@ class SalesInvoiceApprovalModel {
         "SELECT @p_Result AS result, @p_Message AS message"
       );
 
-      if (outParams.result !== 1) {
+      return {
+        success: outParams.result === 1,
+        message:
+          outParams.message ||
+          (outParams.result === 1
+            ? `${action} operation successful`
+            : "Operation failed"),
+        data: action === "SELECT" ? result[0] || [] : null,
+        salesInvoiceId: approvalData.SalesInvoiceID,
+        approverId: approvalData.ApproverID,
+      };
+    } catch (error) {
+      console.error(`Database error in ${action} operation:`, error);
+      throw new Error(`Database error: ${error.message || "Unknown error"}`);
+    }
+  }
+
+  static async #validateForeignKeys(approvalData, action) {
+    const pool = await poolPromise;
+    const errors = [];
+
+    if (["INSERT", "UPDATE", "DELETE"].includes(action)) {
+      if (approvalData.SalesInvoiceID) {
+        const [salesInvoiceCheck] = await pool.query(
+          "SELECT 1 FROM dbo_tblsalesinvoice WHERE SalesInvoiceID = ? AND (IsDeleted = 0 OR IsDeleted IS NULL)",
+          [parseInt(approvalData.SalesInvoiceID)]
+        );
+        if (salesInvoiceCheck.length === 0)
+          errors.push(`SalesInvoiceID ${approvalData.SalesInvoiceID} does not exist`);
+      }
+      if (approvalData.ApproverID) {
+        const [approverCheck] = await pool.query(
+          "SELECT 1 FROM dbo_tblperson WHERE PersonID = ?",
+          [parseInt(approvalData.ApproverID)]
+        );
+        if (approverCheck.length === 0)
+          errors.push(`ApproverID ${approvalData.ApproverID} does not exist`);
+      }
+    }
+
+    if (action === "INSERT" || action === "UPDATE") {
+      if (approvalData.CreatedByID) {
+        const [createdByCheck] = await pool.query(
+          "SELECT 1 FROM dbo_tblperson WHERE PersonID = ?",
+          [parseInt(approvalData.CreatedByID)]
+        );
+        if (createdByCheck.length === 0)
+          errors.push(`CreatedByID ${approvalData.CreatedByID} does not exist`);
+      }
+    }
+
+    if (action === "DELETE" && approvalData.DeletedByID) {
+      const [deletedByCheck] = await pool.query(
+        "SELECT 1 FROM dbo_tblperson WHERE PersonID = ?",
+        [parseInt(approvalData.DeletedByID)]
+      );
+      if (deletedByCheck.length === 0)
+        errors.push(`DeletedByID ${approvalData.DeletedByID} does not exist`);
+    }
+
+    return errors.length > 0 ? errors.join("; ") : null;
+  }
+
+  static async getSalesInvoiceApproval(salesInvoiceId, approverId) {
+    try {
+      if (!salesInvoiceId || !approverId) {
         return {
           success: false,
-          message:
-            outParams.message || "Failed to retrieve SalesInvoice approvals",
+          message: "SalesInvoiceID and ApproverID are required for SELECT",
           data: null,
-          salesInvoiceId: salesInvoiceID,
-          totalRecords: 0,
+          salesInvoiceId: salesInvoiceId,
+          approverId: approverId,
         };
       }
 
-      let approvals = result[0] || [];
-
-      if (!salesInvoiceID) {
-        const start = (pageNumber - 1) * pageSize;
-        const end = start + pageSize;
-        approvals = approvals.slice(start, end);
-      }
+      const approvalData = { SalesInvoiceID: salesInvoiceId, ApproverID: approverId };
+      const result = await this.#executeManageStoredProcedure(
+        "SELECT",
+        approvalData
+      );
 
       return {
-        success: true,
-        message:
-          outParams.message ||
-          "SalesInvoice Approval records retrieved successfully.",
-        data: approvals,
-        salesInvoiceId: salesInvoiceID,
-        totalRecords: salesInvoiceID
-          ? approvals.length
-          : result[0]
-          ? result[0].length
-          : 0,
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        salesInvoiceId: salesInvoiceId,
+        approverId: approverId,
       };
-    } catch (err) {
-      console.error("Database error in getSalesInvoiceApprovals:", err);
+    } catch (error) {
+      console.error("Error in getSalesInvoiceApproval:", error);
       return {
         success: false,
-        message: `Database error: ${err.message}`,
+        message: `Server error: ${error.message}`,
         data: null,
-        salesInvoiceId: salesInvoiceID,
-        totalRecords: 0,
+        salesInvoiceId: salesInvoiceId,
+        approverId: approverId,
       };
     }
   }
 
-  static async getSalesInvoiceApprovalById({ salesInvoiceID, approverID }) {
+  static async getAllSalesInvoiceApprovals(salesInvoiceId, approverId) {
     try {
-      const pool = await poolPromise;
-
-      if (!salesInvoiceID || !approverID) {
-        return {
-          success: false,
-          message: "SalesInvoiceID and ApproverID are required",
-          data: null,
-          salesInvoiceId: salesInvoiceID,
-        };
-      }
-
-      const queryParams = [
+      const approvalData = { SalesInvoiceID: salesInvoiceId, ApproverID: approverId };
+      const result = await this.#executeManageStoredProcedure(
         "SELECT",
-        parseInt(salesInvoiceID),
-        parseInt(approverID),
-        null, // ApprovedYN
-        null, // ApproverDateTime
-        null, // CreatedByID
-        null, // DeletedByID
-      ];
-
-      const [result] = await pool.query(
-        "CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)",
-        queryParams
+        approvalData
       );
-
-      const [[outParams]] = await pool.query(
-        "SELECT @p_Result AS result, @p_Message AS message"
-      );
-
-      if (outParams.result !== 1) {
-        return {
-          success: false,
-          message:
-            outParams.message || "Failed to retrieve SalesInvoice approval",
-          data: null,
-          salesInvoiceId: salesInvoiceID,
-        };
-      }
-
-      const approval = result[0] && result[0][0] ? result[0][0] : null;
 
       return {
-        success: true,
-        message: approval
-          ? outParams.message || "SalesInvoice approval retrieved successfully."
-          : "No approval record found.",
-        data: approval,
-        salesInvoiceId: salesInvoiceID,
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        salesInvoiceId: salesInvoiceId,
+        approverId: approverId,
+        totalRecords: result.data.length,
       };
-    } catch (err) {
-      console.error("Database error in getSalesInvoiceApprovalById:", err);
+    } catch (error) {
+      console.error("Error in getAllSalesInvoiceApprovals:", error);
       return {
         success: false,
-        message: `Database error: ${err.message}`,
-        data: null,
-        salesInvoiceId: salesInvoiceID,
+        message: `Server error: ${error.message}`,
+        data: [],
+        salesInvoiceId: salesInvoiceId,
+        approverId: approverId,
+        totalRecords: 0,
       };
     }
   }
 
   static async createSalesInvoiceApproval(approvalData) {
     try {
-      const pool = await poolPromise;
-
-      const requiredFields = [
-        "SalesInvoiceID",
-        "ApproverID",
-        "ApprovedYN",
-        "CreatedByID",
-      ];
+      const requiredFields = ["SalesInvoiceID", "ApproverID"];
       const missingFields = requiredFields.filter(
         (field) => !approvalData[field]
       );
@@ -154,185 +169,114 @@ class SalesInvoiceApprovalModel {
           message: `${missingFields.join(", ")} are required`,
           data: null,
           salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
         };
       }
 
-      const queryParams = [
-        "INSERT",
-        parseInt(approvalData.SalesInvoiceID),
-        parseInt(approvalData.ApproverID),
-        approvalData.ApprovedYN ? 1 : 0,
-        new Date(),
-        parseInt(approvalData.CreatedByID),
-        null, // DeletedByID
-      ];
-
-      await pool.query(
-        "CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)",
-        queryParams
-      );
-
-      const [[outParams]] = await pool.query(
-        "SELECT @p_Result AS result, @p_Message AS message"
-      );
-
-      if (outParams.result !== 1) {
+      const fkErrors = await this.#validateForeignKeys(approvalData, "INSERT");
+      if (fkErrors) {
         return {
           success: false,
-          message:
-            outParams.message || "Failed to create SalesInvoice approval",
+          message: `Validation failed: ${fkErrors}`,
           data: null,
           salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
         };
       }
 
-      return {
-        success: true,
-        message:
-          outParams.message || "SalesInvoice approval created successfully.",
-        data: null,
-        salesInvoiceId: approvalData.SalesInvoiceID,
-      };
-    } catch (err) {
-      console.error("Database error in createSalesInvoiceApproval:", err);
+      const result = await this.#executeManageStoredProcedure(
+        "INSERT",
+        approvalData
+      );
+      return result;
+    } catch (error) {
+      console.error("Error in createSalesInvoiceApproval:", error);
       return {
         success: false,
-        message: `Database error: ${err.message}`,
+        message: `Server error: ${error.message}`,
         data: null,
         salesInvoiceId: approvalData.SalesInvoiceID,
+        approverId: approvalData.ApproverID,
       };
     }
   }
 
   static async updateSalesInvoiceApproval(approvalData) {
     try {
-      const pool = await poolPromise;
-
-      const requiredFields = [
-        "SalesInvoiceID",
-        "ApproverID",
-        "ApprovedYN",
-        "UserID",
-      ];
-      const missingFields = requiredFields.filter(
-        (field) => !approvalData[field]
-      );
-      if (missingFields.length > 0) {
+      if (!approvalData.SalesInvoiceID || !approvalData.ApproverID) {
         return {
           success: false,
-          message: `${missingFields.join(", ")} are required`,
+          message: "SalesInvoiceID and ApproverID are required for UPDATE",
           data: null,
           salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
         };
       }
 
-      const queryParams = [
+      const fkErrors = await this.#validateForeignKeys(approvalData, "UPDATE");
+      if (fkErrors) {
+        return {
+          success: false,
+          message: `Validation failed: ${fkErrors}`,
+          data: null,
+          salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
+        };
+      }
+
+      const result = await this.#executeManageStoredProcedure(
         "UPDATE",
-        parseInt(approvalData.SalesInvoiceID),
-        parseInt(approvalData.ApproverID),
-        approvalData.ApprovedYN ? 1 : 0,
-        new Date(),
-        parseInt(approvalData.UserID),
-        null, // DeletedByID
-      ];
-
-      await pool.query(
-        "CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)",
-        queryParams
+        approvalData
       );
-
-      const [[outParams]] = await pool.query(
-        "SELECT @p_Result AS result, @p_Message AS message"
-      );
-
-      if (outParams.result !== 1) {
-        return {
-          success: false,
-          message:
-            outParams.message || "Failed to update SalesInvoice approval",
-          data: null,
-          salesInvoiceId: approvalData.SalesInvoiceID,
-        };
-      }
-
-      return {
-        success: true,
-        message:
-          outParams.message || "SalesInvoice approval updated successfully.",
-        data: null,
-        salesInvoiceId: approvalData.SalesInvoiceID,
-      };
-    } catch (err) {
-      console.error("Database error in updateSalesInvoiceApproval:", err);
+      return result;
+    } catch (error) {
+      console.error("Error in updateSalesInvoiceApproval:", error);
       return {
         success: false,
-        message: `Database error: ${err.message}`,
+        message: `Server error: ${error.message}`,
         data: null,
         salesInvoiceId: approvalData.SalesInvoiceID,
+        approverId: approvalData.ApproverID,
       };
     }
   }
 
   static async deleteSalesInvoiceApproval(approvalData) {
     try {
-      const pool = await poolPromise;
-
-      const requiredFields = ["SalesInvoiceID", "ApproverID", "DeletedByID"];
-      const missingFields = requiredFields.filter(
-        (field) => !approvalData[field]
-      );
-      if (missingFields.length > 0) {
+      if (!approvalData.SalesInvoiceID || !approvalData.ApproverID) {
         return {
           success: false,
-          message: `${missingFields.join(", ")} are required`,
+          message: "SalesInvoiceID and ApproverID are required for DELETE",
           data: null,
           salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
         };
       }
 
-      const queryParams = [
+      const fkErrors = await this.#validateForeignKeys(approvalData, "DELETE");
+      if (fkErrors) {
+        return {
+          success: false,
+          message: `Validation failed: ${fkErrors}`,
+          data: null,
+          salesInvoiceId: approvalData.SalesInvoiceID,
+          approverId: approvalData.ApproverID,
+        };
+      }
+
+      const result = await this.#executeManageStoredProcedure(
         "DELETE",
-        parseInt(approvalData.SalesInvoiceID),
-        parseInt(approvalData.ApproverID),
-        null, // ApprovedYN
-        null, // ApproverDateTime
-        null, // CreatedByID
-        parseInt(approvalData.DeletedByID),
-      ];
-
-      await pool.query(
-        "CALL SP_ManageSalesInvoiceApproval(?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)",
-        queryParams
+        approvalData
       );
-
-      const [[outParams]] = await pool.query(
-        "SELECT @p_Result AS result, @p_Message AS message"
-      );
-
-      if (outParams.result !== 1) {
-        return {
-          success: false,
-          message:
-            outParams.message || "Failed to delete SalesInvoice approval",
-          data: null,
-          salesInvoiceId: approvalData.SalesInvoiceID,
-        };
-      }
-
-      return {
-        success: true,
-        message:
-          outParams.message || "SalesInvoice approval deleted successfully.",
-        data: null,
-        salesInvoiceId: approvalData.SalesInvoiceID,
-      };
-    } catch (err) {
-      console.error("Database error in deleteSalesInvoiceApproval:", err);
+      return result;
+    } catch (error) {
+      console.error("Error in deleteSalesInvoiceApproval:", error);
       return {
         success: false,
-        message: `Database error: ${err.message}`,
+        message: `Server error: ${error.message}`,
         data: null,
         salesInvoiceId: approvalData.SalesInvoiceID,
+        approverId: approvalData.ApproverID,
       };
     }
   }
