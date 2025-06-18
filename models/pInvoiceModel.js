@@ -1,7 +1,7 @@
 const poolPromise = require("../config/db.config");
 
 class PInvoiceModel {
-  // Get paginated Purchase Invoices
+  // Get all Purchase Invoices
   static async getAllPInvoices({
     pageNumber = 1,
     pageSize = 10,
@@ -12,112 +12,51 @@ class PInvoiceModel {
       const pool = await poolPromise;
 
       // Validate parameters
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new Error("Invalid pageNumber: must be a positive integer");
+      }
+      if (!Number.isInteger(pageSize) || pageSize <= 0) {
+        throw new Error("Invalid pageSize: must be a positive integer");
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null,
+        pageNumber,
+        pageSize,
+        fromDate || null,
+        toDate || null,
       ];
 
-      // Log query parameters
-      console.log("getAllPInvoices params:", queryParams);
-
-      // Call SP_GetAllPInvoice with session variables for OUT parameters
-      const [results] = await pool.query(
+      const [result] = await pool.query(
         "CALL SP_GetAllPInvoice(?, ?, ?, ?, @p_Result, @p_Message)",
         queryParams
       );
 
-      // Log results
-      console.log("getAllPInvoices results:", JSON.stringify(results, null, 2));
-
-      // Fetch output parameters
-      const [output] = await pool.query(
-        "SELECT @p_Result AS p_Result, @p_Message AS p_Message"
+      const [[outParams]] = await pool.query(
+        "SELECT @p_Result AS result, @p_Message AS message"
       );
 
-      // Log output
-      console.log("getAllPInvoices output:", JSON.stringify(output, null, 2));
-
-      if (!output || !output[0] || typeof output[0].p_Result === "undefined") {
-        throw new Error("Output parameters missing from SP_GetAllPInvoice");
-      }
-
-      if (output[0].p_Result !== 1) {
+      if (outParams.result !== 1) {
+        // Check error log for more details
+        await new Promise((resolve) => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          "SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1"
+        );
         throw new Error(
-          output[0].p_Message || "Failed to retrieve Purchase Invoices"
+          `Stored procedure error: ${
+            errorLog?.ErrorMessage || outParams.message || "Unknown error"
+          }`
         );
       }
 
       return {
-        data: results[0] || [],
-        totalRecords: null, // SP does not return total count
+        data: result[0],
+        totalRecords: result[0].length,
       };
     } catch (err) {
-      console.error("getAllPInvoices error:", JSON.stringify(err, null, 2));
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Create a new Purchase Invoice
-  static async createPInvoice(data) {
-    try {
-      const pool = await poolPromise;
-
-      const queryParams = [
-        "INSERT",
-        null, // p_PInvoiceID
-        data.POID,
-        data.UserID,
-        data.Series || null,
-        data.PostingDate || null,
-        data.RequiredByDate || null,
-        data.DeliveryDate || null,
-        data.DateReceived || null,
-        data.Terms || null,
-        data.PackagingRequiredYN !== undefined ? data.PackagingRequiredYN : null,
-        data.CollectFromSupplierYN !== undefined ? data.CollectFromSupplierYN : null,
-        data.ExternalRefNo || null,
-        data.ExternalSupplierID || null,
-        data.IsPaid !== undefined ? data.IsPaid : null,
-        data.FormCompletedYN !== undefined ? data.FormCompletedYN : null,
-        data.FileName || null,
-        data.FileContent || null,
-        data.CopyTaxesFromPO !== undefined ? data.CopyTaxesFromPO : null,
-        data.TaxChargesTypeID || null,
-        data.TaxRate || null,
-        data.TaxTotal || null,
-        data.OriginWarehouseAddressID || null,
-        data.DestinationWarehouseAddressID || null,
-      ];
-
-      // Call SP_ManagePInvoice with session variables for OUT parameter
-      const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
-        queryParams
-      );
-
-      // Fetch output parameter
-      const [output] = await pool.query(
-        "SELECT @p_ErrorMessage AS p_ErrorMessage"
-      );
-
-      const response = result[0][0];
-
-      if (response.Status !== "SUCCESS") {
-        throw new Error(
-          response.Message ||
-            output[0]?.p_ErrorMessage ||
-            "Failed to create Purchase Invoice"
-        );
-      }
-
-      return {
-        newPInvoiceId: response.PInvoiceID,
-        message: response.Message,
-      };
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
+      const errorMessage = err.sqlState
+        ? `Database error: ${err.message} (SQLSTATE: ${err.sqlState})`
+        : `Database error: ${err.message}`;
+      throw new Error(errorMessage);
     }
   }
 
@@ -129,6 +68,7 @@ class PInvoiceModel {
       const queryParams = [
         "SELECT",
         id,
+        null,
         null, // p_POID
         null, // p_UserID
         null, // p_Series
@@ -149,8 +89,8 @@ class PInvoiceModel {
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
         null, // p_TaxTotal
-        null, // p_OriginWarehouseAddressID
-        null, // p_DestinationWarehouseAddressID
+        null,
+        null
       ];
 
       const [result] = await pool.query(
@@ -158,44 +98,44 @@ class PInvoiceModel {
         queryParams
       );
 
-      return result[0][0] || null;
+      if (!result[0][0]) {
+        throw new Error("Purchase Invoice not found");
+      }
+
+      return result[0][0];
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a Purchase Invoice
-  static async updatePInvoice(id, data) {
+  // Create a Purchase Invoice
+  static async createPInvoice(data, userId) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
-        "UPDATE",
-        id,
-        null, // p_POID (not updatable)
-        data.UserID,
-        null, // p_Series (not updatable)
-        data.PostingDate || null,
-        data.RequiredByDate || null,
-        data.DeliveryDate || null,
-        data.DateReceived || null,
-        data.Terms || null,
-        data.PackagingRequiredYN !== undefined
-          ? data.PackagingRequiredYN
-          : null,
-        data.CollectFromSupplierYN !== undefined
-          ? data.CollectFromSupplierYN
-          : null,
-        data.ExternalRefNo || null,
-        data.ExternalSupplierID || null,
-        data.IsPaid !== undefined ? data.IsPaid : null,
-        data.FormCompletedYN !== undefined ? data.FormCompletedYN : null,
-        data.FileName || null,
-        data.FileContent || null,
-        null, // p_CopyTaxesFromPO (not applicable for updates)
-        null, // p_TaxChargesTypeID (not applicable for updates)
-        null, // p_TaxRate (not applicable for updates)
-        null, // p_TaxTotal (not applicable for updates)
+        "INSERT",
+        null, // p_PInvoiceID
+        data.poid || null,
+        userId,
+        data.series || null,
+        data.postingDate || null,
+        data.requiredByDate || null,
+        data.deliveryDate || null,
+        data.dateReceived || null,
+        data.terms || null,
+        data.packagingRequiredYN || null,
+        data.collectFromSupplierYN || null,
+        data.externalRefNo || null,
+        data.externalSupplierId || null,
+        data.isPaid || null,
+        data.formCompletedYN || null,
+        data.fileName || null,
+        data.fileContent || null,
+        data.copyTaxesFromPO || null,
+        data.taxChargesTypeId || null,
+        data.taxRate || null,
+        data.taxTotal || null,
         data.OriginWarehouseAddressID || null,
         data.DestinationWarehouseAddressID || null,
       ];
@@ -205,23 +145,72 @@ class PInvoiceModel {
         queryParams
       );
 
-      // Fetch output parameter
-      const [output] = await pool.query(
-        "SELECT @p_ErrorMessage AS p_ErrorMessage"
+      const [[outParams]] = await pool.query(
+        "SELECT @p_ErrorMessage AS errorMessage"
       );
 
-      const response = result[0][0];
-
-      if (response.Status !== "SUCCESS") {
-        throw new Error(
-          response.Message ||
-            output[0]?.p_ErrorMessage ||
-            "Failed to update Purchase Invoice"
-        );
+      if (outParams.errorMessage) {
+        throw new Error(outParams.errorMessage);
       }
 
       return {
-        message: response.Message,
+        pInvoiceId: result[0][0]?.PInvoiceID,
+        message:
+          result[0][0]?.Message || "Purchase Invoice created successfully",
+      };
+    } catch (err) {
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Update a Purchase Invoice
+  static async updatePInvoice(id, data, userId) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        "UPDATE",
+        id,
+        data.poid || null,
+        userId,
+        data.series || null,
+        data.postingDate || null,
+        data.requiredByDate || null,
+        data.deliveryDate || null,
+        data.dateReceived || null,
+        data.terms || null,
+        data.packagingRequiredYN || null,
+        data.collectFromSupplierYN || null,
+        data.externalRefNo || null,
+        data.externalSupplierId || null,
+        data.isPaid || null,
+        data.formCompletedYN || null,
+        data.fileName || null,
+        data.fileContent || null,
+        data.copyTaxesFromPO || null,
+        data.taxChargesTypeId || null,
+        data.taxRate || null,
+        data.taxTotal || null,
+        data.OriginWarehouseAddressID || null,
+        data.DestinationWarehouseAddressID || null,
+      ];
+
+      const [result] = await pool.query(
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        queryParams
+      );
+
+      const [[outParams]] = await pool.query(
+        "SELECT @p_ErrorMessage AS errorMessage"
+      );
+
+      if (outParams.errorMessage) {
+        throw new Error(outParams.errorMessage);
+      }
+
+      return {
+        message:
+          result[0][0]?.Message || "Purchase Invoice updated successfully",
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -229,7 +218,7 @@ class PInvoiceModel {
   }
 
   // Delete a Purchase Invoice
-  static async deletePInvoice(id, deletedById) {
+  static async deletePInvoice(id, userId) {
     try {
       const pool = await poolPromise;
 
@@ -237,7 +226,7 @@ class PInvoiceModel {
         "DELETE",
         id,
         null, // p_POID
-        deletedById,
+        userId,
         null, // p_Series
         null, // p_PostingDate
         null, // p_RequiredByDate
@@ -256,66 +245,33 @@ class PInvoiceModel {
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
         null, // p_TaxTotal
-        null, // p_OriginWarehouseAddressID
-        null, // p_DestinationWarehouseAddressID
+        null, 
+        null
       ];
 
       const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
         queryParams
       );
 
-      // Fetch output parameter
-      const [output] = await pool.query(
-        "SELECT @p_ErrorMessage AS p_ErrorMessage"
+      const [[outParams]] = await pool.query(
+        "SELECT @p_ErrorMessage AS errorMessage"
       );
 
-      const response = result[0][0];
-
-      if (response.Status !== "SUCCESS") {
-        throw new Error(
-          response.Message ||
-            output[0]?.p_ErrorMessage ||
-            "Failed to delete Purchase Invoice"
-        );
+      if (outParams.errorMessage) {
+        throw new Error(outParams.errorMessage);
       }
 
       return {
-        message: response.Message,
+        message:
+          result[0][0]?.Message || "Purchase Invoice deleted successfully",
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Mark invoice as paid
-  static async markAsPaid(id, userId) {
-    try {
-      const updateData = {
-        IsPaid: 1,
-        UserID: userId,
-      };
-
-      return await this.updatePInvoice(id, updateData);
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
-  // Mark form as completed
-  static async markFormCompleted(id, userId) {
-    try {
-      const updateData = {
-        FormCompletedYN: 1,
-        UserID: userId,
-      };
-
-      return await this.updatePInvoice(id, updateData);
-    } catch (err) {
-      throw new Error(`Database error: ${err.message}`);
-    }
-  }
-
+  // Helper: Check form role approver permission
   static async #checkFormRoleApproverPermission(approverID, formName) {
     try {
       const pool = await poolPromise;
@@ -324,9 +280,9 @@ class PInvoiceModel {
         FROM dbo_tblformroleapprover fra
         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
         JOIN dbo_tblform f ON fr.FormID = f.FormID
-        WHERE fra.UserID = ? 
-          AND f.FormName = ? 
-          AND fra.ActiveYN = 1 
+        WHERE fra.UserID = ?
+          AND f.FormName = ?
+          AND fra.ActiveYN = 1
           AND f.IsDeleted = 0;
       `;
       const [result] = await pool.query(query, [
@@ -341,15 +297,16 @@ class PInvoiceModel {
     }
   }
 
-  static async #checkPInvoiceStatus(pInvoiceID) {
+  // Helper: Check Supplier Quotation status
+  static async #checkPInvoiceStatus(PInvoiceID) {
     try {
       const pool = await poolPromise;
       const query = `
-        SELECT Status 
-        FROM dbo_tblpinvoice 
+        SELECT Status
+        FROM dbo_tblpinvoice
         WHERE PInvoiceID = ? AND IsDeleted = 0;
       `;
-      const [result] = await pool.query(query, [parseInt(pInvoiceID)]);
+      const [result] = await pool.query(query, [parseInt(PInvoiceID)]);
       if (result.length === 0) {
         return { exists: false, status: null };
       }
@@ -359,11 +316,12 @@ class PInvoiceModel {
     }
   }
 
+  // Helper: Insert approval record
   static async #insertPInvoiceApproval(connection, approvalData) {
     try {
       const query = `
         INSERT INTO dbo_tblpinvoiceapproval (
-          PInvoiceID, ApproverID, ApprovedYN, ApproverDateTime, CreatedByID, CreatedDateTime, IsDeleted
+         PInvoiceID, ApproverID, ApprovedYN, ApproverDateTime, CreatedByID, CreatedDateTime, IsDeleted
         ) VALUES (
           ?, ?, ?, NOW(), ?, NOW(), 0
         );
@@ -383,10 +341,13 @@ class PInvoiceModel {
         insertId: result.insertId,
       };
     } catch (error) {
-      throw new Error(`Error inserting PInvoice approval: ${error.message}`);
+      throw new Error(
+        `Error inserting Purchase Invoice approval: ${error.message}`
+      );
     }
   }
 
+  // Approve a Supplier Quotation
   static async approvePInvoice(approvalData) {
     let connection;
     try {
@@ -402,13 +363,13 @@ class PInvoiceModel {
         throw new Error(`${missingFields.join(", ")} are required`);
       }
 
-      const pInvoiceID = parseInt(approvalData.PInvoiceID);
+      const PInvoiceID = parseInt(approvalData.PInvoiceID);
       const approverID = parseInt(approvalData.ApproverID);
-      if (isNaN(pInvoiceID) || isNaN(approverID)) {
+      if (isNaN(PInvoiceID) || isNaN(approverID)) {
         throw new Error("Invalid PInvoiceID or ApproverID");
       }
 
-      const formName = "PInvoice";
+      const formName = "Purchase Invoice";
       const hasPermission = await this.#checkFormRoleApproverPermission(
         approverID,
         formName
@@ -419,30 +380,29 @@ class PInvoiceModel {
         );
       }
 
-      const { exists, status } = await this.#checkPInvoiceStatus(pInvoiceID);
+      const { exists, status } = await this.#checkPInvoiceStatus(PInvoiceID);
       if (!exists) {
-        throw new Error("PInvoice does not exist or has been deleted");
+        throw new Error("Purchase Invoice does not exist or has been deleted");
       }
       if (status !== "Pending") {
         throw new Error(
-          `PInvoice status must be Pending to approve, current status: ${status}`
+          `Purchase Invoice status must be Pending to approve, current status: ${status}`
         );
       }
 
       // Check for existing approval
       const [existingApproval] = await connection.query(
         "SELECT 1 FROM dbo_tblpinvoiceapproval WHERE PInvoiceID = ? AND ApproverID = ? AND IsDeleted = 0",
-        [pInvoiceID, approverID]
+        [PInvoiceID, approverID]
       );
       if (existingApproval.length > 0) {
-        throw new Error("Approver has already approved this PInvoice");
+        throw new Error("Approver has already approved this Purchase Invoice");
       }
 
-      // Record approval within the same transaction
+      // Record approval
       const approvalInsertResult = await this.#insertPInvoiceApproval(
         connection,
-        { PInvoiceID: pInvoiceID, ApprovedFromSupplierYN: 0,
-        ApproverID: approverID }
+        { PInvoiceID: PInvoiceID, ApproverID: approverID }
       );
       if (!approvalInsertResult.success) {
         throw new Error(
@@ -456,11 +416,11 @@ class PInvoiceModel {
         [formName]
       );
       if (!form.length) {
-        throw new Error("Invalid FormID for PInvoice");
+        throw new Error("Invalid FormID for Purchase Invoice");
       }
       const formID = form[0].FormID;
 
-      // Get required approvers (distinct UserID)
+      // Get required approvers
       const [requiredApproversList] = await connection.query(
         `SELECT DISTINCT fra.UserID, p.FirstName
          FROM dbo_tblformroleapprover fra
@@ -471,25 +431,25 @@ class PInvoiceModel {
       );
       const requiredCount = requiredApproversList.length;
 
-      // Get completed approvals, only counting those from required approvers
+      // Get completed approvals
       const [approvedList] = await connection.query(
         `SELECT s.ApproverID, s.ApprovedYN
          FROM dbo_tblpinvoiceapproval s
          WHERE s.PInvoiceID = ? AND s.IsDeleted = 0
            AND s.ApproverID IN (
-             SELECT DISTINCT fra.UserID 
-             FROM dbo_tblformroleapprover fra 
-             JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID 
+             SELECT DISTINCT fra.UserID
+             FROM dbo_tblformroleapprover fra
+             JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
              WHERE fr.FormID = ? AND fra.ActiveYN = 1
            )`,
-        [pInvoiceID, formID]
+        [PInvoiceID, formID]
       );
       const approved = approvedList.filter((a) => a.ApprovedYN === 1).length;
 
       // Check for mismatched ApproverIDs
       const [allApprovals] = await connection.query(
         "SELECT ApproverID FROM dbo_tblpinvoiceapproval WHERE PInvoiceID = ? AND IsDeleted = 0",
-        [pInvoiceID]
+        [PInvoiceID]
       );
       const requiredUserIDs = requiredApproversList.map((a) => a.UserID);
       const mismatchedApprovals = allApprovals.filter(
@@ -498,7 +458,7 @@ class PInvoiceModel {
 
       // Debug logs
       console.log(
-        `Approval Debug: PInvoiceID=${pInvoiceID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(
+        `Approval Debug: PInvoiceID=${PInvoiceID}, FormID=${formID}, RequiredApprovers=${requiredCount}, Approvers=${JSON.stringify(
           requiredApproversList
         )}, CompletedApprovals=${approved}, ApprovedList=${JSON.stringify(
           approvedList
@@ -514,9 +474,9 @@ class PInvoiceModel {
         // All approvals complete
         await connection.query(
           "UPDATE dbo_tblpinvoice SET Status = ? WHERE PInvoiceID = ?",
-          ["Approved", pInvoiceID]
+          ["Approved", PInvoiceID]
         );
-        message = "PInvoice fully approved.";
+        message = "Purchase Invoice fully approved.";
         isFullyApproved = true;
       } else {
         // Partial approval
@@ -530,76 +490,26 @@ class PInvoiceModel {
         success: true,
         message,
         data: null,
-        pInvoiceId: pInvoiceID.toString(),
-        newPInvoiceId: null,
+        PInvoiceID: PInvoiceID.toString(),
+        newPInvoiceID: null,
         isFullyApproved,
       };
     } catch (error) {
       if (connection) {
         await connection.rollback();
       }
-      console.error("Database error in approvePInvoice:", error);
+      console.error("Database error in approvePurchaseInvoice:", error);
       return {
         success: false,
         message: `Approval failed: ${error.message || "Unknown error"}`,
         data: null,
-        pInvoiceId: approvalData.PInvoiceID.toString(),
-        newPInvoiceId: null,
+        PInvoiceID: approvalData.PInvoiceID.toString(),
+        newPInvoiceID: null,
       };
     } finally {
       if (connection) {
         connection.release();
       }
-    }
-  }
-
-  // Get all approvals for a Purchase Invoice
-  static async getAllPInvoiceApprovals(pInvoiceId) {
-    try {
-      const pool = await poolPromise;
-
-      if (!pInvoiceId || isNaN(parseInt(pInvoiceId))) {
-        throw new Error("Valid PInvoiceID is required");
-      }
-
-      const query = `
-        SELECT 
-          pia.PInvoiceID,
-          pia.ApproverID,
-          p.FirstName AS ApproverName,
-          pia.ApprovedYN,
-          pia.ApproverDateTime,
-          pia.CreatedByID,
-          pia.CreatedDateTime,
-          pia.IsDeleted
-        FROM dbo_tblpinvoiceapproval pia
-        JOIN dbo_tblperson p ON pia.ApproverID = p.PersonID
-        WHERE pia.PInvoiceID = ? AND pia.IsDeleted = 0;
-      `;
-
-      const [result] = await pool.query(query, [parseInt(pInvoiceId)]);
-
-      if (result.length === 0) {
-        return {
-          success: true,
-          message: "No approval records found for this PInvoice",
-          data: [],
-          pInvoiceId: pInvoiceId.toString(),
-        };
-      }
-
-      return {
-        success: true,
-        message: "Approval records retrieved successfully",
-        data: result,
-        pInvoiceId: pInvoiceId.toString(),
-      };
-    } catch (err) {
-      console.error(
-        "getAllPInvoiceApprovals error:",
-        JSON.stringify(err, null, 2)
-      );
-      throw new Error(`Database error: ${err.message}`);
     }
   }
 }
