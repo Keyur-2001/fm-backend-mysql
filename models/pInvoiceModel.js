@@ -70,28 +70,30 @@ class PInvoiceModel {
         data.POID,
         data.UserID,
         data.Series || null,
-        null, // p_PostingDate
-        null, // p_RequiredByDate
-        null, // p_DeliveryDate
-        null, // p_DateReceived
-        null, // p_Terms
-        null, // p_PackagingRequiredYN
-        null, // p_CollectFromSupplierYN
-        null, // p_ExternalRefNo
-        null, // p_ExternalSupplierID
-        null, // p_IsPaid
-        null, // p_FormCompletedYN
-        null, // p_FileName
-        null, // p_FileContent
+        data.PostingDate || null,
+        data.RequiredByDate || null,
+        data.DeliveryDate || null,
+        data.DateReceived || null,
+        data.Terms || null,
+        data.PackagingRequiredYN !== undefined ? data.PackagingRequiredYN : null,
+        data.CollectFromSupplierYN !== undefined ? data.CollectFromSupplierYN : null,
+        data.ExternalRefNo || null,
+        data.ExternalSupplierID || null,
+        data.IsPaid !== undefined ? data.IsPaid : null,
+        data.FormCompletedYN !== undefined ? data.FormCompletedYN : null,
+        data.FileName || null,
+        data.FileContent || null,
         data.CopyTaxesFromPO !== undefined ? data.CopyTaxesFromPO : null,
         data.TaxChargesTypeID || null,
         data.TaxRate || null,
         data.TaxTotal || null,
+        data.OriginWarehouseAddressID || null,
+        data.DestinationWarehouseAddressID || null,
       ];
 
       // Call SP_ManagePInvoice with session variables for OUT parameter
       const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
         queryParams
       );
 
@@ -147,10 +149,12 @@ class PInvoiceModel {
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
         null, // p_TaxTotal
+        null, // p_OriginWarehouseAddressID
+        null, // p_DestinationWarehouseAddressID
       ];
 
       const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
         queryParams
       );
 
@@ -192,10 +196,12 @@ class PInvoiceModel {
         null, // p_TaxChargesTypeID (not applicable for updates)
         null, // p_TaxRate (not applicable for updates)
         null, // p_TaxTotal (not applicable for updates)
+        data.OriginWarehouseAddressID || null,
+        data.DestinationWarehouseAddressID || null,
       ];
 
       const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
         queryParams
       );
 
@@ -250,10 +256,12 @@ class PInvoiceModel {
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
         null, // p_TaxTotal
+        null, // p_OriginWarehouseAddressID
+        null, // p_DestinationWarehouseAddressID
       ];
 
       const [result] = await pool.query(
-        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
+        "CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)",
         queryParams
       );
 
@@ -433,7 +441,8 @@ class PInvoiceModel {
       // Record approval within the same transaction
       const approvalInsertResult = await this.#insertPInvoiceApproval(
         connection,
-        { PInvoiceID: pInvoiceID, ApproverID: approverID }
+        { PInvoiceID: pInvoiceID, ApprovedFromSupplierYN: 0,
+        ApproverID: approverID }
       );
       if (!approvalInsertResult.success) {
         throw new Error(

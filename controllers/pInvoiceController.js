@@ -71,6 +71,8 @@ class PInvoiceController {
         TaxChargesTypeID: req.body.TaxChargesTypeID,
         TaxRate: req.body.TaxRate,
         TaxTotal: req.body.TaxTotal,
+        OriginWarehouseAddressID: req.body.OriginWarehouseAddressID,
+        DestinationWarehouseAddressID: req.body.DestinationWarehouseAddressID,
       };
 
       if (!data.POID) {
@@ -155,6 +157,8 @@ class PInvoiceController {
         FormCompletedYN: req.body.FormCompletedYN,
         FileName: req.body.FileName,
         FileContent: req.body.FileContent,
+        OriginWarehouseAddressID: req.body.OriginWarehouseAddressID,
+        DestinationWarehouseAddressID: req.body.DestinationWarehouseAddressID,
       };
 
       const result = await PInvoiceModel.updatePInvoice(parseInt(id), data);
