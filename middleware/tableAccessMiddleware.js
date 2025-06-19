@@ -19,18 +19,18 @@ const tableAccessMiddleware = async (req, res, next) => {
 
     // Fetch permissions based on RoleID and PersonID (user-specific permissions only)
     const [rolePermissions] = await pool.query(
-      `SELECT p.TablePermission, rp.AllowRead, rp.AllowWrite, rp.AllowUpdate, rp.AllowDelete
+      `SELECT p.TablePermission, rp.AllowRead, rp.AllowWrite, rp.AllowUpdate, rp.AllowDelete, rp.IsMaster
        FROM dbo_tblrolepermission rp
        JOIN dbo_tblpermission p ON rp.PermissionID = p.PermissionID
        WHERE rp.RoleID = ?
-       AND rp.PersonID = ?  -- Only match user-specific permissions
+       AND rp.PersonID = ?
        AND p.IsDeleted = 0`,
       [roleId, personId]
     );
 
     // Map the permissions to a list of accessible tables with allowed actions
     // Only include tables where at least one permission is true
-    req.user.accessibleTables = rolePermissions
+    const accessibleTables = rolePermissions
       .map(permission => ({
         tableName: permission.TablePermission,
         permissions: {
@@ -38,7 +38,8 @@ const tableAccessMiddleware = async (req, res, next) => {
           write: permission.AllowWrite === 1,
           update: permission.AllowUpdate === 1,
           delete: permission.AllowDelete === 1
-        }
+        },
+        isMaster: permission.IsMaster === 1
       }))
       .filter(table => 
         table.permissions.read || 
@@ -47,8 +48,29 @@ const tableAccessMiddleware = async (req, res, next) => {
         table.permissions.delete
       );
 
-    // If no tables are accessible, return a 403 response
-    if (!req.user.accessibleTables || req.user.accessibleTables.length === 0) {
+    // Separate master tables (IsMaster = 1) and non-master tables (IsMaster = 0)
+    const masterTables = accessibleTables
+      .filter(table => table.isMaster)
+      .map(({ tableName, permissions }) => ({
+        tableName,
+        permissions
+      }));
+
+    const nonMasterTables = accessibleTables
+      .filter(table => !table.isMaster)
+      .map(({ tableName, permissions }) => ({
+        tableName,
+        permissions
+      }));
+
+    // Structure the response data
+    req.user.accessibleTables = {
+      tables: nonMasterTables,
+      masterTables
+    };
+
+    // If no tables are accessible (neither master nor non-master), return a 403 response
+    if (!req.user.accessibleTables.tables || req.user.accessibleTables.tables.length === 0 && req.user.accessibleTables.masterTables.length === 0) {
       return res.status(403).json({
         success: false,
         message: 'No tables accessible for this user',
