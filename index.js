@@ -58,6 +58,7 @@ const pInvoiceRoutes = require('./routes/pInvoiceRoutes');
 const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
+const purchaseRFQToSupplierRoutes = require('./routes/purchaseRFQToSupplierRoutes');
 
 const app = express();
 
@@ -188,7 +189,8 @@ async function startServer() {
       ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
       ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
-      ['/api/tableAccess', tableAccessRoutes]
+      ['/api/tableAccess', tableAccessRoutes],
+      ['/api/purchaseRFQToSupplier', purchaseRFQToSupplierRoutes]
     ];
 
     routes.forEach(([path, route]) => {

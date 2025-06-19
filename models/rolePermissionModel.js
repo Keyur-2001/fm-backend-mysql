@@ -27,28 +27,13 @@ class RolePermissionModel {
         );
         if (personCheck.length === 0) errors.push(`PersonID ${rolePermissionData.PersonID} does not exist or is deleted`);
       }
-      if (rolePermissionData.CreatedByID) {
-        const [createdByCheck] = await pool.query(
-          'SELECT 1 FROM dbo_tblperson WHERE PersonID = ? AND IsDeleted = 0',
-          [parseInt(rolePermissionData.CreatedByID)]
-        );
-        if (createdByCheck.length === 0) errors.push(`CreatedByID ${rolePermissionData.CreatedByID} does not exist or is deleted`);
-      }
-    }
-
-    if (action === 'DELETE' && rolePermissionData.CreatedByID) {
-      const [createdByCheck] = await pool.query(
-        'SELECT 1 FROM dbo_tblperson WHERE PersonID = ? AND IsDeleted = 0',
-        [parseInt(rolePermissionData.CreatedByID)]
-      );
-      if (createdByCheck.length === 0) errors.push(`CreatedByID ${rolePermissionData.CreatedByID} does not exist or is deleted`);
     }
 
     return errors.length > 0 ? errors.join('; ') : null;
   }
 
   static async createRolePermission(rolePermissionData) {
-    const requiredFields = ['PermissionID', 'RoleID', 'CreatedByID'];
+    const requiredFields = ['PermissionID', 'RoleID'];
     const missingFields = requiredFields.filter(field => !rolePermissionData[field]);
     if (missingFields.length > 0) {
       return {
@@ -73,18 +58,18 @@ class RolePermissionModel {
       const pool = await poolPromise;
       const query = `
         INSERT INTO dbo_tblrolepermission (
-          PermissionID, RoleID, AllowRead, AllowDelete, AllowUpdate, AllowDelete, PersonID, CreatedByID
+          PermissionID, RoleID, AllowRead, AllowWrite, AllowUpdate, AllowDelete, PersonID, IsMaster
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
       `;
       const params = [
+        parseInt(rolePermissionData.PermissionID),
         parseInt(rolePermissionData.RoleID),
-        parseInt(rolePermissionData.RoleID),
-        rolePermissionData.AllowRead ?  rolePermissionData.AllowRead : null,
-        rolePermissionData.AllowWrite ?  rolePermissionData.AllowWrite : null,
-        rolePermissionData.AllowUpdate ?  rolePermissionData.AllowUpdate : null,
-        rolePermissionData.AllowDelete ?  rolePermissionData.AllowDelete : null,
-        parseInt(rolePermissionData.RoleID) || null,
-        parseInt(rolePermissionData.CreatedByID)
+        rolePermissionData.AllowRead != null ? Boolean(rolePermissionData.AllowRead) : null,
+        rolePermissionData.AllowWrite != null ? Boolean(rolePermissionData.AllowWrite) : null,
+        rolePermissionData.AllowUpdate != null ? Boolean(rolePermissionData.AllowUpdate) : null,
+        rolePermissionData.AllowDelete != null ? Boolean(rolePermissionData.AllowDelete) : null,
+        parseInt(rolePermissionData.PersonID) || null,
+        rolePermissionData.IsMaster != null ? Boolean(rolePermissionData.IsMaster) : null
       ];
 
       const [result] = await pool.query(query, params);
@@ -137,18 +122,18 @@ class RolePermissionModel {
           AllowUpdate = ?,
           AllowDelete = ?,
           PersonID = ?,
-          CreatedByID = ?
+          IsMaster = ?
         WHERE PermissionRoleID = ? AND IsDeleted = 0
       `;
       const params = [
-        parseInt(rolePermissionData.RoleID) || null,
+        parseInt(rolePermissionData.PermissionID) || null,
         parseInt(rolePermissionData.RoleID) || null,
         rolePermissionData.AllowRead != null ? Boolean(rolePermissionData.AllowRead) : null,
         rolePermissionData.AllowWrite != null ? Boolean(rolePermissionData.AllowWrite) : null,
         rolePermissionData.AllowUpdate != null ? Boolean(rolePermissionData.AllowUpdate) : null,
         rolePermissionData.AllowDelete != null ? Boolean(rolePermissionData.AllowDelete) : null,
         parseInt(rolePermissionData.PersonID) || null,
-        parseInt(rolePermissionData.CreatedByID) || null,
+        rolePermissionData.IsMaster != null ? Boolean(rolePermissionData.IsMaster) : null,
         parseInt(rolePermissionData.PermissionRoleID)
       ];
 
@@ -189,25 +174,14 @@ class RolePermissionModel {
       };
     }
 
-    const fkErrors = await this.#validateForeignKeys(rolePermissionData, 'DELETE');
-    if (fkErrors) {
-      return {
-        success: false,
-        message: `Validation failed: ${fkErrors}`,
-        data: null,
-        permissionRoleId: rolePermissionData.PermissionRoleID
-      };
-    }
-
     try {
       const pool = await poolPromise;
       const query = `
         UPDATE dbo_tblrolepermission
-        SET IsDeleted = 1, DeletedDateTime = NOW(), DeletedByID = ?
+        SET IsDeleted = 1, DeletedDateTime = NOW()
         WHERE PermissionRoleID = ? AND IsDeleted = 0
       `;
       const params = [
-        parseInt(rolePermissionData.CreatedByID) || null,
         parseInt(rolePermissionData.PermissionRoleID)
       ];
 
@@ -301,13 +275,11 @@ class RolePermissionModel {
         LEFT JOIN dbo_tblpermission p ON rp.PermissionID = p.PermissionID AND p.IsDeleted = 0
         LEFT JOIN dbo_tblroles r ON rp.RoleID = r.RoleID AND r.IsDeleted = 0
         LEFT JOIN dbo_tblperson pers ON rp.PersonID = pers.PersonID AND pers.IsDeleted = 0
-       
         LIMIT ? OFFSET ?
       `;
       const countQuery = `
         SELECT COUNT(*) AS totalRecords
         FROM dbo_tblrolepermission
-       
       `;
 
       const [data] = await pool.query(query, [pageSize, offset]);

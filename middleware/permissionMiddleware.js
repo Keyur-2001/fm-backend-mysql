@@ -2,7 +2,12 @@ const poolPromise = require("../config/db.config");
 
 // Helper function to normalize a string (remove spaces, special characters, and convert to lowercase)
 const normalizeString = (str) => {
-  return str.toLowerCase().replace(/[\s\-=]+/g, ""); // Remove spaces, hyphens, and equals signs
+  let normalized = str.toLowerCase().replace(/[\s\-=]+/g, "");
+  // Special case for rolepermissions
+  if (normalized === "rolepermissions") {
+    normalized = "rolepermission"; // Match dbo_tblpermission TablePermission value
+  }
+  return normalized;
 };
 
 const permissionMiddleware = (requiredPermission) => {
@@ -34,7 +39,7 @@ const permissionMiddleware = (requiredPermission) => {
         });
       }
 
-      // Normalize the resource name (e.g., "sales-rfq" -> "salesrfq")
+      // Normalize the resource name
       const normalizedResourceName = normalizeString(resourceName);
       console.log(
         "Normalized resource name from route:",
@@ -43,9 +48,14 @@ const permissionMiddleware = (requiredPermission) => {
 
       // Check if accessibleTables is populated by tableAccessMiddleware
       if (req.user.accessibleTables) {
-        const tableAccess = req.user.accessibleTables.find(
+        // Search both tables and masterTables arrays
+        const tableAccess = [
+          ...(req.user.accessibleTables.tables || []),
+          ...(req.user.accessibleTables.masterTables || [])
+        ].find(
           (table) => normalizeString(table.tableName) === normalizedResourceName
         );
+
         if (tableAccess) {
           let hasPermission = false;
           switch (requiredPermission) {

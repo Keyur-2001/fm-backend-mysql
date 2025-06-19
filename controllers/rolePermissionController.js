@@ -11,7 +11,7 @@ class RolePermissionController {
         AllowUpdate: req.body.AllowUpdate != null ? Boolean(req.body.AllowUpdate) : null,
         AllowDelete: req.body.AllowDelete != null ? Boolean(req.body.AllowDelete) : null,
         PersonID: req.body.PersonID ? parseInt(req.body.PersonID) : null,
-        CreatedByID: parseInt(req.body.CreatedByID) || req.user.personId
+        IsMaster: req.body.IsMaster != null ? Boolean(req.body.IsMaster) : null
       };
 
       const result = await RolePermissionModel.createRolePermission(rolePermissionData);
@@ -48,7 +48,7 @@ class RolePermissionController {
         AllowUpdate: req.body.AllowUpdate != null ? Boolean(req.body.AllowUpdate) : null,
         AllowDelete: req.body.AllowDelete != null ? Boolean(req.body.AllowDelete) : null,
         PersonID: req.body.PersonID ? parseInt(req.body.PersonID) : null,
-        CreatedByID: parseInt(req.body.CreatedByID) || req.user.personId
+        IsMaster: req.body.IsMaster != null ? Boolean(req.body.IsMaster) : null
       };
 
       const result = await RolePermissionModel.updateRolePermission(rolePermissionData);
@@ -77,8 +77,7 @@ class RolePermissionController {
       }
 
       const rolePermissionData = {
-        PermissionRoleID: permissionRoleId,
-        CreatedByID: parseInt(req.body.CreatedByID) || req.user.personId
+        PermissionRoleID: permissionRoleId
       };
 
       const result = await RolePermissionModel.deleteRolePermission(rolePermissionData);
