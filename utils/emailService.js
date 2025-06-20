@@ -1,16 +1,15 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
 
 class EmailService {
   constructor() {
     this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'localhost',
-      port: parseInt(process.env.SMTP_PORT) || 1025,
-      secure: process.env.SMTP_PORT === '465',
-      auth: process.env.SMTP_USER && process.env.SMTP_PASS ? {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-      } : undefined
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: 'keyur.it2001@gmail.com',
+        pass: 'vtbgmipgoyaatiqq'
+      }
     });
   }
 
@@ -34,7 +33,7 @@ class EmailService {
       throw new Error(`Missing required fields: email=${email}, loginID=${loginID}`);
     }
     const mailOptions = {
-      from: process.env.SMTP_USER || 'no-reply@yourapp.com',
+      from: 'keyur.it2001@gmail.com',
       to: email,
       subject: 'Welcome to Fleet Monkey',
       text: `Welcome to Fleet Monkey!\n\nYour login credentials:\nLoginID: ${loginID}\nPassword: ${password}\n\nPlease change your password after logging in.`,
@@ -47,9 +46,9 @@ class EmailService {
     if (!email || !resetToken) {
       throw new Error(`Missing required fields: email=${email}, resetToken=${resetToken}`);
     }
-    const resetUrl = `${process.env.FRONTEND_URL}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
+    const resetUrl = `http://your-app-url/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`;
     const mailOptions = {
-      from: process.env.SMTP_USER || 'no-reply@yourapp.com',
+      from: 'keyur.it2001@gmail.com',
       to: email,
       subject: 'Password Reset Request',
       text: `You requested a password reset.\n\nClick the link below to reset your password:\n${resetUrl}\n\nThis link expires in 1 hour.`,
