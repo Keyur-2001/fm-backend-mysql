@@ -258,4 +258,4 @@ class SupplierQuotationController {
   }
 }
 
-module.exports = SupplierQuotationController;
+module.exports = SupplierQuotationController
