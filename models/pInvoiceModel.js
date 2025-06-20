@@ -10,7 +10,7 @@ class PInvoiceModel {
   }) {
     try {
       const pool = await poolPromise;
-
+  
       // Validate parameters
       if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
         throw new Error('Invalid pageNumber: must be a positive integer');
@@ -18,23 +18,23 @@ class PInvoiceModel {
       if (!Number.isInteger(pageSize) || pageSize <= 0) {
         throw new Error('Invalid pageSize: must be a positive integer');
       }
-
+  
       const queryParams = [
         pageNumber,
         pageSize,
         fromDate || null,
         toDate || null
       ];
-
-      const [result] = await pool.query(
+  
+      const [results] = await pool.query(
         'CALL SP_GetAllPInvoice(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
-
+  
       const [[outParams]] = await pool.query(
         'SELECT @p_Result AS result, @p_Message AS message'
       );
-
+  
       if (outParams.result !== 1) {
         // Check error log for more details
         await new Promise(resolve => setTimeout(resolve, 100));
@@ -43,10 +43,13 @@ class PInvoiceModel {
         );
         throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
       }
-
+  
+      // Extract TotalRecords from the second result set
+      const totalRecords = results[1] && results[1][0] ? results[1][0].TotalRecords : 0;
+  
       return {
-        data: result[0],
-        totalRecords: result[0].length
+        data: results[0],
+        totalRecords: totalRecords
       };
     } catch (err) {
       const errorMessage = err.sqlState ? 

@@ -12,8 +12,8 @@ class CertificationController {
         toDate: toDate || null
       });
       res.status(200).json({
-        success: true,
-        message: 'Certification records retrieved successfully.',
+        success: result.success,
+        message: result.message,
         data: result.data,
         totalRecords: result.totalRecords,
         certificationId: null
@@ -23,7 +23,8 @@ class CertificationController {
       res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
-        data: null,
+        data: [],
+        totalRecords: 0,
         certificationId: null
       });
     }
@@ -45,7 +46,7 @@ class CertificationController {
 
       const result = await CertificationModel.createCertification(data);
       res.status(201).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: result.certificationId
@@ -66,8 +67,8 @@ class CertificationController {
     try {
       const { id } = req.params;
       const certification = await CertificationModel.getCertificationById(parseInt(id));
-      if (!certification) {
-        return res.status(400).json({
+      if (!certification || !certification.data) {
+        return res.status(404).json({
           success: false,
           message: 'Certification not found.',
           data: null,
@@ -76,8 +77,8 @@ class CertificationController {
       }
       res.status(200).json({
         success: true,
-        message: 'Certification retrieved successfully.',
-        data: certification,
+        message: certification.message,
+        data: certification.data,
         certificationId: id
       });
     } catch (err) {
@@ -108,7 +109,7 @@ class CertificationController {
 
       const result = await CertificationModel.updateCertification(parseInt(id), data);
       res.status(200).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: id
@@ -141,7 +142,7 @@ class CertificationController {
 
       const result = await CertificationModel.deleteCertification(parseInt(id), createdById);
       res.status(200).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: id

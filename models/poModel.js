@@ -133,7 +133,7 @@ class PurchaseOrderModel {
         success: outParams.result === 1,
         message: outParams.message || (outParams.result === 1 ? 'Purchase Order created successfully' : 'Operation failed'),
         data: null,
-        poId: null
+        poId: result[0] && result[0][0] ? result[0][0].POID : null
       };
     } catch (error) {
       console.error('Database error in createPurchaseOrder:', error);
@@ -150,6 +150,14 @@ class PurchaseOrderModel {
     try {
       const pool = await poolPromise;
 
+      // Validate parameters
+      if (!Number.isInteger(pageNumber) || pageNumber <= 0) {
+        throw new Error('Invalid pageNumber: must be a positive integer');
+      }
+      if (!Number.isInteger(pageSize) || pageSize <= 0) {
+        throw new Error('Invalid pageSize: must be a positive integer');
+      }
+
       const queryParams = [
         pageNumber,
         pageSize,
@@ -157,7 +165,7 @@ class PurchaseOrderModel {
         toDate || null
       ];
 
-      const [result] = await pool.query(
+      const [results] = await pool.query(
         'CALL SP_GetAllPO(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
@@ -166,13 +174,23 @@ class PurchaseOrderModel {
         'SELECT @p_Result AS result, @p_Message AS message'
       );
 
-      const purchaseOrders = result[0] || [];
+      if (outParams.result !== 1) {
+        // Check error log for more details
+        await new Promise(resolve => setTimeout(resolve, 100));
+        const [[errorLog]] = await pool.query(
+          'SELECT ErrorMessage, CreatedAt FROM dbo_tblerrorlog ORDER BY CreatedAt DESC LIMIT 1'
+        );
+        throw new Error(`Stored procedure error: ${errorLog?.ErrorMessage || outParams.message || 'Unknown error'}`);
+      }
+
+      // Extract TotalRecords from the second result set
+      const totalRecords = results[1] && results[1][0] ? results[1][0].TotalRecords : 0;
 
       return {
         success: outParams.result === 1,
         message: outParams.message || (outParams.result === 1 ? 'Purchase orders retrieved successfully' : 'Operation failed'),
-        data: purchaseOrders,
-        totalRecords: purchaseOrders.length
+        data: results[0] || [],
+        totalRecords: totalRecords
       };
     } catch (error) {
       console.error('Error in getAllPurchaseOrders:', error);
@@ -185,7 +203,6 @@ class PurchaseOrderModel {
     }
   }
 
-   // Helper: Check form role approver permission
   static async #checkFormRoleApproverPermission(approverID, formName) {
     try {
       const pool = await poolPromise;
@@ -206,7 +223,6 @@ class PurchaseOrderModel {
     }
   }
 
-  // Helper: Check Supplier Quotation status
   static async #checkPOStatus(POID) {
     try {
       const pool = await poolPromise;
@@ -225,7 +241,6 @@ class PurchaseOrderModel {
     }
   }
 
-  // Helper: Insert approval record
   static async #insertPOApproval(connection, approvalData) {
     try {
       const query = `
@@ -244,11 +259,10 @@ class PurchaseOrderModel {
       console.log(`Insert Debug: POID=${approvalData.POID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
       return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
     } catch (error) {
-      throw new Error(`Error inserting Sales Order approval: ${error.message}`);
+      throw new Error(`Error inserting Purchase Order approval: ${error.message}`);
     }
   }
 
-  // Approve a Supplier Quotation
   static async approvePO(approvalData) {
     let connection;
     try {
@@ -276,10 +290,10 @@ class PurchaseOrderModel {
 
       const { exists, status } = await this.#checkPOStatus(POID);
       if (!exists) {
-        throw new Error('PO does not exist or has been deleted');
+        throw new Error('Purchase Order does not exist or has been deleted');
       }
       if (status !== 'Pending') {
-        throw new Error(`PO status must be Pending to approve, current status: ${status}`);
+        throw new Error(`Purchase Order status must be Pending to approve, current status: ${status}`);
       }
 
       // Check for existing approval
@@ -288,7 +302,7 @@ class PurchaseOrderModel {
         [POID, approverID]
       );
       if (existingApproval.length > 0) {
-        throw new Error('Approver has already approved this Sales Order');
+        throw new Error('Approver has already approved this Purchase Order');
       }
 
       // Record approval
@@ -303,7 +317,7 @@ class PurchaseOrderModel {
         [formName]
       );
       if (!form.length) {
-        throw new Error('Invalid FormID for Sales Order');
+        throw new Error('Invalid FormID for Purchase Order');
       }
       const formID = form[0].FormID;
 
@@ -353,7 +367,7 @@ class PurchaseOrderModel {
           'UPDATE dbo_tblpo SET Status = ? WHERE POID = ?',
           ['Approved', POID]
         );
-        message = 'PO fully approved.';
+        message = 'Purchase Order fully approved.';
         isFullyApproved = true;
       } else {
         // Partial approval
@@ -375,7 +389,7 @@ class PurchaseOrderModel {
       if (connection) {
         await connection.rollback();
       }
-      console.error('Database error in approveSalesOrder:', error);
+      console.error('Database error in approvePurchaseOrder:', error);
       return {
         success: false,
         message: `Approval failed: ${error.message || 'Unknown error'}`,

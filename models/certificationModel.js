@@ -17,18 +17,28 @@ class CertificationModel {
       // Log query parameters
       console.log('getAllCertifications params:', queryParams);
 
-      // Call SP_GetCertification
+      // Call SP_GetAllCertification
       const [results] = await pool.query(
-        'CALL SP_GetCertification(?, ?, ?, ?)',
+        'CALL SP_GetAllCertification(?, ?, ?, ?)',
         queryParams
       );
 
       // Log results
       console.log('getAllCertifications results:', JSON.stringify(results, null, 2));
 
+      // Handle result sets
+      if (!results || results.length < 2) {
+        throw new Error('Unexpected result format from SP_GetAllCertification');
+      }
+
+      const certificationData = results[0] || [];
+      const totalRecordsResult = results[1] || [{ TotalRecords: 0 }];
+
       return {
-        data: results[0] || [],
-        totalRecords: null // SP does not return total count
+        success: true,
+        message: 'Certifications retrieved successfully',
+        data: certificationData,
+        totalRecords: totalRecordsResult[0].TotalRecords || 0
       };
     } catch (err) {
       console.error('getAllCertifications error:', err);
@@ -153,7 +163,11 @@ class CertificationModel {
         throw new Error(statusResult.Message || 'Certification not found');
       }
 
-      return results[0][0] || null;
+      return {
+        success: true,
+        message: 'Certification retrieved successfully',
+        data: results[0][0] || null
+      };
     } catch (err) {
       console.error('getCertificationById error:', err);
       throw new Error(`Database error: ${err.message}`);
@@ -217,6 +231,7 @@ class CertificationModel {
       }
 
       return {
+        success: true,
         message: statusResult.Message
       };
     } catch (err) {
@@ -282,6 +297,7 @@ class CertificationModel {
       }
 
       return {
+        success: true,
         message: statusResult.Message
       };
     } catch (err) {
