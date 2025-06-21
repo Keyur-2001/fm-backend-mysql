@@ -6,10 +6,10 @@ console.log('mysql2/promise module:', mysql);
 console.log('mysql.createPool:', mysql.createPool);
 
 const dbConfig = {
-  host: '13.235.109.5',
-  user: 'mnv',
-  password: 'Manav@21',
-  database:'fleet_monkey',
+  host: '13.202.8.138',   //// Old HOST - '13.235.109.5'
+  user: 'fleetmonkeys',
+  password: 'Fleet_Monkey@Dnginc#21',
+  database:'fleet_monkey_test',
   port: 3306,
   connectionLimit: 10,
   queueLimit:  0,
