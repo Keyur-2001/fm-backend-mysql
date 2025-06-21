@@ -19,7 +19,7 @@ class AddressModel {
 
       // Call SP_GetAllAddresses
       const [results] = await pool.query(
-        `CALL ${poolPromise.dbConfig.database}.SP_GetAllAddresses(?, ?, ?, ?, @p_Result, @p_Message)`,
+        `CALL SP_GetAllAddresses(?, ?, ?, ?, @p_Result, @p_Message)`,
         queryParams
       );
 
@@ -91,7 +91,7 @@ class AddressModel {
 
       // Call sp_manageaddresses
       const [results] = await pool.query(
-        `CALL ${poolPromise.dbConfig.database}.SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
+        `CALL SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
         queryParams
       );
 
@@ -157,7 +157,7 @@ class AddressModel {
 
       // Call sp_manageaddresses
       const [results] = await pool.query(
-        `CALL ${poolPromise.dbConfig.database}.SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
+        `CALL SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
         queryParams
       );
 
@@ -216,7 +216,7 @@ class AddressModel {
 
       // Call sp_manageaddresses
       const [results] = await pool.query(
-        `CALL ${poolPromise.dbConfig.database}.SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
+        `CALL SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
         queryParams
       );
 
@@ -277,7 +277,7 @@ class AddressModel {
 
       // Call sp_manageaddresses
       const [results] = await pool.query(
-        `CALL ${poolPromise.dbConfig.database}.SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
+        `CALL SP_ManageAddresses(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)`,
         queryParams
       );
 
