@@ -48,9 +48,6 @@ class CertificationModel {
       data.createdById
     ];
 
-    // Log query parameters
-    console.log('createCertification params:', queryParams);
-
     // Call sp_ManageCertification
     const [results] = await pool.query(
       'CALL SP_ManageCertification(?, ?, ?, ?)',
