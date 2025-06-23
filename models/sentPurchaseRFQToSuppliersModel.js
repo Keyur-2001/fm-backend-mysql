@@ -1,6 +1,26 @@
 const mysql = require('mysql2/promise');
 const poolPromise = require('../config/db.config');
 
+// Utility function for retrying with exponential backoff
+async function retryOperation(operation, maxRetries = 3, baseDelayMs = 1000) {
+  let lastError;
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      if (error.message.includes('Lock wait timeout exceeded') && attempt < maxRetries) {
+        const delayMs = baseDelayMs * Math.pow(2, attempt - 1); // Exponential backoff: 1s, 2s, 4s
+        console.warn(`Lock wait timeout on attempt ${attempt}/${maxRetries}. Retrying after ${delayMs}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delayMs));
+      } else {
+        throw error; // Non-retryable error or max retries reached
+      }
+    }
+  }
+  throw lastError; // Throw the last error if all retries fail
+}
+
 async function getPurchaseRFQDetails(purchaseRFQID) {
   const pool = await poolPromise;
   try {
@@ -198,31 +218,36 @@ async function getSupplierDetails(supplierID) {
 async function createSupplierQuotation(purchaseRFQID, supplierID, createdByID) {
   const pool = await poolPromise;
   try {
-    // Call stored procedure
-    await pool.query(
-      `CALL SP_ManageSupplierQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSupplierQuotationID)`,
-      ['INSERT', null, supplierID, purchaseRFQID, null, null, createdByID, null, null, null, null, null, null, null, null]
-    );
+    // Retry the stored procedure call in case of lock timeout
+    const result = await retryOperation(async () => {
+      // Call stored procedure
+      await pool.query(
+        `CALL SP_ManageSupplierQuotation(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message, @p_NewSupplierQuotationID)`,
+        ['INSERT', null, supplierID, purchaseRFQID, null, null, createdByID, null, null, null, null, null, null, null, null]
+      );
 
-    // Retrieve output parameters
-    const [outResult] = await pool.query(
-      `SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_NewSupplierQuotationID AS p_NewSupplierQuotationID`
-    );
+      // Retrieve output parameters
+      const [outResult] = await pool.query(
+        `SELECT @p_Result AS p_Result, @p_Message AS p_Message, @p_NewSupplierQuotationID AS p_NewSupplierQuotationID`
+      );
 
-    const { p_Result, p_Message, p_NewSupplierQuotationID } = outResult[0] || {};
+      const { p_Result, p_Message, p_NewSupplierQuotationID } = outResult[0] || {};
 
-    console.log(`SP_ManageSupplierQuotation output for INSERT:`, {
-      p_Result,
-      p_Message,
-      p_NewSupplierQuotationID
+      console.log(`SP_ManageSupplierQuotation output for INSERT:`, {
+        p_Result,
+        p_Message,
+        p_NewSupplierQuotationID
+      });
+
+      // SP_ManageSupplierQuotation uses p_Result = 1 for success
+      if (!p_Result || p_Result !== 1 || !p_Message || !p_NewSupplierQuotationID) {
+        throw new Error(p_Message || 'Failed to create supplier quotation');
+      }
+
+      return p_NewSupplierQuotationID;
     });
 
-    // SP_ManageSupplierQuotation uses p_Result = 1 for success
-    if (!p_Result || p_Result !== 1 || !p_Message || !p_NewSupplierQuotationID) {
-      throw new Error(p_Message || 'Failed to create supplier quotation');
-    }
-
-    return p_NewSupplierQuotationID;
+    return result;
   } catch (error) {
     console.error(`Error in createSupplierQuotation for PurchaseRFQID=${purchaseRFQID}, SupplierID=${supplierID}:`, error.message, error.stack);
     throw new Error(`Error creating supplier quotation: ${error.message}`);
