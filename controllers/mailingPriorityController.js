@@ -1,69 +1,208 @@
-// controllers/mailingPriorityController.js
 const MailingPriorityModel = require('../models/mailingPriorityModel');
-// No need for sql or dbConfig since the model handles the connection
 
 class MailingPriorityController {
-  // GET all mailing priorities
+  // Get all Mailing Priorities with pagination
   static async getAllMailingPriorities(req, res) {
     try {
-      const mailingPriorities = await MailingPriorityModel.getAllMailingPriorities();
-      res.status(200).json({
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+      // Parse query parameters with defaults
+      const mailingPriorities = await MailingPriorityModel.getAllMailingPriorities({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        fromDate,
+        toDate
+      });
+
+      // Validate totalRecords
+      if (typeof mailingPriorities.totalRecords === 'undefined' || mailingPriorities.totalRecords < 0) {
+        console.warn('Invalid totalRecords:', mailingPriorities.totalRecords);
+        mailingPriorities.totalRecords = 0;
+      }
+
+      return res.status(200).json({
         success: true,
-        data: mailingPriorities,
-        count: mailingPriorities.length
+        message: 'Mailing Priorities retrieved successfully',
+        data: mailingPriorities.data,
+        totalRecords: mailingPriorities.totalRecords
       });
     } catch (err) {
-      console.error('Error in getAllMailingPriorities:', err);
-      res.status(500).json({
+      console.error('getAllMailingPriorities error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        mailingPriorityId: null
       });
     }
   }
 
-  // UPDATE mailing priority by ID
-  static async updateMailingPriority(req, res) {
+  // Create a new Mailing Priority
+  static async createMailingPriority(req, res) {
     try {
-      const { id } = req.params; // Extract MailingPriorityID from URL
-      const data = req.body;     // Extract update data from request body
+      const { priorityName, priorityDescription, createdById } = req.body;
 
-      // Validate the ID
+      // Basic validation
+      if (!priorityName || !createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'PriorityName and CreatedByID are required',
+          data: null,
+          mailingPriorityId: null
+        });
+      }
+
+      const result = await MailingPriorityModel.createMailingPriority({
+        priorityName,
+        priorityDescription,
+        createdById
+      });
+
+      return res.status(201).json({
+        success: true,
+        message: result.message,
+        data: null,
+        mailingPriorityId: result.mailingPriorityId
+      });
+    } catch (err) {
+      console.error('createMailingPriority error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        mailingPriorityId: null
+      });
+    }
+  }
+
+  // Get a single Mailing Priority by ID
+  static async getMailingPriorityById(req, res) {
+    try {
+      const { id } = req.params;
+
       if (!id || isNaN(id)) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid MailingPriorityID'
+          message: 'Valid MailingPriorityID is required',
+          data: null,
+          mailingPriorityId: null
         });
       }
 
-      // Validate input data
-      if (!data || Object.keys(data).length === 0) {
-        return res.status(400).json({
-          success: false,
-          message: 'Update data is required'
-        });
-      }
+      const mailingPriority = await MailingPriorityModel.getMailingPriorityById(parseInt(id));
 
-      const updatedPriority = await MailingPriorityModel.updateMailingPriority(id, data);
-
-      if (!updatedPriority) {
+      if (!mailingPriority) {
         return res.status(404).json({
           success: false,
-          message: `Mailing Priority with ID ${id} not found or already deleted`
+          message: 'Mailing Priority not found',
+          data: null,
+          mailingPriorityId: id
         });
       }
 
-      res.status(200).json({
+      return res.status(200).json({
         success: true,
-        message: 'Mailing Priority updated successfully',
-        data: updatedPriority
+        message: 'Mailing Priority retrieved successfully',
+        data: mailingPriority,
+        mailingPriorityId: id
       });
     } catch (err) {
-      console.error(`Error in updateMailingPriority for ID ${req.params.id}:`, err);
-      res.status(500).json({
+      console.error('getMailingPriorityById error:', err);
+      return res.status(500).json({
         success: false,
-        error: 'Internal Server Error',
-        message: err.message
+        message: `Server error: ${err.message}`,
+        data: null,
+        mailingPriorityId: null
+      });
+    }
+  }
+
+  // Update a Mailing Priority
+  static async updateMailingPriority(req, res) {
+    try {
+      const { id } = req.params;
+      const { priorityName, priorityDescription, createdById } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid MailingPriorityID is required',
+          data: null,
+          mailingPriorityId: null
+        });
+      }
+
+      if (!createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'CreatedByID is required',
+          data: null,
+          mailingPriorityId: id
+        });
+      }
+
+      const result = await MailingPriorityModel.updateMailingPriority(parseInt(id), {
+        priorityName,
+        priorityDescription,
+        createdById
+      });
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        mailingPriorityId: id
+      });
+    } catch (err) {
+      console.error('updateMailingPriority error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        mailingPriorityId: null
+      });
+    }
+  }
+
+  // Delete a Mailing Priority
+  static async deleteMailingPriority(req, res) {
+    try {
+      const { id } = req.params;
+      const { createdById } = req.body;
+
+      if (!id || isNaN(id)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid MailingPriorityID is required',
+          data: null,
+          mailingPriorityId: null
+        });
+      }
+
+      if (!createdById) {
+        return res.status(400).json({
+          success: false,
+          message: 'CreatedByID is required',
+          data: null,
+          mailingPriorityId: id
+        });
+      }
+
+      const result = await MailingPriorityModel.deleteMailingPriority(parseInt(id), createdById);
+
+      return res.status(200).json({
+        success: true,
+        message: result.message,
+        data: null,
+        mailingPriorityId: id
+      });
+    } catch (err) {
+      console.error('deleteMailingPriority error:', err);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null,
+        mailingPriorityId: null
       });
     }
   }

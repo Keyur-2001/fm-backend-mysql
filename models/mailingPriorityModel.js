@@ -1,102 +1,233 @@
-const sql = require('mssql');
-const poolPromise = require('../config/db.config'); // Import the poolPromise from db.js
+const poolPromise = require('../config/db.config');
 
 class MailingPriorityModel {
-  // Private helper to get connected pool
-  static async #getPool() {
+  // Get paginated Mailing Priorities
+  static async getAllMailingPriorities({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
-      if (!pool.connected) {
-        throw new Error('Database pool is not connected');
+
+      const queryParams = [
+        pageNumber > 0 ? pageNumber : 1,
+        pageSize > 0 ? pageSize : 10,
+        fromDate ? new Date(fromDate) : null,
+        toDate ? new Date(toDate) : null
+      ];
+
+      console.log('getAllMailingPriorities params:', JSON.stringify(queryParams, null, 2));
+
+      // Call the stored procedure
+      const [results] = await pool.query(
+        'CALL SP_GetAllMailingPriority(?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('getAllMailingPriorities results:', JSON.stringify(results, null, 2));
+
+      // Fetch output parameters
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('getAllMailingPriorities output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error(`Output parameters missing from SP_GetAllMailingPriority: ${JSON.stringify(output)}`);
       }
-      return pool;
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to retrieve Mailing Priorities');
+      }
+
+      // Calculate total records separately since SP_GetAllMailingPriority does not return p_TotalRecords
+      const [totalResult] = await pool.query(
+        'SELECT COUNT(*) AS totalRecords FROM dbo_tblmailingpriority WHERE 1=1 ' +
+        'AND ( ? IS NULL OR CreatedDateTime >= ? ) ' +
+        'AND ( ? IS NULL OR CreatedDateTime <= ? )',
+        [fromDate, fromDate, toDate, toDate]
+      );
+
+      const totalRecords = totalResult[0]?.totalRecords || 0;
+
+      return {
+        data: results[0] || [],
+        totalRecords
+      };
     } catch (err) {
-      console.error('Failed to get database pool:', err);
-      throw new Error('Database connection unavailable');
+      console.error('getAllMailingPriorities error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Define fields for consistency
-  static #mailingPriorityFields = `
-    MailingPriorityID,
-    PriorityName,
-    PriorityDescription,
-    CreatedByID,
-    CreatedDateTime,
-    IsDeleted,
-    DeletedDateTime,
-    DeletedByID
-  `;
-
-  // Get all mailing priorities where IsDeleted = 0
-  static async getAllMailingPriorities() {
+  // Create a new Mailing Priority
+  static async createMailingPriority(data) {
     try {
-      const pool = await this.#getPool();
-      const result = await pool.request()
-        .query(`
-          SELECT ${this.#mailingPriorityFields}
-          FROM dbo.tblMailingPriority 
-          WHERE IsDeleted = 0
-          ORDER BY PriorityName
-        `);
-      return result.recordset ?? [];
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'INSERT',
+        null, // p_MailingPriorityID
+        data.priorityName,
+        data.priorityDescription || null,
+        data.createdById
+      ];
+
+      console.log('createMailingPriority params:', JSON.stringify(queryParams, null, 2));
+
+      const [results] = await pool.query(
+        'CALL SP_ManageMailingPriority(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('createMailingPriority results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('createMailingPriority output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error(`Output parameters missing from SP_ManageMailingPriority: ${JSON.stringify(output)}`);
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to create Mailing Priority');
+      }
+
+      // Extract MailingPriorityID from message
+      const mailingPriorityIdMatch = output[0].p_Message.match(/ID: (\d+)/);
+      const mailingPriorityId = mailingPriorityIdMatch ? parseInt(mailingPriorityIdMatch[1]) : null;
+
+      return {
+        mailingPriorityId,
+        message: output[0].p_Message
+      };
     } catch (err) {
-      console.error('Error fetching all mailing priorities:', err);
-      throw new Error(`Failed to fetch mailing priorities: ${err.message}`);
+      console.error('createMailingPriority error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a mailing priority by MailingPriorityID where IsDeleted = 0
+  // Get a single Mailing Priority by ID
+  static async getMailingPriorityById(id) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'SELECT',
+        id,
+        null, // p_PriorityName
+        null, // p_PriorityDescription
+        null  // p_CreatedByID
+      ];
+
+      console.log('getMailingPriorityById params:', JSON.stringify(queryParams, null, 2));
+
+      const [results] = await pool.query(
+        'CALL SP_ManageMailingPriority(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('getMailingPriorityById results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('getMailingPriorityById output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error(`Output parameters missing from SP_ManageMailingPriority: ${JSON.stringify(output)}`);
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Mailing Priority not found');
+      }
+
+      return results[0][0] || null;
+    } catch (err) {
+      console.error('getMailingPriorityById error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Update a Mailing Priority
   static async updateMailingPriority(id, data) {
     try {
-      // Input validation
-      const mailingPriorityId = parseInt(id);
-      if (isNaN(mailingPriorityId)) {
-        throw new Error('MailingPriorityID must be a valid number');
-      }
-      if (!data || !data.PriorityName) {
-        throw new Error('PriorityName is required for update');
-      }
+      const pool = await poolPromise;
 
-      const pool = await this.#getPool();
-      const request = pool.request()
-        .input('MailingPriorityID', sql.Int, mailingPriorityId)
-        .input('PriorityName', sql.NVarChar(100), data.PriorityName)
-        .input('PriorityDescription', sql.NVarChar(255), data.PriorityDescription || null)
-        .input('CreatedByID', sql.Int, data.CreatedByID ? parseInt(data.CreatedByID) : null)
-        .input('CreatedDateTime', sql.DateTime, data.CreatedDateTime || null)
-        .input('IsDeleted', sql.Bit, data.IsDeleted !== undefined ? (data.IsDeleted ? 1 : 0) : null)
-        .input('DeletedDateTime', sql.DateTime, data.DeletedDateTime || null)
-        .input('DeletedByID', sql.Int, data.DeletedByID ? parseInt(data.DeletedByID) : null);
+      const queryParams = [
+        'UPDATE',
+        id,
+        data.priorityName || null,
+        data.priorityDescription || null,
+        data.createdById
+      ];
 
-      const result = await request.query(`
-        UPDATE dbo.tblMailingPriority
-        SET PriorityName = @PriorityName,
-            PriorityDescription = COALESCE(@PriorityDescription, PriorityDescription),
-            CreatedByID = COALESCE(@CreatedByID, CreatedByID),
-            CreatedDateTime = COALESCE(@CreatedDateTime, CreatedDateTime),
-            IsDeleted = COALESCE(@IsDeleted, IsDeleted),
-            DeletedDateTime = COALESCE(@DeletedDateTime, DeletedDateTime),
-            DeletedByID = COALESCE(@DeletedByID, DeletedByID)
-        WHERE MailingPriorityID = @MailingPriorityID AND IsDeleted = 0
-      `);
+      console.log('updateMailingPriority params:', JSON.stringify(queryParams, null, 2));
 
-      if (result.rowsAffected[0] === 0) {
-        return null; // Indicate no record was updated (not found or already deleted)
+      const [results] = await pool.query(
+        'CALL SP_ManageMailingPriority(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('updateMailingPriority results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('updateMailingPriority output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error(`Output parameters missing from SP_ManageMailingPriority: ${JSON.stringify(output)}`);
       }
 
-      // Fetch and return the updated record
-      const updatedResult = await pool.request()
-        .input('MailingPriorityID', sql.Int, mailingPriorityId)
-        .query(`
-          SELECT ${this.#mailingPriorityFields}
-          FROM dbo.tblMailingPriority 
-          WHERE MailingPriorityID = @MailingPriorityID AND IsDeleted = 0
-        `);
-      return updatedResult.recordset[0] ?? null;
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to update Mailing Priority');
+      }
+
+      return {
+        message: output[0].p_Message
+      };
     } catch (err) {
-      console.error(`Error updating mailing priority with ID ${id}:`, err);
-      throw new Error(`Failed to update mailing priority ${id}: ${err.message}`);
+      console.error('updateMailingPriority error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
+    }
+  }
+
+  // Delete a Mailing Priority
+  static async deleteMailingPriority(id, createdById) {
+    try {
+      const pool = await poolPromise;
+
+      const queryParams = [
+        'DELETE',
+        id,
+        null, // p_PriorityName
+        null, // p_PriorityDescription
+        createdById
+      ];
+
+      console.log('deleteMailingPriority params:', JSON.stringify(queryParams, null, 2));
+
+      const [results] = await pool.query(
+        'CALL SP_ManageMailingPriority(?, ?, ?, ?, ?, @p_Result, @p_Message)',
+        queryParams
+      );
+
+      console.log('deleteMailingPriority results:', JSON.stringify(results, null, 2));
+
+      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+
+      console.log('deleteMailingPriority output:', JSON.stringify(output, null, 2));
+
+      if (!output || !output[0] || typeof output[0].p_Result === 'undefined') {
+        throw new Error(`Output parameters missing from SP_ManageMailingPriority: ${JSON.stringify(output)}`);
+      }
+
+      if (output[0].p_Result !== 1) {
+        throw new Error(output[0].p_Message || 'Failed to delete Mailing Priority');
+      }
+
+      return {
+        message: output[0].p_Message
+      };
+    } catch (err) {
+      console.error('deleteMailingPriority error:', err.stack);
+      throw new Error(`Database error: ${err.message}`);
     }
   }
 }
