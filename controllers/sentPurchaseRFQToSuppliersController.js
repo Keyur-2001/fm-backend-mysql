@@ -1,8 +1,6 @@
 const { getPurchaseRFQDetails, getSupplierDetails, createSupplierQuotation, getSupplierQuotationDetails } = require('../models/sentPurchaseRFQToSuppliersModel');
 const { generateRFQPDF } = require('../services/pdfGenerator');
 const { sendRFQEmail } = require('../utils/emailSender');
-const fs = require('fs').promises;
-const path = require('path');
 
 async function sendRFQToSuppliers(req, res) {
   const { purchaseRFQID, supplierIDs, supplierQuotationIDs, createdByID } = req.body;
@@ -63,14 +61,13 @@ async function sendRFQToSuppliers(req, res) {
         // Fetch supplier quotation details
         const { quotationDetails, quotationParcels } = await getSupplierQuotationDetails(supplierQuotationID, supplierID);
 
-        // Generate PDF
-        const pdfPath = path.join(__dirname, '..', 'temp', `RFQ_${rfqDetails.Series}_${supplierID}.pdf`);
-        console.log(`Generating PDF: ${pdfPath}`);
-        await generateRFQPDF(rfqDetails, parcels, supplier, quotationDetails, quotationParcels, pdfPath);
+        // Generate PDF buffer
+        console.log(`Generating PDF for SupplierID=${supplierID}`);
+        const pdfBuffer = await generateRFQPDF(rfqDetails, parcels, supplier, quotationDetails, quotationParcels);
 
-        // Send email with PDF
+        // Send email with PDF buffer
         console.log(`Sending email to ${supplier.SupplierEmail} for RFQ ${rfqDetails.Series}`);
-        const emailResult = await sendRFQEmail(supplier.SupplierEmail, rfqDetails.Series, pdfPath);
+        const emailResult = await sendRFQEmail(supplier.SupplierEmail, rfqDetails.Series, pdfBuffer);
         console.log(`Email result for SupplierID=${supplierID}:`, emailResult);
 
         results.push({
@@ -79,9 +76,6 @@ async function sendRFQToSuppliers(req, res) {
           success: true,
           message: `Supplier Quotation (ID: ${supplierQuotationID}) processed and email sent to ${supplier.SupplierEmail}`,
         });
-
-        // Clean up PDF file
-        await fs.unlink(pdfPath).catch(err => console.warn(`Failed to delete PDF for SupplierID=${supplierID}: ${err.message}`));
       } catch (error) {
         console.error(`Error processing SupplierID=${supplierID}, SupplierQuotationID=${supplierQuotationID}:`, error.message, error.stack);
         results.push({

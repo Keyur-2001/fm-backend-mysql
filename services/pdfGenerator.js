@@ -1,6 +1,4 @@
-const puppeteer = require('puppeteer');
-const fs = require('fs').promises;
-const path = require('path');
+const pdf = require('html-pdf');
 const sanitizeHtml = require('sanitize-html');
 
 function generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
@@ -86,31 +84,27 @@ function generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails,
   return htmlContent;
 }
 
-async function generateRFQPDF(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels, outputPath) {
+async function generateRFQPDF(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
   try {
-    await fs.mkdir(path.dirname(outputPath), { recursive: true });
     const htmlContent = generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels);
 
-    console.log('Starting Puppeteer with bundled Chromium');
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    });
-    console.log('Puppeteer started');
-
-    const page = await browser.newPage();
-    await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
-
-    await page.pdf({
-      path: outputPath,
+    console.log('Generating PDF with html-pdf');
+    const options = {
       format: 'A4',
       margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
-      printBackground: true,
+    };
+
+    const pdfBuffer = await new Promise((resolve, reject) => {
+      pdf.create(htmlContent, options).toBuffer((err, buffer) => {
+        if (err) {
+          return reject(err);
+        }
+        resolve(buffer);
+      });
     });
 
-    await browser.close();
-    console.log(`PDF created at: ${outputPath}`);
-    return outputPath;
+    console.log('PDF buffer generated successfully');
+    return pdfBuffer;
   } catch (error) {
     console.error(`Error creating PDF: ${error.message}`);
     throw new Error(`Error creating PDF: ${error.message}`);
