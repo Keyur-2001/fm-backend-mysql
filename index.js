@@ -59,6 +59,7 @@ const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 const salesInvoiceApprovalRoutes = require('./routes/salesInvoiceApprovalRoutes');
+const salesInvoiceParcelRoutes = require('./routes/salesInvoiceParcelRoutes');
 const purchaseRFQToSupplierRoutes = require('./routes/purchaseRFQToSupplierRoutes');
 const inquiryTrackingRoutes = require('./routes/inquiryTrackingRoutes');
 const commentsRoutes = require('./routes/commentsRoutes');
@@ -192,6 +193,7 @@ async function startServer() {
       ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
       ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/salesInvoiceApproval', salesInvoiceApprovalRoutes],
+      ['/api/salesInvoiceParcel', salesInvoiceParcelRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
       ['/api/tableAccess', tableAccessRoutes],
       ['/api/purchaseRFQToSupplier', purchaseRFQToSupplierRoutes],
