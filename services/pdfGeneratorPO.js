@@ -1,7 +1,11 @@
-const puppeteer = require('puppeteer');
+const puppeteer = require('puppeteer-core');
 const fs = require('fs').promises;
 const path = require('path');
 const sanitizeHtml = require('sanitize-html');
+
+// Set cache directory (use /tmp/puppeteer_cache on AWS, comment out local path)
+process.env.PUPPETEER_CACHE_DIR = path.join(__dirname, 'puppeteer_cache'); // Local Windows
+// process.env.PUPPETEER_CACHE_DIR = '/tmp/puppeteer_cache'; // Uncomment for AWS
 
 // Helper function to generate HTML content for Purchase Order
 function generatePOHtml(poDetails, parcels) {
@@ -16,181 +20,85 @@ function generatePOHtml(poDetails, parcels) {
     terms: sanitizeHtml(poDetails.Terms || 'N/A'),
   };
 
-  // HTML template with enhanced CSS matching pdfGenerator.js
+  // HTML template with enhanced CSS matching pdfGenerator1.js
   const htmlContent = `
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-      <meta charset="UTF-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Purchase Order</title>
       <style>
-        body {
-          font-family: Arial, sans-serif;
-          margin: 40px;
-          line-height: 1.6;
-          color: #333;
-        }
-        .container {
-          max-width: 800px;
-          margin: 0 auto;
-        }
-        .header {
-          text-align: center;
-          margin-bottom: 20px;
-        }
-        .header h1 {
-          margin: 0;
-          font-size: 24px;
-          color: #4CAF50;
-        }
-        .header p {
-          margin: 5px 0;
-          font-size: 14px;
-          color: #666;
-        }
-        .details {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
-        .details div {
-          width: 48%;
-        }
-        .details p {
-          margin: 5px 0;
-          font-size: 14px;
-        }
-        .details p strong {
-          color: #4CAF50;
-        }
-        .address-section {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 20px;
-        }
-        .address-section div {
-          width: 48%;
-          font-size: 12px;
-        }
-        .address-section p {
-          margin: 5px 0;
-        }
-        .address-section strong {
-          font-style: italic;
-          color: #666;
-        }
-        .terms-section {
-          margin-bottom: 20px;
-        }
-        .terms-section strong {
-          display: block;
-          font-size: 14px;
-          color: #4CAF50;
-          margin-bottom: 5px;
-        }
-        .terms-section p {
-          margin: 0;
-          font-size: 12px;
-        }
-        .items-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 20px;
-        }
-        .items-table th,
-        .items-table td {
-          border: 1px solid #ddd;
-          padding: 8px;
-          text-align: left;
-          font-size: 12px;
-        }
-        .items-table th {
-          background-color: #4CAF50;
-          color: white;
-        }
-        .items-table tr:nth-child(even) {
-          background-color: #f2f2f2;
-        }
-        .footer {
-          text-align: center;
-          font-size: 12px;
-          color: #666;
-          margin-top: 20px;
-        }
-        .footer p {
-          margin: 5px 0;
-        }
-        .footer .contact {
-          font-style: italic;
-        }
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .header { text-align: center; margin-bottom: 20px; }
+        .section { margin-bottom: 20px; }
+        .section div { display: inline-block; width: 45%; vertical-align: top; }
+        .section div:last-child { text-align: right; }
+        .address-section { display: flex; justify-content: space-between; }
+        .address-section div { width: 45%; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+        .footer { margin-top: 20px; text-align: center; }
       </style>
     </head>
     <body>
-      <div class="container">
-        <div class="header">
-          <h1>Purchase Order</h1>
-          <p>Date: ${new Date().toLocaleDateString()}</p>
+      <div class="header">
+        <h1>Purchase Order</h1>
+        <p>Date: ${new Date().toLocaleDateString()}</p>
+      </div>
+      <div class="section">
+        <div>
+          <strong>Purchase Order Series:</strong> ${sanitizedData.series}
         </div>
-
-        <div class="details">
-          <div>
-            <p><strong>Purchase Order Series:</strong> ${sanitizedData.series}</p>
-            <p><strong>To Supplier:</strong> ${sanitizedData.supplierName}</p>
-          </div>
-          <div>
-            <p><strong>Required By Date:</strong> ${sanitizedData.requiredByDate}</p>
-            <p><strong>From Company:</strong> ${sanitizedData.companyName}</p>
-          </div>
+        <div>
+          <strong>To Supplier:</strong> ${sanitizedData.supplierName}
         </div>
-
-        <div class="address-section">
-          <div>
-            <p><strong>Supplier Address:</strong></p>
-            <p>${sanitizedData.supplierAddress}</p>
-          </div>
-          <div>
-            <p><strong>Company Address:</strong></p>
-            <p>${sanitizedData.companyAddress}</p>
-          </div>
+      </div>
+      <div class="section">
+        <div>
+          <strong>Required By Date:</strong> ${sanitizedData.requiredByDate}
         </div>
-
-        <div class="terms-section">
-          <strong>Terms:</strong>
-          <p>${sanitizedData.terms}</p>
+        <div>
+          <strong>From Company:</strong> ${sanitizedData.companyName}
         </div>
-
-        <table class="items-table">
-          <thead>
-            <tr>
-              <th>Item Name</th>
-              <th>Quantity</th>
-              <th>UOM</th>
-              <th>Rate</th>
-              <th>Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${parcels
-              .map(
-                parcel => `
-                  <tr>
-                    <td>${sanitizeHtml(parcel.ItemName || 'N/A')}</td>
-                    <td>${sanitizeHtml(parcel.ItemQuantity?.toString() || 'N/A')}</td>
-                    <td>${sanitizeHtml(parcel.UOMName || 'N/A')}</td>
-                    <td>${sanitizeHtml(parcel.Rate?.toString() || 'N/A')}</td>
-                    <td>${sanitizeHtml(parcel.Amount?.toString() || 'N/A')}</td>
-                  </tr>
-                `
-              )
-              .join('')}
-          </tbody>
+      </div>
+      <div class="address-section">
+        <div>
+          <strong>Supplier Address:</strong><br>${sanitizedData.supplierAddress}
+        </div>
+        <div>
+          <strong>Company Address:</strong><br>${sanitizedData.companyAddress}
+        </div>
+      </div>
+      <div class="section">
+        <strong>Terms:</strong><br>${sanitizedData.terms}
+      </div>
+      <div class="section">
+        <h3>Items</h3>
+        <table>
+          <tr>
+            <th>Item Name</th>
+            <th>Quantity</th>
+            <th>UOM</th>
+            <th>Rate</th>
+            <th>Amount</th>
+          </tr>
+          ${parcels
+            .map(
+              parcel => `
+                <tr>
+                  <td>${sanitizeHtml(parcel.ItemName || 'N/A')}</td>
+                  <td>${sanitizeHtml(parcel.ItemQuantity?.toString() || 'N/A')}</td>
+                  <td>${sanitizeHtml(parcel.UOMName || 'N/A')}</td>
+                  <td>${sanitizeHtml(parcel.Rate?.toString() || 'N/A')}</td>
+                  <td>${sanitizeHtml(parcel.Amount?.toString() || 'N/A')}</td>
+                </tr>
+              `
+            )
+            .join('')}
         </table>
-
-        <div class="footer">
-          <p>Please review and confirm receipt of this purchase order.</p>
-          <p class="contact">Contact: Fleet Monkey Team | Email: support@fleetmonkey.com</p>
-        </div>
+      </div>
+      <div class="footer">
+        <p>Please review and confirm receipt of this purchase order.</p>
+        <p>Contact: Fleet Monkey Team | Email: support@fleetmonkey.com</p>
       </div>
     </body>
     </html>
@@ -208,10 +116,14 @@ async function generatePurchaseOrderPDF(poDetails, parcels, outputPath) {
     const htmlContent = generatePOHtml(poDetails, parcels);
 
     // Launch Puppeteer
+    console.log('Starting Puppeteer with Chromium at C:\\chrome-win\\chrome.exe (local) or /usr/bin/chromium-browser (AWS)');
     const browser = await puppeteer.launch({
+      executablePath: process.platform === 'win32' ? 'C:\\chrome-win\\chrome.exe' : '/usr/bin/chromium-browser', // Local Windows or AWS
       headless: true,
       args: ['--no-sandbox', '--disable-setuid-sandbox'],
     });
+    console.log('Puppeteer started');
+
     const page = await browser.newPage();
 
     // Set HTML content
@@ -228,8 +140,10 @@ async function generatePurchaseOrderPDF(poDetails, parcels, outputPath) {
     // Close browser
     await browser.close();
 
+    console.log(`Purchase Order PDF created at: ${outputPath}`);
     return outputPath;
   } catch (error) {
+    console.error(`Error creating Purchase Order PDF: ${error.message}`);
     throw new Error(`Failed to generate Purchase Order PDF: ${error.message}`);
   }
 }
