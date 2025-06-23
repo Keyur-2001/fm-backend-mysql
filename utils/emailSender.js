@@ -1,7 +1,6 @@
 const nodemailer = require('nodemailer');
-const fs = require('fs').promises;
 
-async function sendRFQEmail(toEmail, rfqSeries, pdfPath) {
+async function sendRFQEmail(toEmail, rfqSeries, pdfBuffer) {
   try {
     // Log configuration for debugging
     console.log('SMTP Configuration:', {
@@ -10,10 +9,6 @@ async function sendRFQEmail(toEmail, rfqSeries, pdfPath) {
       SMTP_USER: 'keyur.it2001@gmail.com',
       SMTP_PASS: '[REDACTED]',
     });
-
-    // Check if PDF file exists
-    await fs.access(pdfPath, fs.constants.F_OK);
-    console.log(`PDF file verified: ${pdfPath}`);
 
     const transporter = nodemailer.createTransport({
       host: 'smtp.gmail.com',
@@ -33,8 +28,9 @@ async function sendRFQEmail(toEmail, rfqSeries, pdfPath) {
       text: `Dear Supplier,\n\nPlease find attached the Purchase RFQ (${rfqSeries}) for your review. Kindly submit your quotation at your earliest convenience.\n\nBest regards,\nFleet Monkey Team`,
       attachments: [
         {
-          path: pdfPath,
           filename: `RFQ_${rfqSeries}.pdf`,
+          content: pdfBuffer,
+          contentType: 'application/pdf',
         },
       ],
     };
