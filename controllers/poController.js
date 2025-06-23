@@ -37,7 +37,12 @@ class PurchaseOrderController {
         toDate: toDate || null
       });
 
-      return res.status(result.success ? 200 : 400).json(result);
+      return res.status(200).json({
+        success: result.success,
+        message: result.message,
+        data: result.data,
+        totalRecords: result.totalRecords
+      });
     } catch (err) {
       console.error('Error in getAllPurchaseOrders:', err);
       return res.status(500).json({
@@ -78,7 +83,6 @@ class PurchaseOrderController {
     }
   }
 
-   // Approve a Sales Quotation
   static async approvePO(req, res) {
     try {
       const { POID } = req.body;
@@ -122,7 +126,6 @@ class PurchaseOrderController {
       });
     }
   }
-
 }
 
 module.exports = PurchaseOrderController;

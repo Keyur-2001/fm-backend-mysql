@@ -17,7 +17,7 @@ class CertificationModel {
       // Log query parameters
       console.log('getAllCertifications params:', queryParams);
 
-      // Call SP_GetCertification
+      // Call SP_GetAllCertification
       const [results] = await pool.query(
         'CALL SP_GetAllCertification(?, ?, ?, ?)',
         queryParams
@@ -26,9 +26,19 @@ class CertificationModel {
       // Log results
       console.log('getAllCertifications results:', JSON.stringify(results, null, 2));
 
+      // Handle result sets
+      if (!results || results.length < 2) {
+        throw new Error('Unexpected result format from SP_GetAllCertification');
+      }
+
+      const certificationData = results[0] || [];
+      const totalRecordsResult = results[1] || [{ TotalRecords: 0 }];
+
       return {
-        data: results[0] || [],
-        totalRecords: null // SP does not return total count
+        success: true,
+        message: 'Certifications retrieved successfully',
+        data: certificationData,
+        totalRecords: totalRecordsResult[0].TotalRecords || 0
       };
     } catch (err) {
       console.error('getAllCertifications error:', err);
@@ -181,6 +191,7 @@ class CertificationModel {
       throw new Error(`StatusCode missing in SP_ManageCertification result: ${JSON.stringify(statusResult)}`);
     }
 
+
     if (statusResult.StatusCode !== 1) {
       throw new Error(statusResult.Message || 'Failed to create Certification');
     }
@@ -239,7 +250,6 @@ class CertificationModel {
     if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
       throw new Error(`StatusCode missing in SP_ManageCertification result: ${JSON.stringify(statusResult)}`);
     }
-
     if (statusResult.StatusCode !== 1) {
       throw new Error(statusResult.Message || 'Failed to create Certification');
     }
