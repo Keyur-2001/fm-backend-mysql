@@ -1,114 +1,186 @@
-const pdf = require('html-pdf');
+const PDFDocument = require('pdfkit');
 const sanitizeHtml = require('sanitize-html');
 
-function generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
-  const mergedParcels = parcels.map(p => {
-    const matchingQuotation = quotationParcels.find(qp => qp.ItemID === p.ItemID);
-    return {
-      ...p,
-      Rate: matchingQuotation ? matchingQuotation.Rate : '',
-      Amount: matchingQuotation ? matchingQuotation.Amount : '',
-      CountryOfOrigin: matchingQuotation ? matchingQuotation.CountryOfOriginID : '',
-    };
-  });
+function generateRFQPDF(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
+  return new Promise((resolve, reject) => {
+    try {
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
+      const buffers = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+      doc.on('error', reject);
 
-  const sanitizedData = {
-    series: sanitizeHtml(rfqDetails.Series || 'N/A'),
-    requiredByDate: sanitizeHtml(rfqDetails.RequiredByDate || 'N/A'),
-    supplierQuoteSeries: sanitizeHtml(quotationDetails?.Series || 'N/A'),
-    companyName: sanitizeHtml(rfqDetails.CompanyName || 'N/A'),
-    supplierName: sanitizeHtml(supplierDetails?.SupplierName || 'N/A'),
-    supplierAddress: sanitizeHtml(`${supplierDetails.AddressTitle || ''}\n${supplierDetails.City || ''}\nBotswana`),
-    companyAddress: sanitizeHtml(`${rfqDetails.CompanyName || ''}\n${rfqDetails.City || ''}\nBotswana`),
-    terms: sanitizeHtml(rfqDetails.Terms || 'N/A'),
-  };
+      // Fonts
+      doc.registerFont('Regular', 'Helvetica');
+      doc.registerFont('Bold', 'Helvetica-Bold');
 
-  const htmlContent = `
-    <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; margin: 40px; }
-          h1 { text-align: center; }
-          table { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-          th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-          th { background-color: #f2f2f2; }
-          p { margin: 10px 0; }
-        </style>
-      </head>
-      <body>
-        <h1>Purchase RFQ</h1>
-        <p>Date: ${new Date().toLocaleDateString()}</p>
-        <table>
-          <tr><td><strong>Purchase RFQ Series:</strong> ${sanitizedData.series}</td></tr>
-          <tr><td><strong>Supplier Quote Series:</strong> ${sanitizedData.supplierQuoteSeries}</td></tr>
-        </table>
-        <table>
-          <tr><td><strong>To Supplier:</strong> ${sanitizedData.supplierName}</td></tr>
-          <tr><td><strong>Required By Date:</strong> ${sanitizedData.requiredByDate}</td></tr>
-        </table>
-        <table>
-          <tr><td><strong>From Company:</strong> ${sanitizedData.companyName}</td></tr>
-        </table>
-        <table>
-          <tr>
-            <td><strong>Supplier Address:</strong><br>${sanitizedData.supplierAddress}</td>
-            <td><strong>Company Address:</strong><br>${sanitizedData.companyAddress}</td>
-          </tr>
-        </table>
-        <p><strong>Terms:</strong><br>${sanitizedData.terms}</p>
-        <h2>Items</h2>
-        <table>
-          <tr>
-            <th>Item Name</th><th>Quantity</th><th>UOM</th><th>Country of Origin</th><th>Rate</th><th>Amount</th>
-          </tr>
-          ${mergedParcels
-            .map(
-              parcel => `
-                <tr>
-                  <td>${sanitizeHtml(parcel.ItemName || 'N/A')}</td>
-                  <td>${sanitizeHtml(parcel.ItemQuantity?.toString() || 'N/A')}</td>
-                  <td>${sanitizeHtml(parcel.UOMName || 'N/A')}</td>
-                  <td>${sanitizeHtml(parcel.CountryOfOrigin || '')}</td>
-                  <td>${sanitizeHtml(parcel.Rate?.toString() || '')}</td>
-                  <td>${sanitizeHtml(parcel.Amount?.toString() || '')}</td>
-                </tr>
-              `
-            )
-            .join('')}
-        </table>
-        <p>Please review and submit your quotation at your earliest convenience.</p>
-        <p><strong>Contact:</strong> Fleet Monkey Team | Email: support@fleetmonkey.com</p>
-      </body>
-    </html>
-  `;
-  return htmlContent;
-}
+      // Colors
+      const colors = {
+        header: '#003087', // Dark blue
+        text: '#000000', // Black
+        rowEven: '#F5F5F5', // Light gray
+        rowOdd: '#FFFFFF', // White
+        border: '#000000', // Black
+        footer: '#003087', // Dark blue
+      };
 
-async function generateRFQPDF(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels) {
-  try {
-    const htmlContent = generateRFQHtml(rfqDetails, parcels, supplierDetails, quotationDetails, quotationParcels);
+      // Sanitize data
+      const sanitizedData = {
+        series: sanitizeHtml(rfqDetails.Series || 'N/A'),
+        requiredByDate: sanitizeHtml(rfqDetails.RequiredByDate || 'N/A'),
+        supplierQuoteSeries: sanitizeHtml(quotationDetails?.Series || 'N/A'),
+        companyName: sanitizeHtml(rfqDetails.CompanyName || 'N/A'),
+        supplierName: sanitizeHtml(supplierDetails?.SupplierName || 'N/A'),
+        supplierAddress: sanitizeHtml(
+          [supplierDetails.AddressTitle, supplierDetails.City, 'Botswana']
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        ),
+        companyAddress: sanitizeHtml(
+          [rfqDetails.CompanyName, rfqDetails.City, 'Botswana']
+            .filter(Boolean)
+            .join(', ') || 'N/A'
+        ),
+        terms: sanitizeHtml(rfqDetails.Terms || 'N/A'),
+      };
 
-    console.log('Generating PDF with html-pdf');
-    const options = {
-      format: 'A4',
-      margin: { top: '40px', right: '40px', bottom: '40px', left: '40px' },
-    };
+      console.log('Sanitized data for PDF:', sanitizedData);
+      console.log('Parcels:', parcels);
+      console.log('Quotation Parcels:', quotationParcels);
 
-    const pdfBuffer = await new Promise((resolve, reject) => {
-      pdf.create(htmlContent, options).toBuffer((err, buffer) => {
-        if (err) {
-          return reject(err);
-        }
-        resolve(buffer);
+      // Header: Logo (simulated) and Title
+      doc.fillColor(colors.header)
+         .font('Bold')
+         .fontSize(24)
+         .text('Fleet Monkey', 40, 30); // Simulated logo
+      doc.fillColor(colors.text)
+         .fontSize(18)
+         .text('Purchase RFQ', 40, 60, { align: 'center' });
+      doc.font('Regular')
+         .fontSize(10)
+         .text(`Date: ${new Date().toLocaleDateString()}`, 40, 80, { align: 'right' });
+      doc.rect(40, 90, doc.page.width - 80, 2).fill(colors.header);
+      doc.moveDown(1.5);
+
+      // RFQ Details
+      doc.fillColor(colors.text)
+         .font('Bold')
+         .fontSize(12)
+         .text('RFQ Details', 40);
+      doc.font('Regular')
+         .fontSize(10)
+         .text(`Purchase RFQ Series: ${sanitizedData.series}`, 40);
+      doc.text(`Supplier Quote Series: ${sanitizedData.supplierQuoteSeries}`);
+      doc.text(`Required By Date: ${sanitizedData.requiredByDate}`);
+      doc.moveDown(1);
+
+      // Supplier and Company Info (Two Columns)
+      const colWidth = (doc.page.width - 80) / 2;
+      const startY = doc.y;
+      doc.font('Bold').fontSize(12).text('To Supplier', 40, startY);
+      doc.font('Regular').fontSize(10).text(sanitizedData.supplierName, 40, doc.y);
+      doc.text(sanitizedData.supplierAddress, 40, doc.y, { width: colWidth - 10 });
+      doc.font('Bold').fontSize(12).text('From Company', 40 + colWidth, startY);
+      doc.font('Regular').fontSize(10).text(sanitizedData.companyName, 40 + colWidth, doc.y);
+      doc.text(sanitizedData.companyAddress, 40 + colWidth, doc.y, { width: colWidth - 10 });
+      doc.moveDown(1);
+      doc.rect(40, doc.y, doc.page.width - 80, 1).fill(colors.header);
+      doc.moveDown(1);
+
+      // Terms
+      doc.font('Bold').fontSize(12).text('Terms');
+      doc.font('Regular').fontSize(10).text(sanitizedData.terms, 40, doc.y, { paragraphGap: 5 });
+      doc.moveDown(1);
+      doc.rect(40, doc.y, doc.page.width - 80, 1).fill(colors.header);
+      doc.moveDown(1);
+
+      // Items Table
+      doc.font('Bold').fontSize(12).text('Items');
+      doc.moveDown(0.5);
+
+      // Table Setup
+      const table = {
+        x: 40,
+        y: doc.y,
+        colWidths: [140, 60, 60, 90, 60, 60],
+        headers: ['Item Name', 'Quantity', 'UOM', 'Country of Origin', 'Rate', 'Amount'],
+        rowHeight: 25,
+        padding: 8,
+      };
+
+      // Draw Table Header
+      doc.fillColor(colors.text).font('Bold').fontSize(10);
+      doc.rect(table.x, table.y - 5, table.colWidths.reduce((a, b) => a + b, 0), table.rowHeight)
+         .fill(colors.header);
+      let currentX = table.x;
+      table.headers.forEach((header, i) => {
+        doc.fillColor(colors.text)
+           .text(header, currentX + table.padding, table.y, { 
+             width: table.colWidths[i] - 2 * table.padding, 
+             align: i > 0 ? 'right' : 'left' 
+           });
+        currentX += table.colWidths[i];
       });
-    });
+      doc.lineWidth(1)
+         .rect(table.x, table.y - 5, table.colWidths.reduce((a, b) => a + b, 0), table.rowHeight)
+         .stroke(colors.border);
+      table.y += table.rowHeight;
 
-    console.log('PDF buffer generated successfully');
-    return pdfBuffer;
-  } catch (error) {
-    console.error(`Error creating PDF: ${error.message}`);
-    throw new Error(`Error creating PDF: ${error.message}`);
-  }
+      // Merge Parcels
+      const mergedParcels = parcels.map(p => {
+        const matchingQuotation = quotationParcels.find(qp => qp.ItemID === p.ItemID);
+        const parcelData = {
+          ItemName: sanitizeHtml(p.ItemName || 'N/A'),
+          ItemQuantity: sanitizeHtml(p.ItemQuantity?.toString() || 'N/A'),
+          UOMName: sanitizeHtml(p.UOMName || 'N/A'),
+          CountryOfOrigin: sanitizeHtml(matchingQuotation?.CountryOfOriginID || 'N/A'),
+          Rate: sanitizeHtml(matchingQuotation?.Rate?.toString() || 'N/A'),
+          Amount: sanitizeHtml(matchingQuotation?.Amount?.toString() || 'N/A'),
+        };
+        console.log('Rendering parcel:', parcelData);
+        return parcelData;
+      });
+
+      // Draw Table Rows
+      doc.font('Regular').fontSize(10);
+      mergedParcels.forEach((parcel, index) => {
+        const fillColor = index % 2 === 0 ? colors.rowEven : colors.rowOdd;
+        // Draw background first
+        doc.fillColor(fillColor)
+           .rect(table.x, table.y - 5, table.colWidths.reduce((a, b) => a + b, 0), table.rowHeight)
+           .fill();
+        // Draw text
+        currentX = table.x;
+        [parcel.ItemName, parcel.ItemQuantity, parcel.UOMName, parcel.CountryOfOrigin, parcel.Rate, parcel.Amount].forEach((cell, i) => {
+          doc.fillColor(colors.text)
+             .text(cell, currentX + table.padding, table.y, { 
+               width: table.colWidths[i] - 2 * table.padding, 
+               align: i > 0 ? 'right' : 'left' 
+             });
+          currentX += table.colWidths[i];
+        });
+        // Draw border
+        doc.lineWidth(0.5)
+           .rect(table.x, table.y - 5, table.colWidths.reduce((a, b) => a + b, 0), table.rowHeight)
+           .stroke(colors.border);
+        table.y += table.rowHeight;
+      });
+
+      // Footer
+      const footerY = doc.page.height - 80;
+      doc.rect(40, footerY - 10, doc.page.width - 80, 2).fill(colors.footer);
+      doc.fillColor(colors.text)
+         .font('Regular')
+         .fontSize(10)
+         .text('Please review and submit your quotation at your earliest convenience.', 40, footerY, { align: 'center' });
+      doc.text('Contact: Fleet Monkey Team | Email: support@fleetmonkey.com', 40, doc.y, { align: 'center' });
+
+      doc.end();
+    } catch (error) {
+      console.error(`Error generating PDF: ${error.message}`);
+      reject(new Error(`Error generating PDF: ${error.message}`));
+    }
+  });
 }
 
 module.exports = { generateRFQPDF };

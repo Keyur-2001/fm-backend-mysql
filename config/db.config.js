@@ -10,7 +10,7 @@ const dbConfig = {
   password: 'Fleet_Monkey@Dnginc#21',
   database: 'fleet_monkey_test',
   port: 3306,
-  connectionLimit: 20, // Increased from 10
+  connectionLimit: 50, // Increased for better concurrency
   queueLimit: 0,
   connectTimeout: 30000,
   waitForConnections: true,
@@ -36,7 +36,7 @@ try {
     .then(async pool => {
       console.log('Connected to MySQL');
       try {
-        await pool.query('SET SESSION innodb_lock_wait_timeout = 100'); // Increase lock timeout
+        await pool.query('SET SESSION innodb_lock_wait_timeout = 100');
         const [rows] = await pool.query('SELECT 1 AS test');
         console.log('MySQL pool test query result:', rows);
         return pool;
