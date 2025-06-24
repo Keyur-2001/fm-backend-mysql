@@ -100,7 +100,7 @@ class PasswordReset {
         WHERE PersonID = ?;
       `;
       await pool.query(updateQuery, [hashedPassword, tokenData.PersonID]);
-
+// 
       // Mark token as used
       const markUsedQuery = `
         UPDATE dbo_tblpasswordresettokens
