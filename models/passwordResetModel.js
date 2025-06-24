@@ -30,7 +30,7 @@ class PasswordReset {
 
       // Store reset token in database
       const tokenQuery = `
-        INSERT INTO dbo_tblpasswordResetTokens (
+        INSERT INTO dbo_tblpasswordresettokens (
           PersonID, ResetToken, ExpiryDateTime, IsUsed
         ) VALUES (
           ?, ?, ?, 0
@@ -62,7 +62,7 @@ class PasswordReset {
       // Verify reset token
       const tokenQuery = `
         SELECT PersonID, ExpiryDateTime, IsUsed
-        FROM dbo_tblpasswordResetTokens
+        FROM dbo_tblpasswordresettokens
         WHERE ResetToken = ? AND IsUsed = 0;
       `;
       const [tokenRows] = await pool.query(tokenQuery, [resetToken]);
@@ -103,7 +103,7 @@ class PasswordReset {
 
       // Mark token as used
       const markUsedQuery = `
-        UPDATE dbo_tblpasswordResetTokens
+        UPDATE dbo_tblpasswordresettokens
         SET IsUsed = 1
         WHERE ResetToken = ?;
       `;
