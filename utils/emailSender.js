@@ -1,26 +1,21 @@
 const nodemailer = require('nodemailer');
 
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  auth: {
+    user: 'keyur.it2001@gmail.com',
+    pass: 'vtbgmipgoyaatiqq',
+  },
+  service: 'gmail',
+  pool: true,
+  maxConnections: 5,
+  maxMessages: 100,
+});
+
 async function sendRFQEmail(toEmail, rfqSeries, pdfBuffer) {
   try {
-    // Log configuration for debugging
-    console.log('SMTP Configuration:', {
-      SMTP_HOST: 'smtp.gmail.com',
-      SMTP_PORT: '587',
-      SMTP_USER: 'keyur.it2001@gmail.com',
-      SMTP_PASS: '[REDACTED]',
-    });
-
-    const transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
-      port: 587,
-      secure: false,
-      auth: {
-        user: 'keyur.it2001@gmail.com',
-        pass: 'vtbgmipgoyaatiqq',
-      },
-      service: 'gmail',
-    });
-
     const mailOptions = {
       from: `"Fleet Monkey" <keyur.it2001@gmail.com>`,
       to: toEmail,
