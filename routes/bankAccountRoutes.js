@@ -2,6 +2,9 @@ const express = require('express');
 const router = express.Router();
 const BankAccountController = require('../controllers/bankAccountController');
 
+// Get all BankAccounts
+router.get('/', BankAccountController.getAllBankAccounts);
+
 // Create a new BankAccount
 router.post('/', BankAccountController.createBankAccount);
 

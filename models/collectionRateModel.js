@@ -7,11 +7,27 @@ class CollectionRateModel {
       const pool = await poolPromise;
 
       // Validate parameters
+      if (pageNumber < 1) pageNumber = 1;
+      if (pageSize < 1 || pageSize > 100) pageSize = 10; // Cap pageSize at 100
+      let formattedFromDate = null, formattedToDate = null;
+
+      if (fromDate) {
+        formattedFromDate = new Date(fromDate);
+        if (isNaN(formattedFromDate)) throw new Error('Invalid fromDate');
+      }
+      if (toDate) {
+        formattedToDate = new Date(toDate);
+        if (isNaN(formattedToDate)) throw new Error('Invalid toDate');
+      }
+      if (formattedFromDate && formattedToDate && formattedFromDate > formattedToDate) {
+        throw new Error('fromDate cannot be later than toDate');
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        pageNumber,
+        pageSize,
+        formattedFromDate ? formattedFromDate.toISOString().split('T')[0] : null, // Format as YYYY-MM-DD
+        formattedToDate ? formattedToDate.toISOString().split('T')[0] : null
       ];
 
       // Log query parameters
@@ -19,16 +35,36 @@ class CollectionRateModel {
 
       // Call SP_GetAllCollectionRate
       const [results] = await pool.query(
-        'CALL SP_GetAllCollectionRate(?, ?, ?, ?)',
+        'CALL SP_GetAllCollectionRate(?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams
       );
 
       // Log results
       console.log('getAllCollectionRates results:', JSON.stringify(results, null, 2));
 
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS StatusCode, @p_Message AS Message');
+
+      // Log output
+      console.log('getAllCollectionRates output:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || typeof outParams.StatusCode === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllCollectionRate');
+      }
+
+      if (outParams.StatusCode !== 1) {
+        throw new Error(outParams.Message || 'Failed to retrieve Collection Rates');
+      }
+
+      // Extract total count from the second result set
+      const totalRecords = results[1]?.[0]?.TotalRecords || 0;
+
       return {
         data: results[0] || [],
-        totalRecords: null // SP does not return total count
+        totalRecords,
+        currentPage: pageNumber,
+        pageSize,
+        totalPages: Math.ceil(totalRecords / pageSize)
       };
     } catch (err) {
       console.error('getAllCollectionRates error:', err);
@@ -55,7 +91,7 @@ class CollectionRateModel {
       // Log query parameters
       console.log('getAllCollectionRatesNoPagination params:', queryParams);
 
-      // Call SP_ManageCollectionRate with session variables for OUT parameters
+      // Call SP_ManageCollectionRate
       const [results] = await pool.query(
         'CALL SP_ManageCollectionRate(?, ?, ?, ?, ?, ?, ?, ?, @p_Result, @p_Message)',
         queryParams

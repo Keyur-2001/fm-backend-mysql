@@ -2,33 +2,56 @@ const AddressModel = require('../models/addressModel');
 
 class AddressController {
   // Get all Addresses with pagination
-  static async getAllAddresses(req, res) {
-    try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+ static async getAllAddresses(req, res) {
+  try {
+    const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
-      const addresses = await AddressModel.getAllAddresses({
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-        fromDate,
-        toDate
-      });
-
-      return res.status(200).json({
-        success: true,
-        message: 'Addresses retrieved successfully',
-        data: addresses.data,
-        totalRecords: addresses.totalRecords
-      });
-    } catch (err) {
-      console.error('getAllAddresses error:', err);
-      return res.status(500).json({
+    // Validate query parameters
+    if (pageNumber && isNaN(parseInt(pageNumber))) {
+      return res.status(400).json({
         success: false,
-        message: `Server error: ${err.message}`,
+        message: 'Invalid pageNumber',
         data: null,
         addressId: null
       });
     }
+    if (pageSize && isNaN(parseInt(pageSize))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pageSize',
+        data: null,
+        addressId: null
+      });
+    }
+
+    const addresses = await AddressModel.getAllAddresses({
+      pageNumber: parseInt(pageNumber) || 1,
+      pageSize: parseInt(pageSize) || 10,
+      fromDate,
+      toDate
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Addresses retrieved successfully',
+      data: addresses.data,
+      pagination: {
+        totalRecords: addresses.totalRecords,
+        currentPage: addresses.currentPage,
+        pageSize: addresses.pageSize,
+        totalPages: addresses.totalPages
+      }
+    });
+  } catch (err) {
+    console.error('getAllAddresses error:', err);
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${err.message}`,
+      data: null,
+      addressId: null
+    });
   }
+}
 
   // Create a new Address
   static async createAddress(req, res) {

@@ -1,18 +1,37 @@
 const poolPromise = require('../config/db.config');
 
 class CompanyModel {
-  // Get paginated Companies
+// Get paginated Companies
   static async getAllCompanies({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
+      if (pageNumber < 1) pageNumber = 1;
+      if (pageSize < 1 || pageSize > 100) pageSize = 10; // Cap pageSize at 100
+      let formattedFromDate = null, formattedToDate = null;
+
+      if (fromDate) {
+        formattedFromDate = new Date(fromDate);
+        if (isNaN(formattedFromDate)) throw new Error('Invalid fromDate');
+      }
+      if (toDate) {
+        formattedToDate = new Date(toDate);
+        if (isNaN(formattedToDate)) throw new Error('Invalid toDate');
+      }
+      if (formattedFromDate && formattedToDate && formattedFromDate > formattedToDate) {
+        throw new Error('fromDate cannot be later than toDate');
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        pageNumber,
+        pageSize,
+        formattedFromDate ? formattedFromDate.toISOString() : null, // Full ISO format for DATETIME(3)
+        formattedToDate ? formattedToDate.toISOString() : null
       ];
+
+      // Log query parameters
+      console.log('getAllCompanies params:', queryParams);
 
       // Call SP_GetAllCompanies
       const [results] = await pool.query(
@@ -20,24 +39,38 @@ class CompanyModel {
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('getAllCompanies results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 0) {
-        throw new Error(outParams.message || 'Failed to retrieve companies');
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS StatusCode, @p_Message AS Message');
+
+      // Log output
+      console.log('getAllCompanies output:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || typeof outParams.StatusCode === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllCompanies');
       }
 
+      if (outParams.StatusCode !== 0) {
+        throw new Error(outParams.Message || 'Failed to retrieve Companies');
+      }
+
+      // Extract total count from the second result set
+      const totalRecords = results[1]?.[0]?.TotalRecords || 0;
+
       return {
-        data: results[0],
-        totalRecords: null // SP does not return total count
+        data: results[0] || [],
+        totalRecords,
+        currentPage: pageNumber,
+        pageSize,
+        totalPages: Math.ceil(totalRecords / pageSize)
       };
     } catch (err) {
+      console.error('getAllCompanies error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
-
   // Create a new Company
   static async createCompany(data) {
     try {

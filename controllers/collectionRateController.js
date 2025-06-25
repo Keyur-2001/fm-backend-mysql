@@ -1,14 +1,32 @@
 const CollectionRateModel = require('../models/collectionRateModel');
 
 class CollectionRateController {
-  // Get all Collection Rates with pagination
+ // Get all Collection Rates with pagination
   static async getAllCollectionRates(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
+      // Validate query parameters
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber',
+          data: null,
+          collectionRateId: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          collectionRateId: null
+        });
+      }
+
       const collectionRates = await CollectionRateModel.getAllCollectionRates({
-        pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize),
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
         fromDate,
         toDate
       });
@@ -17,7 +35,13 @@ class CollectionRateController {
         success: true,
         message: 'Collection rates retrieved successfully',
         data: collectionRates.data,
-        totalRecords: collectionRates.totalRecords
+        pagination: {
+          totalRecords: collectionRates.totalRecords,
+          currentPage: collectionRates.currentPage,
+          pageSize: collectionRates.pageSize,
+          totalPages: collectionRates.totalPages
+        },
+        collectionRateId: null
       });
     } catch (err) {
       console.error('getAllCollectionRates error:', err);
@@ -39,7 +63,13 @@ class CollectionRateController {
         success: true,
         message: 'All collection rates retrieved successfully',
         data: collectionRates,
-        totalRecords: collectionRates.length
+        pagination: {
+          totalRecords: collectionRates.length,
+          currentPage: 1,
+          pageSize: collectionRates.length,
+          totalPages: 1
+        },
+        collectionRateId: null
       });
     } catch (err) {
       console.error('getAllCollectionRatesNoPagination error:', err);

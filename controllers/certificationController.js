@@ -2,32 +2,57 @@ const CertificationModel = require('../models/certificationModel');
 
 class CertificationController {
   // Get all Certifications
-  static async getAllCertifications(req, res) {
-    try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
-      const result = await CertificationModel.getAllCertifications({
-        pageNumber: parseInt(pageNumber) || 1,
-        pageSize: parseInt(pageSize) || 10,
-        fromDate: fromDate || null,
-        toDate: toDate || null
-      });
-      res.status(200).json({
-        success: true,
-        message: 'Certification records retrieved successfully.',
-        data: result.data,
-        totalRecords: result.totalRecords,
-        certificationId: null
-      });
-    } catch (err) {
-      console.error('Error in getAllCertifications:', err);
-      res.status(500).json({
+static async getAllCertifications(req, res) {
+  try {
+    const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+    // Validate query parameters
+    if (pageNumber && isNaN(parseInt(pageNumber))) {
+      return res.status(400).json({
         success: false,
-        message: `Server error: ${err.message}`,
+        message: 'Invalid pageNumber',
         data: null,
         certificationId: null
       });
     }
+    if (pageSize && isNaN(parseInt(pageSize))) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid pageSize',
+        data: null,
+        certificationId: null
+      });
+    }
+
+    const result = await CertificationModel.getAllCertifications({
+      pageNumber: parseInt(pageNumber) || 1,
+      pageSize: parseInt(pageSize) || 10,
+      fromDate: fromDate || null,
+      toDate: toDate || null
+    });
+
+    res.status(200).json({
+      success: true,
+      message: 'Certification records retrieved successfully.',
+      data: result.data,
+      pagination: {
+        totalRecords: result.totalRecords,
+        currentPage: result.currentPage,
+        pageSize: result.pageSize,
+        totalPages: result.totalPages
+      },
+      certificationId: null
+    });
+  } catch (err) {
+    console.error('Error in getAllCertifications:', err);
+    res.status(500).json({
+      success: false,
+      message: `Server error: ${err.message}`,
+      data: null,
+      certificationId: null
+    });
   }
+}
 
   // Create a new Certification
   static async createCertification(req, res) {
