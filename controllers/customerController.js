@@ -199,45 +199,61 @@ class CustomerController {
 
   // Delete a Customer
   static async deleteCustomer(req, res) {
-    try {
-      const { id } = req.params;
-      const { createdById } = req.body;
+  try {
+    const { id } = req.params;
+    const { createdById } = req.body;
 
-      if (!id || isNaN(id)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Valid CustomerID is required',
-          data: null,
-          customerId: null
-        });
-      }
-
-      // if (!createdById) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: 'CreatedByID is required',
-      //     data: null,
-      //     customerId: id
-      //   });
-      // }
-
-      const result = await CustomerModel.deleteCustomer(parseInt(id));
-
-      return res.status(200).json({
-        success: true,
-        message: result.message,
-        data: null,
-        customerId: id
-      });
-    } catch (err) {
-      console.error('deleteCustomer error:', err);
-      return res.status(500).json({
+    // Validate id
+    if (!id || isNaN(parseInt(id))) {
+      return res.status(400).json({
         success: false,
-        message: `Server error: ${err.message}`,
+        message: 'Valid CustomerID is required',
         data: null,
-        customerId: null
+        customerId: null,
       });
     }
+
+    // Validate createdById
+    if (!createdById) {
+      return res.status(400).json({
+        success: false,
+        message: 'CreatedByID is required',
+        data: null,
+        customerId: id,
+      });
+    }
+
+    // Log the input parameters for debugging
+    console.log('deleteCustomer params:', { id, createdById });
+
+    // Call the model with both id and createdById
+    const result = await CustomerModel.deleteCustomer(parseInt(id), createdById);
+
+    // Validate the result
+    if (!result || typeof result.message === 'undefined') {
+      return res.status(500).json({
+        success: false,
+        message: 'Invalid response from delete operation',
+        data: null,
+        customerId: id,
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: result.message,
+      data: null,
+      customerId: id,
+    });
+  } catch (err) {
+    console.error('deleteCustomer error:', err);
+    return res.status(500).json({
+      success: false,
+      message: `Server error: ${err.message}`,
+      data: null,
+      customerId: null,
+    });
   }
+}
 }
 module.exports = CustomerController;

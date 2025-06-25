@@ -70,7 +70,7 @@ static async getAllCertifications(req, res) {
 
       const result = await CertificationModel.createCertification(data);
       res.status(201).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: result.certificationId
@@ -91,8 +91,8 @@ static async getAllCertifications(req, res) {
     try {
       const { id } = req.params;
       const certification = await CertificationModel.getCertificationById(parseInt(id));
-      if (!certification) {
-        return res.status(400).json({
+      if (!certification || !certification.data) {
+        return res.status(404).json({
           success: false,
           message: 'Certification not found.',
           data: null,
@@ -101,8 +101,8 @@ static async getAllCertifications(req, res) {
       }
       res.status(200).json({
         success: true,
-        message: 'Certification retrieved successfully.',
-        data: certification,
+        message: certification.message,
+        data: certification.data,
         certificationId: id
       });
     } catch (err) {
@@ -133,7 +133,7 @@ static async getAllCertifications(req, res) {
 
       const result = await CertificationModel.updateCertification(parseInt(id), data);
       res.status(200).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: id
@@ -166,7 +166,7 @@ static async getAllCertifications(req, res) {
 
       const result = await CertificationModel.deleteCertification(parseInt(id), createdById);
       res.status(200).json({
-        success: true,
+        success: result.success,
         message: result.message,
         data: null,
         certificationId: id

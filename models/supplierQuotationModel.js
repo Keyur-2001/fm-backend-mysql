@@ -15,14 +15,18 @@ class SupplierQuotationModel {
       ];
 
       // Call SP_GetAllSupplierQuotation
-      const [result] = await pool.query(
+      const [results] = await pool.query(
         'CALL SP_GetAllSupplierQuotation(?, ?, ?, ?)',
         queryParams
       );
 
+      // Extract paginated data and total records
+      const data = results[0]; // First result set: paginated data
+      const totalRecords = results[1][0].TotalRecords; // Second result set: total count
+
       return {
-        data: result[0],
-        totalRecords: result[0].length
+        data,
+        totalRecords
       };
     } catch (err) {
       throw new Error(`Database error: ${err.message}`);
@@ -40,7 +44,7 @@ class SupplierQuotationModel {
         data.SupplierID,
         data.PurchaseRFQID,
         data.CertificationID,
-        data.Status || 'Pending', // Changed from 'Draft' to 'Pending'
+        data.Status || 'Pending',
         data.CreatedByID,
         null, // p_DeletedByID
         data.rate || 0,

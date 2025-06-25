@@ -217,6 +217,7 @@ class CertificationModel {
       throw new Error(`StatusCode missing in SP_ManageCertification result: ${JSON.stringify(statusResult)}`);
     }
 
+
     if (statusResult.StatusCode !== 1) {
       throw new Error(statusResult.Message || 'Failed to create Certification');
     }
@@ -275,7 +276,6 @@ class CertificationModel {
     if (!statusResult || typeof statusResult.StatusCode === 'undefined') {
       throw new Error(`StatusCode missing in SP_ManageCertification result: ${JSON.stringify(statusResult)}`);
     }
-
     if (statusResult.StatusCode !== 1) {
       throw new Error(statusResult.Message || 'Failed to create Certification');
     }
