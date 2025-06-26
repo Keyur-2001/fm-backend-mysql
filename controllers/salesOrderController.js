@@ -235,6 +235,33 @@ class SalesOrderController {
       });
     }
   }
+
+     static async getSalesOrderApprovalStatus(req, res) {
+    try {
+      const SalesOrderID = parseInt(req.params.id);
+      if (isNaN(SalesOrderID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SalesOrderID',
+          data: null,
+          SalesorderID: null,
+          newSalesorderID: null
+        });
+      }
+
+      const result = await SalesOrderModel.getSalesOrderApprovalStatus(SalesOrderID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get SalesOrder Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        SalesOrderID: null,
+        newSalesOrderID: null
+      });
+    }
+  }
 }
 
 module.exports = SalesOrderController;
