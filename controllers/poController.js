@@ -126,6 +126,33 @@ class PurchaseOrderController {
       });
     }
   }
+
+     static async getPoApprovalStatus(req, res) {
+    try {
+      const POID = parseInt(req.params.id);
+      if (isNaN(POID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing PurchaseOrderID',
+          data: null,
+          POID: null,
+          newPOID: null
+        });
+      }
+
+      const result = await PurchaseOrderModel.getPoApprovalStatus(POID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get PurchaseOrder Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        POID: null,
+        newPOID: null
+      });
+    }
+  }
 }
 
 module.exports = PurchaseOrderController;

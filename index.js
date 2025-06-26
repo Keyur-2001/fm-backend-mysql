@@ -183,7 +183,7 @@ async function startServer() {
       ['/api/sales-Order', salesOrderRoutes],
       ['/api/sales-Order-Parcel', salesOrderParcelRoutes],
       ['/api/sales-Order-Approval', salesOrderApprovalRoutes],
-      ['/api/po', poRoutes],
+      ['/api/purchase-Order', poRoutes],
       ['/api/po-Parcel', poParcelRoutes],
       ['/api/po-Approval', poApprovalRoutes],
       ['/api/sendPurchaseOrder', sendPurchaseOrderRoutes],
