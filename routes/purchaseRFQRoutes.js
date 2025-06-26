@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const PurchaseRFQController = require('../controllers/purchaseRFQController');
 const authMiddleware = require('../middleware/authMiddleware');
+const tableAccessMiddleware = require('../middleware/tableAccessMiddleware');
+const permissionMiddleware =  require('../middleware/permissionMiddleware')
 
 // Get all Purchase RFQs
 router.get('/',  PurchaseRFQController.getAllPurchaseRFQs);
@@ -20,5 +22,8 @@ router.delete('/:id', authMiddleware, PurchaseRFQController.deletePurchaseRFQ);
 
 // Approve a Purchase RFQ
 router.post('/approve', authMiddleware, PurchaseRFQController.approvePurchaseRFQ);
+
+// Get SalesRFQ approval status (requires read permission on SalesRFQ table)
+router.get('/:id/approval-status', authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PurchaseRFQController.getPurchaseRFQApprovalStatus);
 
 module.exports = router;
