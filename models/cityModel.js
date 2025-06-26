@@ -2,17 +2,37 @@ const poolPromise = require('../config/db.config');
 
 class CityModel {
   // Get paginated Cities
+ // Get paginated Cities
   static async getAllCities({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
 
       // Validate parameters
+      if (pageNumber < 1) pageNumber = 1;
+      if (pageSize < 1 || pageSize > 100) pageSize = 10; // Cap pageSize at 100
+      let formattedFromDate = null, formattedToDate = null;
+
+      if (fromDate) {
+        formattedFromDate = new Date(fromDate);
+        if (isNaN(formattedFromDate)) throw new Error('Invalid fromDate');
+      }
+      if (toDate) {
+        formattedToDate = new Date(toDate);
+        if (isNaN(formattedToDate)) throw new Error('Invalid toDate');
+      }
+      if (formattedFromDate && formattedToDate && formattedFromDate > formattedToDate) {
+        throw new Error('fromDate cannot be later than toDate');
+      }
+
       const queryParams = [
-        pageNumber > 0 ? pageNumber : 1,
-        pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        pageNumber,
+        pageSize,
+        formattedFromDate ? formattedFromDate.toISOString().split('T')[0] : null, // Format as YYYY-MM-DD
+        formattedToDate ? formattedToDate.toISOString().split('T')[0] : null
       ];
+
+      // Log query parameters
+      console.log('getAllCities params:', queryParams);
 
       // Call SP_GetAllCities
       const [results] = await pool.query(
@@ -20,20 +40,35 @@ class CityModel {
         queryParams
       );
 
-      // Retrieve OUT parameters
-      const [[outParams]] = await pool.query(
-        'SELECT @p_Result AS result, @p_Message AS message'
-      );
+      // Log results
+      console.log('getAllCities results:', JSON.stringify(results, null, 2));
 
-      if (outParams.result !== 0) {
-        throw new Error(outParams.message || 'Failed to retrieve cities');
+      // Retrieve OUT parameters
+      const [[outParams]] = await pool.query('SELECT @p_Result AS StatusCode, @p_Message AS Message');
+
+      // Log output
+      console.log('getAllCities output:', JSON.stringify(outParams, null, 2));
+
+      if (!outParams || typeof outParams.StatusCode === 'undefined') {
+        throw new Error('Output parameters missing from SP_GetAllCities');
       }
 
+      if (outParams.StatusCode !== 0) {
+        throw new Error(outParams.Message || 'Failed to retrieve Cities');
+      }
+
+      // Extract total count from the second result set
+      const totalRecords = results[1]?.[0]?.TotalRecords || 0;
+
       return {
-        data: results[0],
-        totalRecords: null // SP does not return total count
+        data: results[0] || [],
+        totalRecords,
+        currentPage: pageNumber,
+        pageSize,
+        totalPages: Math.ceil(totalRecords / pageSize)
       };
     } catch (err) {
+      console.error('getAllCities error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }

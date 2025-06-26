@@ -69,7 +69,7 @@ class SalesInvoiceModel {
     try {
       const pool = await poolPromise;
 
-      const queryParams = [
+    const queryParams = [
         'INSERT',
         null, // p_SalesInvoiceID
         data.pInvoiceId || null,
@@ -87,18 +87,20 @@ class SalesInvoiceModel {
         data.collectFromSupplierYN || 0,
         data.externalRefNo || null,
         data.externalSupplierId || null,
-        data.salesAmount || 0,
-        data.taxesAndOtherCharges || 0,
-        data.total || 0,
+        data.isPaid || 0, // Added missing parameter
         data.formCompletedYN || 0,
+        data.fileName || null, // Added missing parameter
+        data.fileContent || null, // Added missing parameter
         data.copyTaxesFromPInvoice || 0,
         data.taxChargesTypeId || null,
         data.taxRate || null,
-        data.taxTotal || null
+        data.taxTotal || null,
+        data.originWarehouseAddressId || null,
+        data.destinationWarehouseAddressId || null
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManageSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        'CALL SP_ManageSalesInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
 

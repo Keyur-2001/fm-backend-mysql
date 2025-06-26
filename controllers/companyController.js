@@ -5,17 +5,42 @@ class CompanyController {
   static async getAllCompanies(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+      // Validate query parameters
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber',
+          data: null,
+          companyId: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          companyId: null
+        });
+      }
+
       const result = await CompanyModel.getAllCompanies({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
         fromDate: fromDate || null,
         toDate: toDate || null
       });
+
       res.status(200).json({
         success: true,
         message: 'Company records retrieved successfully.',
         data: result.data,
-        totalRecords: result.totalRecords,
+        pagination: {
+          totalRecords: result.totalRecords,
+          currentPage: result.currentPage,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages
+        },
         companyId: null
       });
     } catch (err) {
@@ -28,7 +53,7 @@ class CompanyController {
       });
     }
   }
-
+  
   // Create a new Company
   static async createCompany(req, res) {
     try {

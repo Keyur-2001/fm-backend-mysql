@@ -6,9 +6,27 @@ class CountryOfOriginController {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
+      // Validate query parameters
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber',
+          data: null,
+          countryOfOriginId: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          countryOfOriginId: null
+        });
+      }
+
       const countries = await CountryOfOriginModel.getAllCountriesOfOrigin({
-        pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize),
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
         fromDate,
         toDate
       });
@@ -17,7 +35,13 @@ class CountryOfOriginController {
         success: true,
         message: 'Countries of Origin retrieved successfully',
         data: countries.data,
-        totalRecords: countries.totalRecords
+        pagination: {
+          totalRecords: countries.totalRecords,
+          currentPage: countries.currentPage,
+          pageSize: countries.pageSize,
+          totalPages: countries.totalPages
+        },
+        countryOfOriginId: null
       });
     } catch (err) {
       console.error('getAllCountriesOfOrigin error:', err);

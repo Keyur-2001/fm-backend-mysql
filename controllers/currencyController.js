@@ -5,17 +5,42 @@ class CurrencyController {
   static async getAllCurrencies(req, res) {
     try {
       const { pageNumber, pageSize, fromDate, toDate } = req.query;
+
+      // Validate query parameters
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber',
+          data: null,
+          currencyId: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          currencyId: null
+        });
+      }
+
       const result = await CurrencyModel.getAllCurrencies({
         pageNumber: parseInt(pageNumber) || 1,
         pageSize: parseInt(pageSize) || 10,
         fromDate: fromDate || null,
         toDate: toDate || null
       });
+
       res.status(200).json({
         success: true,
         message: 'Currency records retrieved successfully.',
         data: result.data,
-        totalRecords: result.totalRecords,
+        pagination: {
+          totalRecords: result.totalRecords,
+          currentPage: result.currentPage,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages
+        },
         currencyId: null
       });
     } catch (err) {
@@ -28,6 +53,7 @@ class CurrencyController {
       });
     }
   }
+
 
   // Create a new Currency
   static async createCurrency(req, res) {

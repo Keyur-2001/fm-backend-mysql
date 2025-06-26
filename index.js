@@ -33,7 +33,7 @@ const purchaseRFQApprovalRoutes = require('./routes/purchaseRFQApprovalRoutes');
 const subscriptionPlanRoutes = require('./routes/subscriptionPlanRoutes');
 const supplierQuotationRoutes = require('./routes/supplierQuotationRoutes');
 const formRoleRoutes = require('./routes/formRoleRoutes');
-const formRoleApprovalRoutes = require('./routes/formRoleApprovalRoutes');
+const formRoleApproverRoutes = require('./routes/formRoleApproverRoutes');
 const supplierQuotationParcelRoutes = require('./routes/supplierQuotationParcelRoutes');
 const supplierQuotationApprovalRoutes = require('./routes/supplierQuotationApprovalRoutes');
 const salesQuotationRoutes = require('./routes/salesQuotationRoutes');
@@ -158,7 +158,7 @@ async function startServer() {
       ['/api/rolepermissions', rolePermissionRoutes],
       ['/api/forms', formRoutes],
       ['/api/formRole', formRoleRoutes],
-      ['/api/formRoleApproval', formRoleApprovalRoutes],
+      ['/api/formRoleApprover', formRoleApproverRoutes],
       ['/api/taxChargesType', taxChargesTypeRoutes],
       ['/api/collectionRate', collectionRateRoutes],
       ['/api/subscriptionPlan', subscriptionPlanRoutes],
@@ -211,7 +211,7 @@ async function startServer() {
     });
 
     // dummy
-    const PORT = process.env.PORT || 7001;
+    const PORT = process.env.PORT || 7000;
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
