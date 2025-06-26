@@ -188,7 +188,7 @@ async function startServer() {
       ['/api/po-Approval', poApprovalRoutes],
       ['/api/sendPurchaseOrder', sendPurchaseOrderRoutes],
       ['/api/pendingApprovals', pendingApprovalsRoutes],
-      ['/api/pInvoice', pInvoiceRoutes],
+      ['/api/purchase-Invoice', pInvoiceRoutes],
       ['/api/pInvoiceParcel', pInvoiceParcelRoutes],
       ['/api/pInvoiceApproval', pInvoiceApprovalRoutes],
       ['/api/salesInvoice', salesInvoiceRoutes],
