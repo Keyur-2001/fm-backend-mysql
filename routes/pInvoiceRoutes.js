@@ -22,7 +22,7 @@ router.delete('/:id', authMiddleware, PInvoiceController.deletePInvoice);
 
 router.post('/approve', authMiddleware, PInvoiceController.approvePInvoice);
 
-// Get Purchase Order approval status (requires read permission on Purchase Order table)
+// Get Purchase Invoice approval status (requires read permission on Purchase Invoice table)
 router.get('/:id/approval-status', authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PInvoiceController.getPInvoiceApprovalStatus);
 
 

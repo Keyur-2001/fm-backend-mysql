@@ -171,6 +171,33 @@ class SalesInvoiceController {
       });
     }
   }
+
+         static async getSalesInvoiceApprovalStatus(req, res) {
+    try {
+      const SalesInvoiceID = parseInt(req.params.id);
+      if (isNaN(SalesInvoiceID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SalesInvoiceID',
+          data: null,
+          SalesInvoiceID: null,
+          newSalesInvoiceID: null
+        });
+      }
+
+      const result = await SalesInvoiceModel.getSalesInvoiceApprovalStatus(SalesInvoiceID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get SalesInvoice Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        SalesInvoiceID: null,
+        newSalesInvoiceID: null
+      });
+    }
+  }
 }
 
 module.exports = SalesInvoiceController;
