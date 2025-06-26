@@ -256,6 +256,33 @@ class SupplierQuotationController {
       });
     }
   }
+
+    static async getSupplierQuotationApprovalStatus(req, res) {
+    try {
+      const SupplierQuotationID = parseInt(req.params.id);
+      if (isNaN(SupplierQuotationID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SupplierQuotationID',
+          data: null,
+          SupplierQuotationID: null,
+          newSupplierQuotationID: null
+        });
+      }
+
+      const result = await SupplierQuotationModel.getSupplierQuotationApprovalStatus(SupplierQuotationID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get SupplierQuotation Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        SupplierQuotationID: null,
+        newSupplierQuotationID: null
+      });
+    }
+  }
 }
 
 module.exports = SupplierQuotationController

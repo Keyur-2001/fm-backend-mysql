@@ -23,7 +23,7 @@ router.delete('/:id', authMiddleware, PurchaseRFQController.deletePurchaseRFQ);
 // Approve a Purchase RFQ
 router.post('/approve', authMiddleware, PurchaseRFQController.approvePurchaseRFQ);
 
-// Get SalesRFQ approval status (requires read permission on SalesRFQ table)
+// Get Purchase RFQ approval status (requires read permission on PurchaseRFQ table)
 router.get('/:id/approval-status', authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PurchaseRFQController.getPurchaseRFQApprovalStatus);
 
 module.exports = router;

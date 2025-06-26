@@ -420,6 +420,73 @@ class SupplierQuotationModel {
       }
     }
   }
+
+    static async getSupplierQuotationApprovalStatus(SupplierQuotationID) {
+    try {
+      const pool = await poolPromise;
+      const formName = 'Supplier Quotation';
+
+      // Get FormID
+      const [form] = await pool.query(
+        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        [formName]
+      );
+      if (!form.length) {
+        throw new Error('Invalid FormID for SupplierQuotation');
+      }
+      const formID = form[0].FormID;
+
+      // Get required approvers
+      const [requiredApprovers] = await pool.query(
+        `SELECT DISTINCT fra.UserID, p.FirstName, p.LastName
+         FROM dbo_tblformroleapprover fra
+         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+         JOIN dbo_tblperson p ON fra.UserID = p.PersonID
+         WHERE fr.FormID = ? AND fra.ActiveYN = 1 AND p.IsDeleted = 0`,
+        [formID]
+      );
+
+      // Get completed approvals
+      const [completedApprovals] = await pool.query(
+        `SELECT s.ApproverID, p.FirstName, p.LastName, s.ApproverDateTime
+         FROM dbo_tblsupplierquotationapproval s
+         JOIN dbo_tblperson p ON s.ApproverID = p.PersonID
+         WHERE s.SupplierQuotationID = ? AND s.IsDeleted = 0 AND s.ApprovedYN = 1
+         AND s.ApproverID IN (
+           SELECT DISTINCT fra.UserID 
+           FROM dbo_tblformroleapprover fra 
+           JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID 
+           WHERE fr.FormID = ? AND fra.ActiveYN = 1
+         )`,
+        [parseInt(SupplierQuotationID), formID]
+      );
+
+      // Prepare approval status
+      const approvalStatus = requiredApprovers.map(approver => ({
+        UserID: approver.UserID,
+        FirstName: approver.FirstName,
+        LastName: approver.LastName,
+        Approved: completedApprovals.some(a => a.ApproverID === approver.UserID),
+        ApproverDateTime: completedApprovals.find(a => a.ApproverID === approver.UserID)?.ApproverDateTime || null
+      }));
+
+      return {
+        success: true,
+        message: 'Approval status retrieved successfully',
+        data: {
+          SupplierQuotationID,
+          requiredApprovers: requiredApprovers.length,
+          completedApprovals: completedApprovals.length,
+          approvalStatus
+        },
+        SupplierQuotationID: SupplierQuotationID.toString(),
+        newSupplierQuotationID: null
+      };
+    } catch (error) {
+      console.error('Error in getSalesRFQApprovalStatus:', error);
+      throw new Error(`Error retrieving approval status: ${error.message}`);
+    }
+  }
 }
 
 module.exports = SupplierQuotationModel;
