@@ -490,3 +490,4 @@ class SupplierQuotationModel {
 }
 
 module.exports = SupplierQuotationModel;
+

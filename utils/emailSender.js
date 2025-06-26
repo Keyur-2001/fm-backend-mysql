@@ -17,7 +17,7 @@ const transporter = nodemailer.createTransport({
 async function sendRFQEmail(toEmail, rfqSeries, pdfBuffer) {
   try {
     const mailOptions = {
-      from: `"Fleet Monkey" <keyur.it2001@gmail.com>`,
+      from: `"Fleet Monkey" <${process.env.SMTP_USER}>`,
       to: toEmail,
       subject: `Purchase RFQ: ${rfqSeries}`,
       text: `Dear Supplier,\n\nPlease find attached the Purchase RFQ (${rfqSeries}) for your review. Kindly submit your quotation at your earliest convenience.\n\nBest regards,\nFleet Monkey Team`,

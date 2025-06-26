@@ -76,6 +76,8 @@ class PInvoiceModel {
         null, // p_DeliveryDate
         null, // p_DateReceived
         null, // p_Terms
+        null,
+        null,
         null, // p_PackagingRequiredYN
         null, // p_CollectFromSupplierYN
         null, // p_ExternalRefNo
@@ -87,9 +89,7 @@ class PInvoiceModel {
         null, // p_CopyTaxesFromPO
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
-        null, // p_TaxTotal
-        null,
-        null
+        null // p_TaxTotal
       ];
 
       const [result] = await pool.query(
@@ -135,8 +135,8 @@ class PInvoiceModel {
         data.taxChargesTypeId || null,
         data.taxRate || null,
         data.taxTotal || null,
-        null,
-        null
+        data.originWarehouseAddressID || null, // Added
+      data.destinationWarehouseAddressID || null // Added
       ];
 
       const [result] = await pool.query(
@@ -188,11 +188,14 @@ class PInvoiceModel {
         data.copyTaxesFromPO || null,
         data.taxChargesTypeId || null,
         data.taxRate || null,
-        data.taxTotal || null
+        data.taxTotal || null,
+        data.originWarehouseAddressID || null, // Added
+        data.destinationWarehouseAddressID || null, // Added
+        null
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
         queryParams
       );
 
@@ -239,11 +242,14 @@ class PInvoiceModel {
         null, // p_CopyTaxesFromPO
         null, // p_TaxChargesTypeID
         null, // p_TaxRate
-        null // p_TaxTotal
+        null,// p_TaxTotal
+        data.originWarehouseAddressID || null, // Added
+        data.destinationWarehouseAddressID || null, // Added
+        null
       ];
 
       const [result] = await pool.query(
-        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, @p_ErrorMessage)',
+        'CALL SP_ManagePInvoice(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
         queryParams
       );
 

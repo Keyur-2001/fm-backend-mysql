@@ -39,9 +39,12 @@ class WarehouseModel {
         throw new Error(output[0].p_Message || 'Failed to retrieve warehouses');
       }
 
+      // Extract totalRecords from the second result set
+      const totalRecords = Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : 0;
+
       return {
         data: Array.isArray(results[0]) ? results[0] : [],
-        totalRecords: Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : 0
+        totalRecords
       };
     } catch (err) {
       console.error('getAllWarehouses error:', err.stack);
@@ -87,7 +90,6 @@ class WarehouseModel {
         throw new Error(`Invalid output from SP_ManageWarehouse: ${JSON.stringify(output)}`);
       }
 
-      // Handle case where stored procedure returns non-zero p_Result but indicates success
       if (output[0].p_Result !== 0 && output[0].p_Message.includes('successfully')) {
         console.warn('SP_ManageWarehouse returned non-zero p_Result with success message:', output[0].p_Message);
         const warehouseIdMatch = output[0].p_Message.match(/ID: (\d+)/);
@@ -101,7 +103,6 @@ class WarehouseModel {
             createdById: data.createdById
           }
         };
- //remains unchanged
       }
 
       if (output[0].p_Result !== 0) {
@@ -154,7 +155,6 @@ class WarehouseModel {
         throw new Error(`Invalid output from SP_ManageWarehouse: ${JSON.stringify(output)}`);
       }
 
-      // Handle case where stored procedure returns non-zero p_Result but indicates success
       if (output[0].p_Result !== 0 && output[0].p_Message.includes('successfully')) {
         console.warn('SP_ManageWarehouse returned non-zero p_Result with success message:', output[0].p_Message);
         return Array.isArray(results[0]) && results[0].length > 0 ? results[0][0] : null;
@@ -215,7 +215,6 @@ class WarehouseModel {
         throw new Error(`Invalid output from SP_ManageWarehouse: ${JSON.stringify(output)}`);
       }
 
-      // Handle case where stored procedure returns non-zero p_Result but indicates success
       if (output[0].p_Result !== 0 && output[0].p_Message.includes('Warehouse updated successfully')) {
         console.warn('SP_ManageWarehouse returned non-zero p_Result with success message:', output[0].p_Message);
         return {
@@ -268,7 +267,6 @@ class WarehouseModel {
         throw new Error(`Invalid output from SP_ManageWarehouse: ${JSON.stringify(output)}`);
       }
 
-      // Handle case where stored procedure returns non-zero p_Result but indicates success
       if (output[0].p_Result !== 0 && output[0].p_Message.includes('successfully')) {
         console.warn('SP_ManageWarehouse returned non-zero p_Result with success message:', output[0].p_Message);
         return {
