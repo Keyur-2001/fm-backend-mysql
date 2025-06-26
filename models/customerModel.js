@@ -1,7 +1,6 @@
 const poolPromise = require('../config/db.config');
 
 class CustomerModel {
-  // Get paginated Customers
   static async getAllCustomers({ pageNumber = 1, pageSize = 10, fromDate = null, toDate = null }) {
     try {
       const pool = await poolPromise;
@@ -10,12 +9,12 @@ class CustomerModel {
       const queryParams = [
         pageNumber > 0 ? pageNumber : 1,
         pageSize > 0 ? pageSize : 10,
-        fromDate ? new Date(fromDate) : null,
-        toDate ? new Date(toDate) : null
+        fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null,
+        toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null
       ];
 
       // Log query parameters
-      console.log('getAllCustomers params:', queryParams);
+      console.log('getAllCustomers params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_GetAllCustomers
       const [results] = await pool.query(
@@ -40,9 +39,12 @@ class CustomerModel {
         throw new Error(output[0].p_Message || 'Failed to retrieve customers');
       }
 
+      // Extract totalRecords from the second result set
+      const totalRecords = Array.isArray(results[1]) && results[1][0]?.TotalRecords ? results[1][0].TotalRecords : 0;
+
       return {
-        data: results[0] || [],
-        totalRecords: null // SP does not return total count
+        data: Array.isArray(results[0]) ? results[0] : [],
+        totalRecords
       };
     } catch (err) {
       console.error('getAllCustomers error:', err);
@@ -50,14 +52,13 @@ class CustomerModel {
     }
   }
 
-  // Create a new Customer
   static async createCustomer(data) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'INSERT',
-        null, // p_CustomerID
+        null,
         data.CustomerName,
         data.CompanyID,
         data.CustomerEmail,
@@ -72,7 +73,7 @@ class CustomerModel {
       ];
 
       // Log query parameters
-      console.log('createCustomer params:', queryParams);
+      console.log('createCustomer params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCustomer
       const [results] = await pool.query(
@@ -97,8 +98,12 @@ class CustomerModel {
         throw new Error(output[0].p_Message || 'Failed to create Customer');
       }
 
+      // Extract CustomerID from message if available
+      const customerIdMatch = output[0].p_Message.match(/ID: (\d+)/);
+      const customerId = customerIdMatch ? parseInt(customerIdMatch[1]) : null;
+
       return {
-        CustomerID: null, // SP does not return new ID explicitly
+        customerId,
         message: output[0].p_Message
       };
     } catch (err) {
@@ -107,7 +112,6 @@ class CustomerModel {
     }
   }
 
-  // Get a single Customer by ID
   static async getCustomerById(id) {
     try {
       const pool = await poolPromise;
@@ -115,21 +119,21 @@ class CustomerModel {
       const queryParams = [
         'SELECT',
         id,
-        null, // p_CustomerName
-        null, // p_CompanyID
-        null, // p_CustomerEmail
-        null, // p_ImportCode
-        null, // p_BillingCurrencyID
-        null, // p_Website
-        null, // p_CustomerNotes
-        null, // p_IsInQuickBooks
-        null, // p_QuickBookAccountID
-        null, // p_CustomerAddressID
-        null  // p_CreatedByID
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
       ];
 
       // Log query parameters
-      console.log('getCustomerById params:', queryParams);
+      console.log('getCustomerById params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCustomer
       const [results] = await pool.query(
@@ -154,14 +158,13 @@ class CustomerModel {
         throw new Error(output[0].p_Message || 'Customer not found');
       }
 
-      return results[0][0] || null;
+      return Array.isArray(results[0]) && results[0].length > 0 ? results[0][0] : null;
     } catch (err) {
       console.error('getCustomerById error:', err);
       throw new Error(`Database error: ${err.message}`);
     }
   }
 
-  // Update a Customer
   static async updateCustomer(id, data) {
     try {
       const pool = await poolPromise;
@@ -183,7 +186,7 @@ class CustomerModel {
       ];
 
       // Log query parameters
-      console.log('updateCustomer params:', queryParams);
+      console.log('updateCustomer params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCustomer
       const [results] = await pool.query(
@@ -217,29 +220,28 @@ class CustomerModel {
     }
   }
 
-  // Delete a Customer
-  static async deleteCustomer(id) {
+  static async deleteCustomer(id, createdById) {
     try {
       const pool = await poolPromise;
 
       const queryParams = [
         'DELETE',
         id,
-        null, // p_CustomerName
-        null, // p_CompanyID
-        null, // p_CustomerEmail
-        null, // p_ImportCode
-        null, // p_BillingCurrencyID
-        null, // p_Website
-        null, // p_CustomerNotes
-        null, // p_IsInQuickBooks
-        null, // p_QuickBookAccountID
-        null, // p_CustomerAddressID
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
+        null,
         createdById
       ];
 
       // Log query parameters
-      console.log('deleteCustomer params:', queryParams);
+      console.log('deleteCustomer params:', JSON.stringify(queryParams, null, 2));
 
       // Call SP_ManageCustomer
       const [results] = await pool.query(

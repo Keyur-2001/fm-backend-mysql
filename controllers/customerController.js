@@ -1,14 +1,43 @@
 const CustomerModel = require('../models/customerModel');
 
 class CustomerController {
-  // Get all Customers with pagination
   static async getAllCustomers(req, res) {
     try {
-      const { pageNumber, pageSize, fromDate, toDate } = req.query;
+      const { pageNumber = 1, pageSize = 10, fromDate, toDate } = req.query;
+
+      // Validate pagination parameters
+      const pageNum = parseInt(pageNumber, 10);
+      const pageSz = parseInt(pageSize, 10);
+      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageNumber or pageSize',
+          data: null,
+          totalRecords: 0
+        });
+      }
+
+      // Validate date parameters
+      if (fromDate && !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid fromDate format (use YYYY-MM-DD)',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid toDate format (use YYYY-MM-DD)',
+          data: null,
+          totalRecords: 0
+        });
+      }
 
       const customers = await CustomerModel.getAllCustomers({
-        pageNumber: parseInt(pageNumber),
-        pageSize: parseInt(pageSize),
+        pageNumber: pageNum,
+        pageSize: pageSz,
         fromDate,
         toDate
       });
@@ -16,21 +45,20 @@ class CustomerController {
       return res.status(200).json({
         success: true,
         message: 'Customers retrieved successfully',
-        data: customers.data,
-        totalRecords: customers.totalRecords
+        data: customers.data || [],
+        totalRecords: customers.totalRecords || 0
       });
     } catch (err) {
-      console.error('getAllCustomers error:', err);
+      console.error('getAllCustomers error:', err.stack);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        customerId: null
+        totalRecords: 0
       });
     }
   }
 
-  // Create a new Customer
   static async createCustomer(req, res) {
     try {
       const {
@@ -47,69 +75,117 @@ class CustomerController {
         CreatedByID
       } = req.body;
 
-      // Basic validation
-      if (!CustomerName || !CompanyID || !CreatedByID) {
+      // Validate input
+      if (!CustomerName || typeof CustomerName !== 'string' || CustomerName.trim() === '') {
         return res.status(400).json({
           success: false,
-          message: 'CustomerName, CompanyID, and CreatedByID are required',
+          message: 'Valid CustomerName is required',
           data: null,
-          customerId: null
+          totalRecords: 0
+        });
+      }
+      if (!CompanyID || isNaN(parseInt(CompanyID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CompanyID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (!CreatedByID || isNaN(parseInt(CreatedByID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CreatedByID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (CustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CustomerEmail)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid CustomerEmail format',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (BillingCurrencyID && isNaN(parseInt(BillingCurrencyID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid BillingCurrencyID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (CustomerAddressID && isNaN(parseInt(CustomerAddressID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CustomerAddressID is required',
+          data: null,
+          totalRecords: 0
         });
       }
 
-      const result = await CustomerModel.createCustomer({
-        CustomerName,
-        CompanyID,
-        CustomerEmail,
-        ImportCode,
-        BillingCurrencyID,
-        Website,
-        CustomerNotes,
-        isInQuickBooks,
-        QuickBookAccountID,
-        CustomerAddressID,
-        CreatedByID
-      });
+      const data = {
+        CustomerName: CustomerName.trim(),
+        CompanyID: parseInt(CompanyID),
+        CustomerEmail: CustomerEmail || null,
+        ImportCode: ImportCode || null,
+        BillingCurrencyID: BillingCurrencyID ? parseInt(BillingCurrencyID) : null,
+        Website: Website || null,
+        CustomerNotes: CustomerNotes || null,
+        isInQuickBooks: isInQuickBooks ? 1 : 0,
+        QuickBookAccountID: QuickBookAccountID || null,
+        CustomerAddressID: CustomerAddressID ? parseInt(CustomerAddressID) : null,
+        CreatedByID: parseInt(CreatedByID)
+      };
+
+      console.log('Creating customer with data:', JSON.stringify(data, null, 2));
+      const result = await CustomerModel.createCustomer(data);
+      console.log('Create customer result:', JSON.stringify(result, null, 2));
+
+      if (!result || !result.customerId) {
+        throw new Error('Failed to create customer: Invalid response from model');
+      }
 
       return res.status(201).json({
         success: true,
-        message: result.message,
-        data: null,
-        customerId: null
+        message: result.message || 'Customer created successfully',
+        data: data,
+        totalRecords: 0
       });
     } catch (err) {
-      console.error('createCustomer error:', err);
+      console.error('createCustomer error:', err.stack);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        customerId: null
+        totalRecords: 0
       });
     }
   }
 
-  // Get a single Customer by ID
   static async getCustomerById(req, res) {
     try {
       const { id } = req.params;
 
-      if (!id || isNaN(id)) {
+      const customerId = parseInt(id, 10);
+      if (!id || isNaN(customerId)) {
         return res.status(400).json({
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          customerId: null
+          totalRecords: 0
         });
       }
 
-      const customer = await CustomerModel.getCustomerById(parseInt(id));
+      const customer = await CustomerModel.getCustomerById(customerId);
 
       if (!customer) {
         return res.status(404).json({
           success: false,
           message: 'Customer not found',
           data: null,
-          customerId: id
+          totalRecords: 0
         });
       }
 
@@ -117,20 +193,19 @@ class CustomerController {
         success: true,
         message: 'Customer retrieved successfully',
         data: customer,
-        customerId: id
+        totalRecords: 1
       });
     } catch (err) {
-      console.error('getCustomerById error:', err);
+      console.error('getCustomerById error:', err.stack);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        customerId: null
+        totalRecords: 0
       });
     }
   }
 
-  // Update a Customer
   static async updateCustomer(req, res) {
     try {
       const { id } = req.params;
@@ -148,96 +223,148 @@ class CustomerController {
         CreatedByID
       } = req.body;
 
-      if (!id || isNaN(id)) {
+      const customerId = parseInt(id, 10);
+      if (!id || isNaN(customerId)) {
         return res.status(400).json({
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          customerId: null
+          totalRecords: 0
         });
       }
 
-      if (!CustomerName || !CompanyID || !CreatedByID) {
+      if (!CustomerName || typeof CustomerName !== 'string' || CustomerName.trim() === '') {
         return res.status(400).json({
           success: false,
-          message: 'CustomerName, CompanyID, and CreatedByID are required',
+          message: 'Valid CustomerName is required',
           data: null,
-          customerId: id
+          totalRecords: 0
+        });
+      }
+      if (!CompanyID || isNaN(parseInt(CompanyID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CompanyID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (!CreatedByID || isNaN(parseInt(CreatedByID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CreatedByID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (CustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CustomerEmail)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid CustomerEmail format',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (BillingCurrencyID && isNaN(parseInt(BillingCurrencyID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid BillingCurrencyID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
+      if (CustomerAddressID && isNaN(parseInt(CustomerAddressID))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CustomerAddressID is required',
+          data: null,
+          totalRecords: 0
         });
       }
 
-      const result = await CustomerModel.updateCustomer(parseInt(id), {
-        CustomerName,
-        CompanyID,
-        CustomerEmail,
-        ImportCode,
-        BillingCurrencyID,
-        Website,
-        CustomerNotes,
-        isInQuickBooks,
-        QuickBookAccountID,
-        CustomerAddressID,
-        CreatedByID
-      });
+      const data = {
+        CustomerName: CustomerName.trim(),
+        CompanyID: parseInt(CompanyID),
+        CustomerEmail: CustomerEmail || null,
+        ImportCode: ImportCode || null,
+        BillingCurrencyID: BillingCurrencyID ? parseInt(BillingCurrencyID) : null,
+        Website: Website || null,
+        CustomerNotes: CustomerNotes || null,
+        isInQuickBooks: isInQuickBooks ? 1 : 0,
+        QuickBookAccountID: QuickBookAccountID || null,
+        CustomerAddressID: CustomerAddressID ? parseInt(CustomerAddressID) : null,
+        CreatedByID: parseInt(CreatedByID)
+      };
+
+      console.log('Updating customer with id:', customerId, 'and data:', JSON.stringify(data, null, 2));
+      const result = await CustomerModel.updateCustomer(customerId, data);
+      console.log('Update customer result:', JSON.stringify(result, null, 2));
+
+      if (!result) {
+        throw new Error('Invalid response from CustomerModel');
+      }
 
       return res.status(200).json({
         success: true,
-        message: result.message,
+        message: result.message || 'Customer updated successfully',
         data: null,
-        customerId: id
+        totalRecords: 0
       });
     } catch (err) {
-      console.error('updateCustomer error:', err);
+      console.error('updateCustomer error:', err.stack);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        customerId: null
+        totalRecords: 0
       });
     }
   }
 
-  // Delete a Customer
   static async deleteCustomer(req, res) {
     try {
       const { id } = req.params;
       const { createdById } = req.body;
 
-      if (!id || isNaN(id)) {
+      const customerId = parseInt(id, 10);
+      if (!id || isNaN(customerId)) {
         return res.status(400).json({
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          customerId: null
+          totalRecords: 0
         });
       }
 
-      // if (!createdById) {
-      //   return res.status(400).json({
-      //     success: false,
-      //     message: 'CreatedByID is required',
-      //     data: null,
-      //     customerId: id
-      //   });
-      // }
+      if (!createdById || isNaN(parseInt(createdById))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Valid CreatedByID is required',
+          data: null,
+          totalRecords: 0
+        });
+      }
 
-      const result = await CustomerModel.deleteCustomer(parseInt(id));
+      console.log('Deleting customer with id:', customerId, 'by createdById:', createdById);
+      const result = await CustomerModel.deleteCustomer(customerId, parseInt(createdById));
+      console.log('Delete customer result:', JSON.stringify(result, null, 2));
 
       return res.status(200).json({
         success: true,
-        message: result.message,
+        message: result.message || 'Customer deleted successfully',
         data: null,
-        customerId: id
+        totalRecords: 0
       });
     } catch (err) {
-      console.error('deleteCustomer error:', err);
+      console.error('deleteCustomer error:', err.stack);
       return res.status(500).json({
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        customerId: null
+        totalRecords: 0
       });
     }
   }
 }
+
 module.exports = CustomerController;

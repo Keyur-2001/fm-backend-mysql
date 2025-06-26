@@ -15,14 +15,18 @@ class UOMModel {
 
       console.log('getAllUOMs params:', JSON.stringify(queryParams, null, 2));
 
+      // Call the stored procedure
       const [results] = await pool.query(
-        'CALL SP_GetAllUOMs(?, ?, ?, ?, @p_Result, @p_Message)',
+        'CALL SP_GetAllUOMs(?, ?, ?, ?, @p_TotalRecords, @p_Result, @p_Message)',
         queryParams
       );
 
       console.log('getAllUOMs results:', JSON.stringify(results, null, 2));
 
-      const [output] = await pool.query('SELECT @p_Result AS p_Result, @p_Message AS p_Message');
+      // Fetch output parameters
+      const [output] = await pool.query(
+        'SELECT @p_TotalRecords AS p_TotalRecords, @p_Result AS p_Result, @p_Message AS p_Message'
+      );
 
       console.log('getAllUOMs output:', JSON.stringify(output, null, 2));
 
@@ -35,8 +39,8 @@ class UOMModel {
       }
 
       return {
-        data: results[0] || [],
-        totalRecords: results[1][0]?.TotalRecords || 0
+        data: results[0] || [], // Paginated UOMs from the first result set
+        totalRecords: output[0].p_TotalRecords || 0 // Total count from output parameter
       };
     } catch (err) {
       console.error('getAllUOMs error:', err.stack);
@@ -55,7 +59,6 @@ class UOMModel {
         data.uom,
         data.createdById,
         data.DeletedByID
-        
       ];
 
       console.log('createUOM params:', JSON.stringify(queryParams, null, 2));
@@ -102,7 +105,7 @@ class UOMModel {
         'SELECT',
         id,
         null, // p_UOM
-        null,// p_CreatedByID
+        null, // p_CreatedByID
         null
       ];
 
@@ -145,7 +148,6 @@ class UOMModel {
         data.uom,
         data.createdById,
         data.DeletedByID
-
       ];
 
       console.log('updateUOM params:', JSON.stringify(queryParams, null, 2));
