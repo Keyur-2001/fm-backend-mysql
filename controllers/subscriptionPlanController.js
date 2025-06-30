@@ -3,50 +3,44 @@ const SubscriptionPlanModel = require('../models/subscriptionPlanModel');
 class SubscriptionPlanController {
   static async getAllSubscriptionPlans(req, res) {
     try {
-      const { pageNumber = 1, pageSize = 10, fromDate, toDate } = req.query;
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
       // Validate pagination parameters
-      const pageNum = parseInt(pageNumber, 10);
-      const pageSz = parseInt(pageSize, 10);
-      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid pageNumber or pageSize',
+          message: 'Invalid pageNumber',
           data: null,
-          totalRecords: 0
+          subscriptionPlanId: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          subscriptionPlanId: null
         });
       }
 
-      // Validate date parameters
-      if (fromDate && !/^\d{4}-\d{2}-\d{2}$/.test(fromDate)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid fromDate format (use YYYY-MM-DD)',
-          data: null,
-          totalRecords: 0
-        });
-      }
-      if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid toDate format (use YYYY-MM-DD)',
-          data: null,
-          totalRecords: 0
-        });
-      }
-
-      const subscriptionPlans = await SubscriptionPlanModel.getAllSubscriptionPlans({
-        pageNumber: pageNum,
-        pageSize: pageSz,
-        fromDate,
-        toDate
+      const result = await SubscriptionPlanModel.getAllSubscriptionPlans({
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
 
       return res.status(200).json({
         success: true,
         message: 'Subscription plans retrieved successfully',
-        data: subscriptionPlans.data || [],
-        totalRecords: subscriptionPlans.totalRecords || 0
+        data: result.data,
+        pagination: {
+          totalRecords: result.totalRecords,
+          currentPage: result.currentPage,
+          pageSize: result.pageSize,
+          totalPages: result.totalPages
+        },
+        subscriptionPlanId: null
       });
     } catch (err) {
       console.error('getAllSubscriptionPlans error:', err.stack);
@@ -54,7 +48,7 @@ class SubscriptionPlanController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        subscriptionPlanId: null
       });
     }
   }
@@ -63,7 +57,6 @@ class SubscriptionPlanController {
     try {
       const { subscriptionPlanName, description, fees, billingFrequencyId, createdById } = req.body;
 
-      // Validate input
       if (!subscriptionPlanName || typeof subscriptionPlanName !== 'string' || subscriptionPlanName.trim() === '') {
         return res.status(400).json({
           success: false,

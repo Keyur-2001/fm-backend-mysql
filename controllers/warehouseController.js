@@ -8,12 +8,20 @@ class WarehouseController {
       // Validate pagination parameters
       const pageNum = parseInt(pageNumber, 10);
       const pageSz = parseInt(pageSize, 10);
-      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+      if (isNaN(pageNum) || pageNum < 1) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid pageNumber or pageSize',
+          message: 'Invalid pageNumber',
           data: null,
-          totalRecords: 0
+          pagination: null
+        });
+      }
+      if (isNaN(pageSz) || pageSz < 1 || pageSz > 100) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize (must be between 1 and 100)',
+          data: null,
+          pagination: null
         });
       }
 
@@ -23,7 +31,7 @@ class WarehouseController {
           success: false,
           message: 'Invalid fromDate format (use YYYY-MM-DD)',
           data: null,
-          totalRecords: 0
+          pagination: null
         });
       }
       if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
@@ -31,7 +39,7 @@ class WarehouseController {
           success: false,
           message: 'Invalid toDate format (use YYYY-MM-DD)',
           data: null,
-          totalRecords: 0
+          pagination: null
         });
       }
 
@@ -46,7 +54,12 @@ class WarehouseController {
         success: true,
         message: 'Warehouses retrieved successfully',
         data: warehouses.data || [],
-        totalRecords: warehouses.totalRecords || 0
+        pagination: {
+          totalRecords: warehouses.totalRecords,
+          currentPage: warehouses.currentPage,
+          pageSize: warehouses.pageSize,
+          totalPages: warehouses.totalPages
+        }
       });
     } catch (err) {
       console.error('getAllWarehouses error:', err.stack);
@@ -54,7 +67,7 @@ class WarehouseController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        pagination: null
       });
     }
   }

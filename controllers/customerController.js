@@ -3,17 +3,23 @@ const CustomerModel = require('../models/customerModel');
 class CustomerController {
   static async getAllCustomers(req, res) {
     try {
-      const { pageNumber = 1, pageSize = 10, fromDate, toDate } = req.query;
+      const { pageNumber, pageSize, fromDate, toDate } = req.query;
 
       // Validate pagination parameters
-      const pageNum = parseInt(pageNumber, 10);
-      const pageSz = parseInt(pageSize, 10);
-      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
+      if (pageNumber && isNaN(parseInt(pageNumber))) {
         return res.status(400).json({
           success: false,
-          message: 'Invalid pageNumber or pageSize',
+          message: 'Invalid pageNumber',
           data: null,
-          totalRecords: 0
+          pagination: null
+        });
+      }
+      if (pageSize && isNaN(parseInt(pageSize))) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid pageSize',
+          data: null,
+          pagination: null
         });
       }
 
@@ -23,7 +29,7 @@ class CustomerController {
           success: false,
           message: 'Invalid fromDate format (use YYYY-MM-DD)',
           data: null,
-          totalRecords: 0
+          pagination: null
         });
       }
       if (toDate && !/^\d{4}-\d{2}-\d{2}$/.test(toDate)) {
@@ -31,22 +37,27 @@ class CustomerController {
           success: false,
           message: 'Invalid toDate format (use YYYY-MM-DD)',
           data: null,
-          totalRecords: 0
+          pagination: null
         });
       }
 
       const customers = await CustomerModel.getAllCustomers({
-        pageNumber: pageNum,
-        pageSize: pageSz,
-        fromDate,
-        toDate
+        pageNumber: parseInt(pageNumber) || 1,
+        pageSize: parseInt(pageSize) || 10,
+        fromDate: fromDate || null,
+        toDate: toDate || null
       });
 
       return res.status(200).json({
         success: true,
         message: 'Customers retrieved successfully',
         data: customers.data || [],
-        totalRecords: customers.totalRecords || 0
+        pagination: {
+          totalRecords: customers.totalRecords,
+          currentPage: customers.currentPage,
+          pageSize: customers.pageSize,
+          totalPages: customers.totalPages
+        }
       });
     } catch (err) {
       console.error('getAllCustomers error:', err.stack);
@@ -54,7 +65,7 @@ class CustomerController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        pagination: null
       });
     }
   }
@@ -81,7 +92,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerName is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (!CompanyID || isNaN(parseInt(CompanyID))) {
@@ -89,7 +100,7 @@ class CustomerController {
           success: false,
           message: 'Valid CompanyID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (!CreatedByID || isNaN(parseInt(CreatedByID))) {
@@ -97,7 +108,7 @@ class CustomerController {
           success: false,
           message: 'Valid CreatedByID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (CustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CustomerEmail)) {
@@ -105,7 +116,7 @@ class CustomerController {
           success: false,
           message: 'Invalid CustomerEmail format',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (BillingCurrencyID && isNaN(parseInt(BillingCurrencyID))) {
@@ -113,7 +124,7 @@ class CustomerController {
           success: false,
           message: 'Valid BillingCurrencyID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (CustomerAddressID && isNaN(parseInt(CustomerAddressID))) {
@@ -121,7 +132,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerAddressID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -151,7 +162,7 @@ class CustomerController {
         success: true,
         message: result.message || 'Customer created successfully',
         data: data,
-        totalRecords: 0
+        customerId: result.customerId
       });
     } catch (err) {
       console.error('createCustomer error:', err.stack);
@@ -159,7 +170,7 @@ class CustomerController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        customerId: null
       });
     }
   }
@@ -174,7 +185,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -185,7 +196,7 @@ class CustomerController {
           success: false,
           message: 'Customer not found',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -193,7 +204,7 @@ class CustomerController {
         success: true,
         message: 'Customer retrieved successfully',
         data: customer,
-        totalRecords: 1
+        customerId: id
       });
     } catch (err) {
       console.error('getCustomerById error:', err.stack);
@@ -201,7 +212,7 @@ class CustomerController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        customerId: null
       });
     }
   }
@@ -229,7 +240,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -238,7 +249,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerName is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (!CompanyID || isNaN(parseInt(CompanyID))) {
@@ -246,7 +257,7 @@ class CustomerController {
           success: false,
           message: 'Valid CompanyID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (!CreatedByID || isNaN(parseInt(CreatedByID))) {
@@ -254,7 +265,7 @@ class CustomerController {
           success: false,
           message: 'Valid CreatedByID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (CustomerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(CustomerEmail)) {
@@ -262,7 +273,7 @@ class CustomerController {
           success: false,
           message: 'Invalid CustomerEmail format',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (BillingCurrencyID && isNaN(parseInt(BillingCurrencyID))) {
@@ -270,7 +281,7 @@ class CustomerController {
           success: false,
           message: 'Valid BillingCurrencyID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
       if (CustomerAddressID && isNaN(parseInt(CustomerAddressID))) {
@@ -278,7 +289,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerAddressID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -308,7 +319,7 @@ class CustomerController {
         success: true,
         message: result.message || 'Customer updated successfully',
         data: null,
-        totalRecords: 0
+        customerId: id
       });
     } catch (err) {
       console.error('updateCustomer error:', err.stack);
@@ -316,7 +327,7 @@ class CustomerController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        customerId: null
       });
     }
   }
@@ -332,7 +343,7 @@ class CustomerController {
           success: false,
           message: 'Valid CustomerID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -341,7 +352,7 @@ class CustomerController {
           success: false,
           message: 'Valid CreatedByID is required',
           data: null,
-          totalRecords: 0
+          customerId: null
         });
       }
 
@@ -353,7 +364,7 @@ class CustomerController {
         success: true,
         message: result.message || 'Customer deleted successfully',
         data: null,
-        totalRecords: 0
+        customerId: id
       });
     } catch (err) {
       console.error('deleteCustomer error:', err.stack);
@@ -361,7 +372,7 @@ class CustomerController {
         success: false,
         message: `Server error: ${err.message}`,
         data: null,
-        totalRecords: 0
+        customerId: null
       });
     }
   }

@@ -5,18 +5,26 @@ class WarehouseModel {
     try {
       const pool = await poolPromise;
 
-      // Validate pagination parameters
-      const pageNum = parseInt(pageNumber, 10);
-      const pageSz = parseInt(pageSize, 10);
-      if (isNaN(pageNum) || pageNum < 1 || isNaN(pageSz) || pageSz < 1) {
-        throw new Error('Invalid pageNumber or pageSize');
+      // Validate date parameters
+      let formattedFromDate = null, formattedToDate = null;
+      if (fromDate) {
+        formattedFromDate = new Date(fromDate);
+        if (isNaN(formattedFromDate)) throw new Error('Invalid fromDate');
+      }
+      if (toDate) {
+        formattedToDate = new Date(toDate);
+        if (isNaN(formattedToDate)) throw new Error('Invalid toDate');
+      }
+      if (formattedFromDate && formattedToDate && formattedFromDate > formattedToDate) {
+        throw new Error('fromDate cannot be later than toDate');
       }
 
-      // Validate date parameters
-      const validatedFromDate = fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null;
-      const validatedToDate = toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null;
-
-      const queryParams = [pageNum, pageSz, validatedFromDate, validatedToDate];
+      const queryParams = [
+        pageNumber,
+        pageSize,
+        formattedFromDate ? formattedFromDate.toISOString().split('T')[0] : null,
+        formattedToDate ? formattedToDate.toISOString().split('T')[0] : null
+      ];
 
       console.log('getAllWarehouses params:', JSON.stringify(queryParams, null, 2));
 
@@ -44,7 +52,10 @@ class WarehouseModel {
 
       return {
         data: Array.isArray(results[0]) ? results[0] : [],
-        totalRecords
+        totalRecords,
+        currentPage: pageNumber,
+        pageSize,
+        totalPages: Math.ceil(totalRecords / pageSize)
       };
     } catch (err) {
       console.error('getAllWarehouses error:', err.stack);

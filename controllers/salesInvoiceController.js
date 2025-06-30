@@ -51,6 +51,44 @@ class SalesInvoiceController {
     }
   }
 
+  // Get Sales Invoice by ID
+  static async getSalesInvoiceById(req, res) {
+    try {
+      const { id } = req.params;
+      const salesInvoiceId = parseInt(id);
+
+      if (isNaN(salesInvoiceId)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid SalesInvoiceID: must be an integer',
+          data: null
+        });
+      }
+
+      const result = await SalesInvoiceModel.getSalesInvoiceById(salesInvoiceId);
+      if (!result.data) {
+        return res.status(404).json({
+          success: false,
+          message: 'Sales Invoice not found',
+          data: null
+        });
+      }
+
+      res.status(200).json({
+        success: true,
+        message: 'Sales Invoice retrieved successfully.',
+        data: result.data
+      });
+    } catch (err) {
+      console.error('Error in getSalesInvoiceById:', err);
+      res.status(500).json({
+        success: false,
+        message: `Server error: ${err.message}`,
+        data: null
+      });
+    }
+  }
+
   // Create a Sales Invoice
   static async createSalesInvoice(req, res) {
     try {
@@ -64,7 +102,7 @@ class SalesInvoiceController {
       }
 
       const data = req.body;
-      // Validate required fields (based on SP_ManageSalesInvoice requirements)
+      // Validate required fields (based on SP_ManageSalesInvoiceDEV requirements)
       if (!data.salesOrderId && !data.salesRFQId) {
         return res.status(400).json({
           success: false,
@@ -89,7 +127,7 @@ class SalesInvoiceController {
     }
   }
 
-  // Approve a Sales Quotation
+  // Approve a Sales Invoice
   static async approveSalesInvoice(req, res) {
     try {
       const { SalesInvoiceID } = req.body;
@@ -98,7 +136,7 @@ class SalesInvoiceController {
       if (!SalesInvoiceID) {
         return res.status(400).json({
           success: false,
-          message: 'PInvoiceID is required',
+          message: 'SalesInvoiceID is required',
           data: null,
           SalesInvoiceID: null,
           newSalesInvoiceID: null
@@ -110,8 +148,8 @@ class SalesInvoiceController {
           success: false,
           message: 'Authentication required',
           data: null,
-          PInvoiceID: null,
-          newPInvoiceID: null
+          SalesInvoiceID: null,
+          newSalesInvoiceID: null
         });
       }
 
