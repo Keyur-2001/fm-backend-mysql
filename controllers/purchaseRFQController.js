@@ -225,6 +225,34 @@ class PurchaseRFQController {
       });
     }
   }
+
+  
+  static async getPurchaseRFQApprovalStatus(req, res) {
+    try {
+      const PurchaseRFQID = parseInt(req.params.id);
+      if (isNaN(PurchaseRFQID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing PurchaseRFQID',
+          data: null,
+          PurchaseRFQID: null,
+          newPurchaseRFQID: null
+        });
+      }
+
+      const result = await PurchaseRFQModel.getPurchaseRFQApprovalStatus(PurchaseRFQID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get PurchaseRFQ Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        PurchaseRFQID: null,
+        newPurchaseRFQID: null
+      });
+    }
+  }
 }
 
 module.exports = PurchaseRFQController;

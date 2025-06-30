@@ -334,6 +334,94 @@ class SalesInvoiceModel {
     }
   }
 
+  // Helper: Insert approval record
+  static async #insertSalesInvoiceApproval(connection, approvalData) {
+    try {
+      const query = `
+        INSERT INTO dbo_tblsalesinvoiceapproval (
+         SalesInvoiceID, ApproverID, ApprovedYN, ApproverDateTime, CreatedByID, CreatedDateTime, IsDeleted
+        ) VALUES (
+          ?, ?, ?, NOW(), ?, NOW(), 0
+        );
+      `;
+      const [result] = await connection.query(query, [
+        parseInt(approvalData.SalesInvoiceID),
+        parseInt(approvalData.ApproverID),
+        1,
+        parseInt(approvalData.ApproverID)
+      ]);
+      console.log(`Insert Debug: SalesInvoiceID=${approvalData.SalesInvoiceID}, ApproverID=${approvalData.ApproverID}, InsertedID=${result.insertId}`);
+      return { success: true, message: 'Approval record inserted successfully.', insertId: result.insertId };
+    } catch (error) {
+      throw new Error(`Error inserting Sales Invoice approval: ${error.message}`);
+    }
+  }
+     static async getSalesInvoiceApprovalStatus(SalesInvoiceID) {
+    try {
+      const pool = await poolPromise;
+      const formName = 'Sales Invoice';
+
+      // Get FormID
+      const [form] = await pool.query(
+        'SELECT FormID FROM dbo_tblform WHERE FormName = ? AND IsDeleted = 0',
+        [formName]
+      );
+      if (!form.length) {
+        throw new Error('Invalid FormID for Purchase Invoice');
+      }
+      const formID = form[0].FormID;
+
+      // Get required approvers
+      const [requiredApprovers] = await pool.query(
+        `SELECT DISTINCT fra.UserID, p.FirstName, p.LastName
+         FROM dbo_tblformroleapprover fra
+         JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID
+         JOIN dbo_tblperson p ON fra.UserID = p.PersonID
+         WHERE fr.FormID = ? AND fra.ActiveYN = 1 AND p.IsDeleted = 0`,
+        [formID]
+      );
+
+      // Get completed approvals
+      const [completedApprovals] = await pool.query(
+        `SELECT s.ApproverID, p.FirstName, p.LastName, s.ApproverDateTime
+         FROM dbo_tblsalesinvoiceapproval s
+         JOIN dbo_tblperson p ON s.ApproverID = p.PersonID
+         WHERE s.SalesInvoiceID = ? AND s.IsDeleted = 0 AND s.ApprovedYN = 1
+         AND s.ApproverID IN (
+           SELECT DISTINCT fra.UserID 
+           FROM dbo_tblformroleapprover fra 
+           JOIN dbo_tblformrole fr ON fra.FormRoleID = fr.FormRoleID 
+           WHERE fr.FormID = ? AND fra.ActiveYN = 1
+         )`,
+        [parseInt(SalesInvoiceID), formID]
+      );
+
+      // Prepare approval status
+      const approvalStatus = requiredApprovers.map(approver => ({
+        UserID: approver.UserID,
+        FirstName: approver.FirstName,
+        LastName: approver.LastName,
+        Approved: completedApprovals.some(a => a.ApproverID === approver.UserID),
+        ApproverDateTime: completedApprovals.find(a => a.ApproverID === approver.UserID)?.ApproverDateTime || null
+      }));
+
+      return {
+        success: true,
+        message: 'Approval status retrieved successfully',
+        data: {
+          SalesInvoiceID,
+          requiredApprovers: requiredApprovers.length,
+          completedApprovals: completedApprovals.length,
+          approvalStatus
+        },
+        SalesInvoiceID: SalesInvoiceID.toString(),
+        newSalesInvoiceID: null
+      };
+    } catch (error) {
+      console.error('Error in getSalesInvoiceApprovalStatus:', error);
+      throw new Error(`Error retrieving approval status: ${error.message}`);
+    }
+  }
 
 }
 

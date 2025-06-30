@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const PInvoiceController = require('../controllers/pInvoiceController');
 const authMiddleware = require('../middleware/authMiddleware');
+const tableAccessMiddleware = require('../middleware/tableAccessMiddleware');
+const permissionMiddleware = require('../middleware/permissionMiddleware');
 
 // Get all Purchase Invoices
 router.get('/', PInvoiceController.getAllPInvoices);
@@ -19,6 +21,11 @@ router.put('/:id', authMiddleware, PInvoiceController.updatePInvoice);
 router.delete('/:id', authMiddleware, PInvoiceController.deletePInvoice);
 
 router.post('/approve', authMiddleware, PInvoiceController.approvePInvoice);
+
+// Get Purchase Invoice approval status (requires read permission on Purchase Invoice table)
+router.get('/:id/approval-status', authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PInvoiceController.getPInvoiceApprovalStatus);
+
+
 
 
 module.exports = router;

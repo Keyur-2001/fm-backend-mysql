@@ -283,6 +283,33 @@ class SalesQuotationController {
       });
     }
   }
+
+   static async getSalesQuotationApprovalStatus(req, res) {
+    try {
+      const SalesQuotationID = parseInt(req.params.id);
+      if (isNaN(SalesQuotationID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing SalesQuotationID',
+          data: null,
+          SalesQuotationID: null,
+          newSalesQuotationID: null
+        });
+      }
+
+      const result = await SalesQuotationModel.getSalesQuotationApprovalStatus(SalesQuotationID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get SalesQuotation Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        SalesQuotationID: null,
+        newSalesQuotationID: null
+      });
+    }
+  }
 }
 
 module.exports = SalesQuotationController;

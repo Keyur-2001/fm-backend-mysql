@@ -1,6 +1,6 @@
 const { getPurchaseRFQDetails, getSupplierDetails, createSupplierQuotation, getSupplierQuotationDetails } = require('../models/sentPurchaseRFQToSuppliersModel');
 const { generateRFQPDF } = require('../services/pdfGenerator');
-const { sendRFQEmail } = require('../utils/emailSender');
+const { sendDocumentEmail } = require('../utils/emailSender');
 const Bottleneck = require('bottleneck');
 
 const limiter = new Bottleneck({ maxConcurrent: 10, minTime: 100 });
@@ -50,7 +50,7 @@ async function sendRFQToSuppliers(req, res) {
 
           // Send email with rate limiting
           console.log(`Sending email to ${supplier.SupplierEmail} for RFQ ${rfqDetails.Series}`);
-          const emailResult = await limiter.schedule(() => sendRFQEmail(supplier.SupplierEmail, rfqDetails.Series, pdfBuffer));
+          const emailResult = await limiter.schedule(() => sendDocumentEmail(supplier.SupplierEmail, rfqDetails.Series, pdfBuffer, 'PurchaseRFQ'));
 
           return {
             supplierID,

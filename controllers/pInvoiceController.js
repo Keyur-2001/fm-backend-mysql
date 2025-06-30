@@ -195,6 +195,33 @@ class PInvoiceController {
       });
     }
   }
+
+       static async getPInvoiceApprovalStatus(req, res) {
+    try {
+      const PInvoiceID = parseInt(req.params.id);
+      if (isNaN(PInvoiceID)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid or missing PurchaseInvoiceID',
+          data: null,
+          PInvoiceID: null,
+          newPInvoiceID: null
+        });
+      }
+
+      const result = await PInvoiceModel.getPInvoiceApprovalStatus(PInvoiceID);
+      return res.status(result.success ? 200 : 400).json(result);
+    } catch (error) {
+      console.error('Get PurchaseInvoice Approval Status error:', error);
+      return res.status(500).json({
+        success: false,
+        message: `Server error: ${error.message}`,
+        data: null,
+        PInvoiceID: null,
+        newPInvoiceID: null
+      });
+    }
+  }
 }
 
 module.exports = PInvoiceController;
