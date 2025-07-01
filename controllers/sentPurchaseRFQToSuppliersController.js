@@ -1,4 +1,4 @@
-const { getPurchaseRFQDetails, getSupplierDetails, createSupplierQuotation, getSupplierQuotationDetails } = require('../models/sentPurchaseRFQToSuppliersModel');
+const { getPurchaseRFQDetails, getSupplierDetails, createSupplierQuotation, getSupplierQuotationDetails, logPurchaseRFQToSupplier } = require('../models/sentPurchaseRFQToSuppliersModel');
 const { generateRFQPDF } = require('../services/pdfGenerator');
 const { sendDocumentEmail } = require('../utils/emailSender');
 const Bottleneck = require('bottleneck');
@@ -52,11 +52,14 @@ async function sendRFQToSuppliers(req, res) {
           console.log(`Sending email to ${supplier.SupplierEmail} for RFQ ${rfqDetails.Series}`);
           const emailResult = await limiter.schedule(() => sendDocumentEmail(supplier.SupplierEmail, rfqDetails.Series, pdfBuffer, 'PurchaseRFQ'));
 
+          // Log the RFQ sent to supplier
+          await logPurchaseRFQToSupplier(purchaseRFQID, supplierID, createdByID);
+
           return {
             supplierID,
             supplierQuotationID,
             success: true,
-            message: `Supplier Quotation (ID: ${supplierQuotationID}) sent to ${supplier.SupplierEmail}`,
+            message: `Supplier Quotation (ID: ${supplierQuotationID}) sent to ${supplier.SupplierEmail} and logged`,
           };
         } catch (error) {
           console.error(`Error for SupplierID=${supplierID}:`, error.message, error.stack);

@@ -6,19 +6,19 @@ const tableAccessMiddleware = require('../middleware/tableAccessMiddleware');
 const permissionMiddleware =  require('../middleware/permissionMiddleware')
 
 // Get all Purchase RFQs
-router.get('/',  tableAccessMiddleware, permissionMiddleware('read'), authMiddleware, PurchaseRFQController.getAllPurchaseRFQs);
+router.get('/',  authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PurchaseRFQController.getAllPurchaseRFQs);
 
 // Create a new Purchase RFQ
-router.post('/',  tableAccessMiddleware, permissionMiddleware('write'), authMiddleware, PurchaseRFQController.createPurchaseRFQ);
+router.post('/',  authMiddleware, tableAccessMiddleware, permissionMiddleware('write'), PurchaseRFQController.createPurchaseRFQ);
 
 // Get a single Purchase RFQ by ID
-router.get('/:id', tableAccessMiddleware, permissionMiddleware('read'),   PurchaseRFQController.getPurchaseRFQById);
+router.get('/:id', authMiddleware, tableAccessMiddleware, permissionMiddleware('read'), PurchaseRFQController.getPurchaseRFQById);
 
 // Update a Purchase RFQ
-router.put('/:id', tableAccessMiddleware, permissionMiddleware('update'),  authMiddleware, PurchaseRFQController.updatePurchaseRFQ);
+router.put('/:id',  authMiddleware, tableAccessMiddleware, permissionMiddleware('update'), PurchaseRFQController.updatePurchaseRFQ);
 
 // Delete a Purchase RFQ
-router.delete('/:id', tableAccessMiddleware, permissionMiddleware('delete'),  authMiddleware, PurchaseRFQController.deletePurchaseRFQ);
+router.delete('/:id',  authMiddleware, tableAccessMiddleware, permissionMiddleware('delete'), PurchaseRFQController.deletePurchaseRFQ);
 
 // Approve a Purchase RFQ
 router.post('/approve', authMiddleware, PurchaseRFQController.approvePurchaseRFQ);

@@ -59,6 +59,9 @@ const pInvoiceParcelRoutes = require('./routes/pInvoiceParcelRoutes');
 const pInvoiceApprovalRoutes = require('./routes/pInvoiceApprovalRoutes');
 const salesInvoiceRoutes = require('./routes/salesInvoiceRoutes');
 const purchaseRFQToSupplierRoutes = require('./routes/purchaseRFQToSupplierRoutes');
+const inquiryTrackingRoutes = require('./routes/inquiryTrackingRoutes');
+const commentsRoutes = require('./routes/commentsRoutes');
+const tableCountsRoutes = require('./routes/tableCountsRoutes');
 
 const app = express();
 
@@ -190,7 +193,10 @@ async function startServer() {
       ['/api/salesInvoice', salesInvoiceRoutes],
       ['/api/lowestItemPrice', lowestItemPriceRoutes],
       ['/api/tableAccess', tableAccessRoutes],
-      ['/api/purchaseRFQToSupplier', purchaseRFQToSupplierRoutes]
+      ['/api/purchaseRFQToSupplier', purchaseRFQToSupplierRoutes],
+      ['/api/inquiryTracking', inquiryTrackingRoutes],
+      ['/api/comments', commentsRoutes],
+      ['/api/tableCountss', tableCountsRoutes]
     ];
 
     routes.forEach(([path, route]) => {
@@ -211,7 +217,7 @@ async function startServer() {
     });
 
     // dummy
-    const PORT = process.env.PORT || 7001;
+    const PORT = process.env.PORT || 7000;
     server.listen(PORT, () => {
       console.log(`Server running on port ${PORT} in ${process.env.NODE_ENV || 'development'} mode`);
     });
