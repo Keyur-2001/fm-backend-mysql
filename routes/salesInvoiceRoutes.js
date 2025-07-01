@@ -14,7 +14,6 @@ router.get('/:id',authMiddleware, tableAccessMiddleware, permissionMiddleware('r
 // Create a Sales Invoice (protected route)
 router.post('/', authMiddleware, tableAccessMiddleware, permissionMiddleware('write'), SalesInvoiceController.createSalesInvoice);
 
-// Approve a Sales Invoice (protected route)
 router.post('/approve', authMiddleware, SalesInvoiceController.approveSalesInvoice);
 
 // Get Sales Invoice approval status (requires read permission on Sales Invoice table)

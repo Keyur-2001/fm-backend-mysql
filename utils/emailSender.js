@@ -38,7 +38,7 @@ async function sendDocumentEmail(toEmail, series, pdfBuffer, documentType) {
     }
 
     const mailOptions = {
-      from: `"Fleet Monkey" <keyur.it2001@gmail.com>`,
+      from: `"Fleet Monkey" <${process.env.SMTP_USER}>`,
       to: toEmail,
       subject,
       text,
